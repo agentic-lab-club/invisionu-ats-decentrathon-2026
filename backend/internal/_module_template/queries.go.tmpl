@@ -1,0 +1,10 @@
+package moduletemplate
+
+import _ "embed"
+
+//go:embed queries/create_thing.sql
+var CreateThing string
+
+//go:embed queries/get_thing_by_id.sql
+var GetThingByID string
+

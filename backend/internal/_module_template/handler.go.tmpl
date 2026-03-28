@@ -1,0 +1,97 @@
+package moduletemplate
+
+import (
+	"github.com/gofiber/fiber/v3"
+	"github.com/google/uuid"
+	"github.com/rs/zerolog"
+	respond "github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/pkg/http/responder"
+)
+
+type Handler struct {
+	service *Service
+}
+
+func NewHandler(service *Service) *Handler {
+	return &Handler{service: service}
+}
+
+// CreateThing godoc
+// @Summary Create thing
+// @Description Create a new thing
+// @Tags @moduletemplate
+// @Accept json
+// @Produce json
+// @Security BearerToken
+// @Param request body CreateThingDTO true "Thing payload"
+// @Success 201 {object} ThingResponse
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/v1/things [post]
+func (h *Handler) CreateThing(c fiber.Ctx) error {
+	l := c.Locals("log").(*zerolog.Logger)
+	dto := c.Locals("body").(CreateThingDTO)
+	userID := c.Locals("auth_id").(uuid.UUID)
+
+	l.Info().
+		Str("event", "moduletemplate_create_thing_start").
+		Str("user_id", userID.String()).
+		Msg("Create thing started")
+
+	t, err := h.service.CreateThing(dto)
+	if err != nil {
+		l.Error().
+			Err(err).
+			Str("event", "moduletemplate_create_thing_failed").
+			Int("http_status", fiber.StatusInternalServerError).
+			Msg("Create thing failed")
+		return respond.ErrorStatus(c, err, fiber.StatusInternalServerError)
+	}
+
+	l.Info().
+		Str("event", "moduletemplate_create_thing_success").
+		Str("thing_id", t.ID.String()).
+		Msg("Create thing success")
+
+	return respond.Created(c, ThingResponse{ID: t.ID, Name: t.Name}, nil)
+}
+
+// GetThing godoc
+// @Summary Get thing
+// @Description Get thing by id
+// @Tags @moduletemplate
+// @Produce json
+// @Security BearerToken
+// @Param id path string true "Thing ID"
+// @Success 200 {object} ThingResponse
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 404 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/v1/things/{id} [get]
+func (h *Handler) GetThing(c fiber.Ctx) error {
+	l := c.Locals("log").(*zerolog.Logger)
+	id := c.Locals("id").(uuid.UUID)
+
+	l.Info().
+		Str("event", "moduletemplate_get_thing_start").
+		Str("thing_id", id.String()).
+		Msg("Get thing started")
+
+	t, err := h.service.GetThing(id)
+	if err != nil {
+		l.Error().
+			Err(err).
+			Str("event", "moduletemplate_get_thing_failed").
+			Int("http_status", fiber.StatusInternalServerError).
+			Msg("Get thing failed")
+		return respond.ErrorStatus(c, err, fiber.StatusInternalServerError)
+	}
+
+	if t == nil {
+		return respond.WithStatus(c, fiber.Map{"error": "not found"}, nil, fiber.StatusNotFound)
+	}
+
+	return respond.OK(c, ThingResponse{ID: t.ID, Name: t.Name}, nil)
+}
+

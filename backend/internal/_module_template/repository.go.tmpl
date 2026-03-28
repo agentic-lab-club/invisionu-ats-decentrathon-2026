@@ -1,0 +1,37 @@
+package moduletemplate
+
+import (
+	"fmt"
+
+	"github.com/google/uuid"
+	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/pkg/database"
+)
+
+type Repository struct {
+	db *database.TrackedDB
+}
+
+func NewRepository(db *database.TrackedDB) *Repository {
+	return &Repository{db: db}
+}
+
+func (r *Repository) CreateThing(t *Thing) error {
+	if t.ID == uuid.Nil {
+		t.ID = uuid.New()
+	}
+
+	_, err := r.db.TrackedExec("insert", r.db.Rebind(CreateThing), t.ID, t.Name)
+	if err != nil {
+		return fmt.Errorf("failed to create thing: %w", err)
+	}
+	return nil
+}
+
+func (r *Repository) GetThingByID(id uuid.UUID) (*Thing, error) {
+	var t Thing
+	if err := r.db.TrackedGet(&t, r.db.Rebind(GetThingByID), id); err != nil {
+		return nil, fmt.Errorf("failed to get thing by id: %w", err)
+	}
+	return &t, nil
+}
+

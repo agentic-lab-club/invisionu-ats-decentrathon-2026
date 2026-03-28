@@ -1,0 +1,16 @@
+config.local.yaml
+config.prod.yaml
+
+# Build artifacts
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Local Go caches (used when GOCACHE/GOMODCACHE/GOTMPDIR are redirected)
+.gocache/
+.gomodcache/
+.gotmp/
+.cache/
+
+

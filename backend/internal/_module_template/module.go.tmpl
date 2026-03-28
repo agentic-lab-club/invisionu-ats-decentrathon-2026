@@ -1,0 +1,33 @@
+package moduletemplate
+
+import (
+	"github.com/gofiber/fiber/v3"
+	"github.com/google/uuid"
+	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/pkg/config"
+	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/pkg/database"
+	md "github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/pkg/http/middlewares"
+)
+
+func Init(server *fiber.App, db *database.TrackedDB, cfg *config.Config) {
+	RegisterRoutes(server, db, cfg)
+}
+
+func RegisterRoutes(server *fiber.App, db *database.TrackedDB, cfg *config.Config) {
+	api := server.Group("/api/v1")
+
+	repo := NewRepository(db)
+	svc := NewService(repo)
+	h := NewHandler(svc)
+
+	things := api.Group("/things")
+	things.Post("/",
+		md.AuthRole(cfg, db, "User", "Administrator"),
+		md.BindAndValidate[CreateThingDTO](),
+		h.CreateThing)
+
+	things.Get("/:id",
+		md.AuthRole(cfg, db, "User", "Administrator"),
+		md.ValidateParam[uuid.UUID]("id"),
+		h.GetThing)
+}
+

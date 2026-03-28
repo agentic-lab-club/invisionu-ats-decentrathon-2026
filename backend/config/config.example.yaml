@@ -1,0 +1,74 @@
+# =========================
+# Backend
+# =========================
+
+server:
+  http_port: 8080
+  http_host: "0.0.0.0"
+
+database:
+  host: "localhost"
+  port: 5432
+  user: "postgres"
+  password: "password"
+  name: "mydb"
+  sslmode: "disable"
+
+# development/staging/production
+environment: "development"
+
+gotenberg:
+  url: "http://localhost:3000"
+
+# =========================
+# Modules and Services on internal/
+# =========================
+
+
+# =========================
+# OBSERVABILITY SETTINGS
+# =========================
+
+# Logging configuration
+logging:
+  level: "debug"           # debug, info, warn, error
+  format: "console"        # json (production) or console (development)
+  output: "stdout"         # stdout, stderr, or file path
+  time_format: "2006-01-02T15:04:05Z07:00"
+  sensitive_paths:         # Endpoints with sensitive data (cards, passwords) - body_preview will be <redacted> (e.g. - "/api/v1/")
+
+# =========================
+# SECURITY SETTINGS
+# =========================
+
+security:
+  # CORS settings
+  allowed_origins:
+    - "http://localhost:3000"
+    - "http://localhost:8080"
+    - "*"                    # Allow all for development (restrict in production!)
+  allowed_methods:
+    - "GET"
+    - "POST"
+    - "PUT"
+    - "DELETE"
+    - "PATCH"
+    - "HEAD"
+    - "OPTIONS"
+  allowed_headers:
+    - "Origin"
+    - "Content-Type"
+    - "Accept"
+    - "Authorization"
+    - "X-Request-ID"
+    - "X-Correlation-ID"
+  expose_headers:
+    - "X-Request-ID"
+    - "X-Correlation-ID"
+  allow_credentials: false
+  max_age: 300             # Preflight cache duration in seconds
+  rate_limit_max: 100      # Maximum requests per window
+  rate_limit_window_seconds: 60  # Time window in seconds
+  request_timeout_seconds: 30
+  trusted_proxies:
+    - "127.0.0.1"

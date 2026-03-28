@@ -1,0 +1,46 @@
+networks:
+  myproject-network:
+    external: true
+
+volumes:
+  postgres_prod-data:
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: postgres_prod
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_DATABASE}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_prod-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_DATABASE}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks:
+      - myproject-network
+
+  golang:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    #image: ${IMAGE_FULL:-golang-backend:latest}
+    container_name: golang_prod
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    command: ["-config=prod"]
+    volumes:
+      - ./config:/app/config:ro
+    labels:  # Добавь этот блок
+      - "traefik.enable=true"
+      - "traefik.http.routers.golang.rule=Host(`api.yourdomain.com`)"  # Или PathPrefix(`/api`)
+      - "traefik.http.routers.golang.entrypoints=websecure"
+      - "traefik.http.routers.golang.tls.certresolver=myresolver"
+      - "traefik.http.services.golang.loadbalancer.server.port=8080"  # Internal порт
+    networks:
+      - myproject-network
