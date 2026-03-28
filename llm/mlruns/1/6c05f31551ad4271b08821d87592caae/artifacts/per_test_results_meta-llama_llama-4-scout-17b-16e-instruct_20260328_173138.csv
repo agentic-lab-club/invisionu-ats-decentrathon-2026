@@ -1,0 +1,7 @@
+test_id,label,path,schema_pass,latency_sec,model,attempt,motivation,leadership_potential,response_structure,total,error
+good_1,good,test_inputs/good_candidate_1.txt,1,4.9234,meta-llama/llama-4-scout-17b-16e-instruct,1,22,27,24,73,
+good_2,good,test_inputs/good_candidate_2.txt,1,3.3788,meta-llama/llama-4-scout-17b-16e-instruct,1,22,27,24,73,
+mid_1,middle,test_inputs/middle_candidate_1.txt,1,3.3836,meta-llama/llama-4-scout-17b-16e-instruct,1,12,15,15,42,
+mid_2,middle,test_inputs/middle_candidate_2.txt,1,2.3516,meta-llama/llama-4-scout-17b-16e-instruct,1,17,23,20,60,
+bad_1,bad,test_inputs/bad_candidate_1.txt,1,6.0388,meta-llama/llama-4-scout-17b-16e-instruct,2,4,1,10,15,
+bad_2,bad,test_inputs/bad_candidate_2.txt,0,10.0334,meta-llama/llama-4-scout-17b-16e-instruct,,,,,,"Не удалось получить валидный JSON после 4 попыток: Expecting ',' delimiter: line 87 column 35 (char 2966)"

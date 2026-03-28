@@ -1,0 +1,7 @@
+test_id,label,path,schema_pass,latency_sec,model,attempt,motivation,leadership_potential,response_structure,total,error
+good_1,good,test_inputs/good_candidate_1.txt,1,2.3402,moonshotai/kimi-k2-instruct-0905,1,21,22,25,68,
+good_2,good,test_inputs/good_candidate_2.txt,1,2.2935,moonshotai/kimi-k2-instruct-0905,1,20,25,25,70,
+mid_1,middle,test_inputs/middle_candidate_1.txt,1,2.6644,moonshotai/kimi-k2-instruct-0905,1,10,11,19,40,
+mid_2,middle,test_inputs/middle_candidate_2.txt,1,2.7638,moonshotai/kimi-k2-instruct-0905,1,12,18,21,51,
+bad_1,bad,test_inputs/bad_candidate_1.txt,1,3.089,moonshotai/kimi-k2-instruct-0905,1,2,0,16,18,
+bad_2,bad,test_inputs/bad_candidate_2.txt,1,2.3687,moonshotai/kimi-k2-instruct-0905,1,1,0,16,17,

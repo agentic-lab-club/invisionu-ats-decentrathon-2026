@@ -1,0 +1,345 @@
+[
+  {
+    "test_id": "good_1",
+    "label": "good",
+    "path": "test_inputs/good_candidate_1.txt",
+    "schema_pass": 0,
+    "latency_sec": 31.8319194316864,
+    "model": "openai/gpt-oss-20b",
+    "attempt": null,
+    "result_count": null,
+    "error": "Не удалось получить валидный JSON после 4 попыток: Expecting ',' delimiter: line 15 column 8 (char 506)",
+    "answer": null
+  },
+  {
+    "test_id": "good_2",
+    "label": "good",
+    "path": "test_inputs/good_candidate_2.txt",
+    "schema_pass": 0,
+    "latency_sec": 80.07920002937317,
+    "model": "openai/gpt-oss-20b",
+    "attempt": null,
+    "result_count": null,
+    "error": "Не удалось получить валидный JSON после 4 попыток: Expecting ',' delimiter: line 85 column 4 (char 3907)",
+    "answer": null
+  },
+  {
+    "test_id": "mid_1",
+    "label": "middle",
+    "path": "test_inputs/middle_candidate_1.txt",
+    "schema_pass": 1,
+    "latency_sec": 67.78349280357361,
+    "model": "openai/gpt-oss-20b",
+    "attempt": 4,
+    "result_count": {
+      "motivation": 12,
+      "leadership_potential": 16,
+      "response_structure": 19,
+      "total": 47
+    },
+    "error": null,
+    "answer": {
+      "motivation": {
+        "subscores": {
+          "university_specificity": 2,
+          "program_fit": 3,
+          "goal_alignment": 3,
+          "intrinsic_motivation": 2,
+          "specificity_of_reasoning": 2
+        },
+        "evidence": [
+          {
+            "subscore": "university_specificity",
+            "quote": "I read about the university and saw that students can work on practical projects, which is interesting for me.",
+            "reason": "Mentions practical projects but lacks deeper detail about university culture or faculty."
+          },
+          {
+            "subscore": "program_fit",
+            "quote": "I am interested in the Innovative IT Product Design and Development program because it includes both programming and product topics. I think this can help me understand how to build better applications.",
+            "reason": "Shows alignment between program content and personal interest."
+          },
+          {
+            "subscore": "goal_alignment",
+            "quote": "My long-term goal is to work as a software engineer and later maybe create my own product. I believe this program can support that path.",
+            "reason": "Explicitly connects program to career goals."
+          },
+          {
+            "subscore": "intrinsic_motivation",
+            "quote": "I like IT and I want to improve my skills.",
+            "reason": "Generic statement with limited evidence of deeper internal drive."
+          },
+          {
+            "subscore": "specificity_of_reasoning",
+            "quote": "I read about the university and saw that students can work on practical projects, which is interesting for me.",
+            "reason": "Reasoning is broad and not highly specific."
+          }
+        ],
+        "weaknesses": [
+          "Motivation lacks depth and concrete examples of what attracts the candidate to inVision U beyond generic interest in IT."
+        ]
+      },
+      "leadership_potential": {
+        "subscores": {
+          "leadership_definition_quality": 1,
+          "concrete_example_presence": 4,
+          "initiative": 3,
+          "responsibility": 3,
+          "impact": 2,
+          "reflection": 3
+        },
+        "evidence": [
+          {
+            "subscore": "leadership_definition_quality",
+            "quote": "I still need to improve leadership skills, especially conflict handling and delegation.",
+            "reason": "No clear definition of leadership is provided."
+          },
+          {
+            "subscore": "concrete_example_presence",
+            "quote": "I had one team experience in a school project where we created a small website for announcements. At first we were not very organized and missed a few deadlines. I tried to remind everyone about tasks and we eventually finished.",
+            "reason": "Provides a specific team scenario."
+          },
+          {
+            "subscore": "initiative",
+            "quote": "I tried to remind everyone about tasks and we eventually finished.",
+            "reason": "Shows proactive action to address a problem."
+          },
+          {
+            "subscore": "responsibility",
+            "quote": "I tried to remind everyone about tasks and we eventually finished.",
+            "reason": "Demonstrates ownership of a task."
+          },
+          {
+            "subscore": "impact",
+            "quote": "The result was acceptable, but not perfect.",
+            "reason": "Impact is modest; outcome was only acceptable."
+          },
+          {
+            "subscore": "reflection",
+            "quote": "From this I learned that communication is important and planning should start earlier. I still need to improve leadership skills, especially conflict handling and delegation.",
+            "reason": "Shows learning and self-awareness."
+          }
+        ],
+        "weaknesses": [
+          "Leadership definition is vague.",
+          "Impact of leadership action is minimal.",
+          "No evidence of broader influence beyond the immediate team."
+        ]
+      },
+      "response_structure": {
+        "subscores": {
+          "clarity": 4,
+          "coherence": 3,
+          "completeness": 4,
+          "relevance": 4,
+          "conciseness": 4
+        },
+        "evidence": [
+          {
+            "subscore": "clarity",
+            "quote": "Hello, my name is Nursultan.",
+            "reason": "Opening statement is clear and sets context."
+          },
+          {
+            "subscore": "coherence",
+            "quote": "I had one team experience in a school project where we created a small website for announcements. At first we were not very organized and missed a few deadlines. I tried to remind everyone about tasks and we eventually finished.",
+            "reason": "Narrative flows logically from problem to action to outcome."
+          },
+          {
+            "subscore": "completeness",
+            "quote": "My family generally supports my decision. My mother encourages me to continue studying and not stop after failures.",
+            "reason": "Addresses family support question."
+          },
+          {
+            "subscore": "relevance",
+            "quote": "I am interested in the Innovative IT Product Design and Development program because it includes both programming and product topics.",
+            "reason": "Directly responds to program interest prompt."
+          },
+          {
+            "subscore": "conciseness",
+            "quote": "Thank you.",
+            "reason": "Ends with a brief closing, avoiding unnecessary repetition."
+          }
+        ],
+        "weaknesses": [
+          "Some transitions between sections are abrupt, slightly affecting coherence."
+        ]
+      },
+      "context_notes": {
+        "family_support_context": "My family generally supports my decision.",
+        "encouragement_source": "My mother encourages me to continue studying and not stop after failures."
+      },
+      "risk_flags": [],
+      "missing_evidence": [
+        "Leadership definition quality",
+        "Impact evidence"
+      ]
+    }
+  },
+  {
+    "test_id": "mid_2",
+    "label": "middle",
+    "path": "test_inputs/middle_candidate_2.txt",
+    "schema_pass": 0,
+    "latency_sec": 70.04010915756226,
+    "model": "openai/gpt-oss-20b",
+    "attempt": null,
+    "result_count": null,
+    "error": "Не удалось получить валидный JSON после 4 попыток: Expecting ',' delimiter: line 56 column 8 (char 2466)",
+    "answer": null
+  },
+  {
+    "test_id": "bad_1",
+    "label": "bad",
+    "path": "test_inputs/bad_candidate_1.txt",
+    "schema_pass": 0,
+    "latency_sec": 68.1970899105072,
+    "model": "openai/gpt-oss-20b",
+    "attempt": null,
+    "result_count": null,
+    "error": "Не удалось получить валидный JSON после 4 попыток: Expecting ',' delimiter: line 35 column 8 (char 1549)",
+    "answer": null
+  },
+  {
+    "test_id": "bad_2",
+    "label": "bad",
+    "path": "test_inputs/bad_candidate_2.txt",
+    "schema_pass": 1,
+    "latency_sec": 17.820920944213867,
+    "model": "openai/gpt-oss-20b",
+    "attempt": 1,
+    "result_count": {
+      "motivation": 1,
+      "leadership_potential": 0,
+      "response_structure": 14,
+      "total": 15
+    },
+    "error": null,
+    "answer": {
+      "motivation": {
+        "subscores": {
+          "university_specificity": 1,
+          "program_fit": 0,
+          "goal_alignment": 0,
+          "intrinsic_motivation": 0,
+          "specificity_of_reasoning": 0
+        },
+        "evidence": [
+          {
+            "subscore": "university_specificity",
+            "quote": "I am applying because I need to enter a university this year. I saw the name inVision U online, so I decided to try.",
+            "reason": "Mentions only a generic need to enroll, no specific reasons for choosing inVision U."
+          },
+          {
+            "subscore": "program_fit",
+            "quote": "I selected Innovative IT Product Design and Development, but honestly I am not sure what exactly is taught there.",
+            "reason": "Shows uncertainty about the program, indicating lack of fit explanation."
+          },
+          {
+            "subscore": "goal_alignment",
+            "quote": "I do not have a strong long-term plan now. I just want to get education and then see what happens.",
+            "reason": "No clear long‑term goals linked to the program."
+          },
+          {
+            "subscore": "intrinsic_motivation",
+            "quote": "I am applying because I need to enter a university this year.",
+            "reason": "Motivation appears external (need to enroll) rather than internal drive."
+          },
+          {
+            "subscore": "specificity_of_reasoning",
+            "quote": "I saw the name inVision U online, so I decided to try.",
+            "reason": "Reasoning is generic and lacks concrete, non‑generic details."
+          }
+        ],
+        "weaknesses": [
+          "Minimal evidence of specific reasons for choosing inVision U.",
+          "No clear connection between program content and personal interests or background.",
+          "Absence of articulated long‑term goals or how the program supports them.",
+          "Motivation appears primarily external with no indication of internal values or purpose.",
+          "Reasoning is vague and lacks concrete, non‑generic justification."
+        ]
+      },
+      "leadership_potential": {
+        "subscores": {
+          "leadership_definition_quality": 0,
+          "concrete_example_presence": 0,
+          "initiative": 0,
+          "responsibility": 0,
+          "impact": 0,
+          "reflection": 0
+        },
+        "evidence": [
+          {
+            "subscore": "concrete_example_presence",
+            "quote": "In group work I usually follow others and rarely take responsibility. During one school assignment our team had disagreements and I did not participate much. We submitted late and the result was weak.",
+            "reason": "Describes a situation but does not provide an example of leadership or proactive action."
+          }
+        ],
+        "weaknesses": [
+          "No definition or explanation of what leadership means to the candidate.",
+          "No example of the candidate taking initiative or leading a group.",
+          "No evidence of responsibility, ownership, or decision‑making.",
+          "No demonstration of impact on people, process, or results.",
+          "No reflection on learning or growth from any experience."
+        ]
+      },
+      "response_structure": {
+        "subscores": {
+          "clarity": 4,
+          "coherence": 3,
+          "completeness": 1,
+          "relevance": 2,
+          "conciseness": 4
+        },
+        "evidence": [
+          {
+            "subscore": "clarity",
+            "quote": "Hi. I am applying because I need to enter a university this year. I saw the name inVision U online, so I decided to try.",
+            "reason": "The sentences are straightforward and easy to understand."
+          },
+          {
+            "subscore": "coherence",
+            "quote": "I selected Innovative IT Product Design and Development, but honestly I am not sure what exactly is taught there. I have almost no technical background and I did not complete any product-related projects.",
+            "reason": "Ideas flow logically from program choice to background."
+          },
+          {
+            "subscore": "completeness",
+            "quote": "I do not have a strong long-term plan now. I just want to get education and then see what happens.",
+            "reason": "The response does not fully address all expected questions, especially long‑term goals."
+          },
+          {
+            "subscore": "relevance",
+            "quote": "In group work I usually follow others and rarely take responsibility.",
+            "reason": "Partially relevant to leadership questions but not to motivation or program fit."
+          },
+          {
+            "subscore": "conciseness",
+            "quote": "Thank you.",
+            "reason": "The overall response is brief and avoids unnecessary repetition."
+          }
+        ],
+        "weaknesses": [
+          "The answer does not cover all prompts, notably the specific motivation for inVision U and detailed program fit.",
+          "Some statements are generic and do not directly respond to the questions about long‑term goals or leadership."
+        ]
+      },
+      "context_notes": {
+        "family_support_context": "Parents are neutral and supportive of education in general but did not discuss this specific program.",
+        "encouragement_source": "None explicitly mentioned."
+      },
+      "risk_flags": [],
+      "missing_evidence": [
+        "university_specificity",
+        "program_fit",
+        "goal_alignment",
+        "intrinsic_motivation",
+        "specificity_of_reasoning",
+        "leadership_definition_quality",
+        "concrete_example_presence",
+        "initiative",
+        "responsibility",
+        "impact",
+        "reflection"
+      ]
+    }
+  }
+]

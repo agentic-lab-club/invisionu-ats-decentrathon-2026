@@ -1,0 +1,652 @@
+[
+  {
+    "test_id": "good_1",
+    "label": "good",
+    "path": "test_inputs/good_candidate_1.txt",
+    "schema_pass": 1,
+    "latency_sec": 2.3401999473571777,
+    "model": "moonshotai/kimi-k2-instruct-0905",
+    "attempt": 1,
+    "result_count": {
+      "motivation": 21,
+      "leadership_potential": 22,
+      "response_structure": 25,
+      "total": 68
+    },
+    "error": null,
+    "answer": {
+      "motivation": {
+        "subscores": {
+          "university_specificity": 4,
+          "program_fit": 5,
+          "goal_alignment": 4,
+          "intrinsic_motivation": 4,
+          "specificity_of_reasoning": 4
+        },
+        "evidence": [
+          {
+            "subscore": "university_specificity",
+            "quote": "I studied your program details and I like that learning is connected to practice, teamwork, and launching real initiatives",
+            "reason": "Shows specific research into inVision U's approach"
+          },
+          {
+            "subscore": "program_fit",
+            "quote": "I am especially interested in Innovative IT Product Design and Development. In school I built a simple web tool for classroom scheduling",
+            "reason": "Connects past experience directly to program choice"
+          },
+          {
+            "subscore": "goal_alignment",
+            "quote": "Long term, I want to create digital products that improve access to learning for students in small towns",
+            "reason": "Clear long-term goal stated"
+          }
+        ],
+        "weaknesses": [
+          "Could provide more specific details about what aspects of the program curriculum appeal to them"
+        ]
+      },
+      "leadership_potential": {
+        "subscores": {
+          "leadership_definition_quality": 2,
+          "concrete_example_presence": 5,
+          "initiative": 5,
+          "responsibility": 4,
+          "impact": 4,
+          "reflection": 2
+        },
+        "evidence": [
+          {
+            "subscore": "concrete_example_presence",
+            "quote": "I proposed a lightweight plan, split tasks by strengths, and set daily check-ins",
+            "reason": "Specific leadership actions described"
+          },
+          {
+            "subscore": "initiative",
+            "quote": "I organized a short decision session, we agreed on a reduced but still useful MVP",
+            "reason": "Shows proactive problem-solving"
+          },
+          {
+            "subscore": "impact",
+            "quote": "Our team won first place in the city stage",
+            "reason": "Demonstrates successful outcome"
+          }
+        ],
+        "weaknesses": [
+          "No explicit definition of what leadership means to them",
+          "Limited reflection on lessons learned from the experience"
+        ]
+      },
+      "response_structure": {
+        "subscores": {
+          "clarity": 5,
+          "coherence": 5,
+          "completeness": 5,
+          "relevance": 5,
+          "conciseness": 5
+        },
+        "evidence": [
+          {
+            "subscore": "completeness",
+            "quote": "I am applying to inVision U because... I am especially interested in... A leadership challenge happened... Long term, I want... My family supports...",
+            "reason": "Addresses all expected questions in order"
+          },
+          {
+            "subscore": "clarity",
+            "quote": "That experience showed me that product success depends on user understanding, not only on code quality",
+            "reason": "Clear, understandable language throughout"
+          }
+        ],
+        "weaknesses": []
+      },
+      "context_notes": {
+        "family_support_context": "Family supports decision",
+        "encouragement_source": "Older sister who is a teacher"
+      },
+      "risk_flags": [],
+      "missing_evidence": [
+        "Explicit definition of what leadership means to them"
+      ]
+    }
+  },
+  {
+    "test_id": "good_2",
+    "label": "good",
+    "path": "test_inputs/good_candidate_2.txt",
+    "schema_pass": 1,
+    "latency_sec": 2.2934844493865967,
+    "model": "moonshotai/kimi-k2-instruct-0905",
+    "attempt": 1,
+    "result_count": {
+      "motivation": 20,
+      "leadership_potential": 25,
+      "response_structure": 25,
+      "total": 70
+    },
+    "error": null,
+    "answer": {
+      "motivation": {
+        "subscores": {
+          "university_specificity": 4,
+          "program_fit": 5,
+          "goal_alignment": 4,
+          "intrinsic_motivation": 3,
+          "specificity_of_reasoning": 4
+        },
+        "evidence": [
+          {
+            "subscore": "university_specificity",
+            "quote": "the program combines technical depth with product mindset",
+            "reason": "Shows understanding of inVision U's unique approach"
+          },
+          {
+            "subscore": "program_fit",
+            "quote": "My target track is Innovative IT Product Design and Development",
+            "reason": "Clearly identifies specific program and connects to background"
+          },
+          {
+            "subscore": "goal_alignment",
+            "quote": "My long-term goal is to found an edtech startup focused on affordable skill training for teenagers",
+            "reason": "Explicitly states long-term goal and connects to program"
+          }
+        ],
+        "weaknesses": [
+          "Limited evidence of deep research about inVision U beyond program description"
+        ]
+      },
+      "leadership_potential": {
+        "subscores": {
+          "leadership_definition_quality": 4,
+          "concrete_example_presence": 5,
+          "initiative": 5,
+          "responsibility": 4,
+          "impact": 3,
+          "reflection": 4
+        },
+        "evidence": [
+          {
+            "subscore": "leadership_definition_quality",
+            "quote": "leadership means aligning people around a shared goal and making decisions under pressure with respect and transparency",
+            "reason": "Shows mature understanding beyond simple authority"
+          },
+          {
+            "subscore": "concrete_example_presence",
+            "quote": "I took initiative to re-plan milestones, introduced clear ownership per module, and set a risk list",
+            "reason": "Provides specific actions taken during challenge"
+          },
+          {
+            "subscore": "initiative",
+            "quote": "I took initiative to re-plan milestones",
+            "reason": "Explicitly shows proactive action"
+          }
+        ],
+        "weaknesses": [
+          "Impact limited to 'working demo' and 'special recognition' without broader scale"
+        ]
+      },
+      "response_structure": {
+        "subscores": {
+          "clarity": 5,
+          "coherence": 5,
+          "completeness": 5,
+          "relevance": 5,
+          "conciseness": 5
+        },
+        "evidence": [
+          {
+            "subscore": "clarity",
+            "quote": "I want to join inVision U because...",
+            "reason": "Direct, clear opening statement"
+          },
+          {
+            "subscore": "completeness",
+            "quote": "My family supports this application",
+            "reason": "Addresses all required questions"
+          }
+        ],
+        "weaknesses": []
+      },
+      "context_notes": {
+        "family_support_context": "Family supports application, father is main encouragement source",
+        "encouragement_source": "Father who pushes to finish what he starts"
+      },
+      "risk_flags": [],
+      "missing_evidence": []
+    }
+  },
+  {
+    "test_id": "mid_1",
+    "label": "middle",
+    "path": "test_inputs/middle_candidate_1.txt",
+    "schema_pass": 1,
+    "latency_sec": 2.664372205734253,
+    "model": "moonshotai/kimi-k2-instruct-0905",
+    "attempt": 1,
+    "result_count": {
+      "motivation": 10,
+      "leadership_potential": 11,
+      "response_structure": 19,
+      "total": 40
+    },
+    "error": null,
+    "answer": {
+      "motivation": {
+        "subscores": {
+          "university_specificity": 2,
+          "program_fit": 3,
+          "goal_alignment": 2,
+          "intrinsic_motivation": 2,
+          "specificity_of_reasoning": 1
+        },
+        "evidence": [
+          {
+            "subscore": "university_specificity",
+            "quote": "I read about the university and saw that students can work on practical projects, which is interesting for me.",
+            "reason": "Only generic mention of practical projects, no specific features of inVision U"
+          },
+          {
+            "subscore": "program_fit",
+            "quote": "I am interested in the Innovative IT Product Design and Development program because it includes both programming and product topics.",
+            "reason": "Clear connection between program content and candidate's interests"
+          }
+        ],
+        "weaknesses": [
+          "Very generic reasoning for choosing inVision U",
+          "No specific details about what makes inVision U attractive beyond practical projects",
+          "Vague connection between program and long-term goals"
+        ]
+      },
+      "leadership_potential": {
+        "subscores": {
+          "leadership_definition_quality": 0,
+          "concrete_example_presence": 3,
+          "initiative": 2,
+          "responsibility": 2,
+          "impact": 1,
+          "reflection": 3
+        },
+        "evidence": [
+          {
+            "subscore": "concrete_example_presence",
+            "quote": "I had one team experience in a school project where we created a small website for announcements.",
+            "reason": "Provides specific team project example"
+          },
+          {
+            "subscore": "reflection",
+            "quote": "From this I learned that communication is important and planning should start earlier.",
+            "reason": "Shows learning from experience"
+          }
+        ],
+        "weaknesses": [
+          "No definition or understanding of what leadership means",
+          "Limited evidence of actual leadership - only reminded team about tasks",
+          "Minimal impact described - just 'acceptable' result",
+          "No demonstration of real responsibility or decision-making"
+        ]
+      },
+      "response_structure": {
+        "subscores": {
+          "clarity": 4,
+          "coherence": 4,
+          "completeness": 3,
+          "relevance": 4,
+          "conciseness": 4
+        },
+        "evidence": [
+          {
+            "subscore": "clarity",
+            "quote": "I am applying to inVision U because I like IT and I want to improve my skills.",
+            "reason": "Direct and easy to understand"
+          },
+          {
+            "subscore": "completeness",
+            "quote": "I still need to improve leadership skills, especially conflict handling and delegation.",
+            "reason": "Acknowledges areas for growth but doesn't fully answer what leadership means"
+          }
+        ],
+        "weaknesses": [
+          "Does not define what being a leader means",
+          "Challenge description is minimal - just disorganized team project"
+        ]
+      },
+      "context_notes": {
+        "family_support_context": "Family generally supports decision, mother provides encouragement to continue studying",
+        "encouragement_source": "Mother encourages continuation of studies and persistence through failures"
+      },
+      "risk_flags": [],
+      "missing_evidence": [
+        "No definition of what leadership means to the candidate",
+        "No major personal challenge described - only a school project management issue",
+        "No specific reasons why inVision U over other universities"
+      ]
+    }
+  },
+  {
+    "test_id": "mid_2",
+    "label": "middle",
+    "path": "test_inputs/middle_candidate_2.txt",
+    "schema_pass": 1,
+    "latency_sec": 2.7637596130371094,
+    "model": "moonshotai/kimi-k2-instruct-0905",
+    "attempt": 1,
+    "result_count": {
+      "motivation": 12,
+      "leadership_potential": 18,
+      "response_structure": 21,
+      "total": 51
+    },
+    "error": null,
+    "answer": {
+      "motivation": {
+        "subscores": {
+          "university_specificity": 2,
+          "program_fit": 3,
+          "goal_alignment": 3,
+          "intrinsic_motivation": 2,
+          "specificity_of_reasoning": 2
+        },
+        "evidence": [
+          {
+            "subscore": "university_specificity",
+            "quote": "I want a modern education in technology. The project-based format looks useful",
+            "reason": "Generic reference to modern education and project-based format without specific details about inVision U"
+          },
+          {
+            "subscore": "program_fit",
+            "quote": "I am curious about how digital products are planned and built. I have basic experience with Python and web development",
+            "reason": "Connects program to existing skills and interests"
+          },
+          {
+            "subscore": "goal_alignment",
+            "quote": "I want to work on products that make learning resources easier to access. I think inVision U can give me both technical and product knowledge",
+            "reason": "Links long-term goal to program benefits"
+          }
+        ],
+        "weaknesses": [
+          "Very limited detail about why inVision U specifically",
+          "Motivation statement is generic and could apply to many tech programs",
+          "No specific aspects of inVision U mentioned beyond project-based format"
+        ]
+      },
+      "leadership_potential": {
+        "subscores": {
+          "leadership_definition_quality": 3,
+          "concrete_example_presence": 3,
+          "initiative": 3,
+          "responsibility": 3,
+          "impact": 2,
+          "reflection": 4
+        },
+        "evidence": [
+          {
+            "subscore": "leadership_definition_quality",
+            "quote": "leadership is partly about consistency and follow-through",
+            "reason": "Shows understanding of leadership beyond just authority"
+          },
+          {
+            "subscore": "concrete_example_presence",
+            "quote": "I suggested creating a shared task board, which helped us finish the presentation",
+            "reason": "Provides specific action taken in team situation"
+          },
+          {
+            "subscore": "reflection",
+            "quote": "I learned that leadership is partly about consistency and follow-through. I can take responsibility, but I still need to become more confident when decisions are unpopular",
+            "reason": "Shows self-awareness about growth areas"
+          }
+        ],
+        "weaknesses": [
+          "Leadership example is from a school competition with limited stakes",
+          "Impact is minimal - just helped finish presentation, no win",
+          "No evidence of leading people, only suggesting a tool"
+        ]
+      },
+      "response_structure": {
+        "subscores": {
+          "clarity": 4,
+          "coherence": 4,
+          "completeness": 4,
+          "relevance": 4,
+          "conciseness": 5
+        },
+        "evidence": [
+          {
+            "subscore": "clarity",
+            "quote": "I want to apply to inVision U because...",
+            "reason": "Direct and easy to understand"
+          },
+          {
+            "subscore": "completeness",
+            "quote": "My family supports this decision. My main support is my older brother",
+            "reason": "Addresses all required questions"
+          }
+        ],
+        "weaknesses": [
+          "Some responses are brief and could use more detail",
+          "Challenge description is vague - 'some confusion with roles'"
+        ]
+      },
+      "context_notes": {
+        "family_support_context": "Family supports decision",
+        "encouragement_source": "Older brother provides motivation during self-doubt"
+      },
+      "risk_flags": [],
+      "missing_evidence": [
+        "Specific details about what makes inVision U unique",
+        "Deeper explanation of the challenge overcome",
+        "More substantial leadership examples"
+      ]
+    }
+  },
+  {
+    "test_id": "bad_1",
+    "label": "bad",
+    "path": "test_inputs/bad_candidate_1.txt",
+    "schema_pass": 1,
+    "latency_sec": 3.089003324508667,
+    "model": "moonshotai/kimi-k2-instruct-0905",
+    "attempt": 1,
+    "result_count": {
+      "motivation": 2,
+      "leadership_potential": 0,
+      "response_structure": 16,
+      "total": 18
+    },
+    "error": null,
+    "answer": {
+      "motivation": {
+        "subscores": {
+          "university_specificity": 1,
+          "program_fit": 1,
+          "goal_alignment": 0,
+          "intrinsic_motivation": 0,
+          "specificity_of_reasoning": 0
+        },
+        "evidence": [
+          {
+            "subscore": "university_specificity",
+            "quote": "I want to study at inVision U because I need a diploma and my friends said it is okay",
+            "reason": "No specific features of inVision U mentioned, only generic need for diploma"
+          },
+          {
+            "subscore": "program_fit",
+            "quote": "I choose the product program mostly because it sounds modern",
+            "reason": "No connection between program content and personal interests/background"
+          }
+        ],
+        "weaknesses": [
+          "No evidence of research about inVision U",
+          "No understanding of program content",
+          "No intrinsic motivation demonstrated",
+          "Vague future goals with no connection to program"
+        ]
+      },
+      "leadership_potential": {
+        "subscores": {
+          "leadership_definition_quality": 0,
+          "concrete_example_presence": 0,
+          "initiative": 0,
+          "responsibility": 0,
+          "impact": 0,
+          "reflection": 0
+        },
+        "evidence": [
+          {
+            "subscore": "concrete_example_presence",
+            "quote": "I cannot remember a clear leadership situation",
+            "reason": "Explicitly states no leadership experience"
+          },
+          {
+            "subscore": "responsibility",
+            "quote": "Sometimes I do my part late",
+            "reason": "Shows lack of responsibility in team settings"
+          }
+        ],
+        "weaknesses": [
+          "No leadership definition provided",
+          "No leadership example given",
+          "Shows avoidance of responsibility",
+          "No evidence of proactive behavior",
+          "No reflection on growth"
+        ]
+      },
+      "response_structure": {
+        "subscores": {
+          "clarity": 4,
+          "coherence": 3,
+          "completeness": 2,
+          "relevance": 3,
+          "conciseness": 4
+        },
+        "evidence": [
+          {
+            "subscore": "clarity",
+            "quote": "I want to study at inVision U because I need a diploma",
+            "reason": "Direct and easy to understand"
+          },
+          {
+            "subscore": "completeness",
+            "quote": "I do not know much about the exact program",
+            "reason": "Acknowledges lack of knowledge about program"
+          }
+        ],
+        "weaknesses": [
+          "While questions are addressed, answers lack depth",
+          "Some responses are too brief to be meaningful"
+        ]
+      },
+      "context_notes": {
+        "family_support_context": "Family expressed neutral stance - 'said I can apply anywhere'",
+        "encouragement_source": "No specific source of encouragement identified"
+      },
+      "risk_flags": [
+        "Very low motivation and engagement",
+        "No evidence of perseverance when facing challenges",
+        "Passive approach to learning and teamwork"
+      ],
+      "missing_evidence": [
+        "Specific reasons for choosing inVision U",
+        "Understanding of program content",
+        "Long-term goals",
+        "Leadership experience or potential",
+        "Evidence of overcoming challenges",
+        "Intrinsic motivation"
+      ]
+    }
+  },
+  {
+    "test_id": "bad_2",
+    "label": "bad",
+    "path": "test_inputs/bad_candidate_2.txt",
+    "schema_pass": 1,
+    "latency_sec": 2.3687098026275635,
+    "model": "moonshotai/kimi-k2-instruct-0905",
+    "attempt": 1,
+    "result_count": {
+      "motivation": 1,
+      "leadership_potential": 0,
+      "response_structure": 16,
+      "total": 17
+    },
+    "error": null,
+    "answer": {
+      "motivation": {
+        "subscores": {
+          "university_specificity": 1,
+          "program_fit": 0,
+          "goal_alignment": 0,
+          "intrinsic_motivation": 0,
+          "specificity_of_reasoning": 0
+        },
+        "evidence": [
+          {
+            "subscore": "university_specificity",
+            "quote": "I saw the name inVision U online, so I decided to try.",
+            "reason": "Shows no research or specific reasons for choosing inVision U beyond seeing the name online."
+          }
+        ],
+        "weaknesses": [
+          "No specific reasons for choosing inVision U",
+          "Admits to not knowing what the program teaches",
+          "No technical background or relevant experience",
+          "No clear goals or motivation beyond needing to enter university"
+        ]
+      },
+      "leadership_potential": {
+        "subscores": {
+          "leadership_definition_quality": 0,
+          "concrete_example_presence": 0,
+          "initiative": 0,
+          "responsibility": 0,
+          "impact": 0,
+          "reflection": 0
+        },
+        "evidence": [
+          {
+            "subscore": "responsibility",
+            "quote": "I usually follow others and rarely take responsibility.",
+            "reason": "Explicitly states avoidance of responsibility rather than demonstrating leadership."
+          }
+        ],
+        "weaknesses": [
+          "No leadership definition provided",
+          "Leadership example shows passive behavior and poor performance",
+          "No evidence of initiative or proactive action",
+          "No reflection on learning or growth from the experience"
+        ]
+      },
+      "response_structure": {
+        "subscores": {
+          "clarity": 4,
+          "coherence": 3,
+          "completeness": 2,
+          "relevance": 3,
+          "conciseness": 4
+        },
+        "evidence": [
+          {
+            "subscore": "clarity",
+            "quote": "I am applying because I need to enter a university this year.",
+            "reason": "Direct and clear answer to why applying."
+          }
+        ],
+        "weaknesses": [
+          "While questions are addressed, responses lack depth and substance",
+          "Some answers are overly brief and dismissive"
+        ]
+      },
+      "context_notes": {
+        "family_support_context": "Parents are neutral about the decision, no deep discussion about the specific program",
+        "encouragement_source": "No specific source of encouragement mentioned"
+      },
+      "risk_flags": [
+        "Candidate explicitly states lack of technical background for IT program",
+        "Admits to not knowing program content",
+        "Shows no leadership qualities and explicitly avoids responsibility"
+      ],
+      "missing_evidence": [
+        "No understanding of what the program teaches",
+        "No long-term goals or vision",
+        "No intrinsic motivation beyond needing to attend university",
+        "No positive leadership example"
+      ]
+    }
+  }
+]
