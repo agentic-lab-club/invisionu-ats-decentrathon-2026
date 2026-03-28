@@ -1,3 +1,6 @@
+.specstory/
+docs/ai-sessions
+
 # Git
 .git
 .gitignore
@@ -10,25 +13,17 @@
 # CI/CD and deployment scripts
 .github/
 devops/
-deploy.sh
-deploy-yc.sh
-push-to-yc.sh
-yc-helper.sh
 docker-compose*.yml
 Makefile
 
 # Development configs and examples
 config.local.yaml
-config.local.yaml.example
 config.example.yaml
 config/config.local.yaml
 config/config.example.yaml
 config/*.example
-config/application_default_credentials.json.example
 
 # Service account keys (security)
-config/service-account.json
-config/yc_iam_authorized_key.json
 *.pem
 *.key
 *.json
@@ -55,7 +50,7 @@ main
 .gocache/
 .gomodcache/
 .gotmp/
-.specstory/
+.cache
 
 # Test files and coverage
 *_test.go
@@ -74,9 +69,3 @@ temp/
 # Docker
 Dockerfile*
 .dockerignore
-
-# Yandex Cloud
-YC_SETUP.md
-
-.amazonq/
-funkcional-chata.md

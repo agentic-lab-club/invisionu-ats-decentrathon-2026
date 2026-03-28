@@ -1,8 +1,9 @@
-module github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend
+module github.com/dotpep/golang-backend-modular-tmpl
 
 go 1.25.1
 
 require (
+	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/go-playground/validator/v10 v10.28.0
 	github.com/gofiber/fiber/v3 v3.0.0-rc.2
 	github.com/google/uuid v1.6.0

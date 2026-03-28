@@ -27,7 +27,8 @@ logs: ## Show logs
 rebuild: ## Rebuild Container's
 	@docker compose -f $(NAMED_COMPOSE_FILE) up --build -d
 
-# docker compose run --rm --no-deps golang-test go test ./internal/payment
+# docker compose run --rm --no-deps golang-test go test ./internal/healthcheck
+# go test -v (for detailed log)
 test: ## Run Go tests inside docker
 	@docker compose -f $(NAMED_COMPOSE_FILE) run --rm --no-deps golang-test go test ./...
 
