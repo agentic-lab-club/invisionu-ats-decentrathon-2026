@@ -1,0 +1,7 @@
+test_id,label,path,schema_pass,latency_sec,model,attempt,motivation,leadership_potential,response_structure,total,error
+good_1,good,test_inputs/good_candidate_1.txt,1,6.4721,openai/gpt-oss-120b,1,20,23,19,62,
+good_2,good,test_inputs/good_candidate_2.txt,1,4.7116,openai/gpt-oss-120b,1,19,24,25,68,
+mid_1,middle,test_inputs/middle_candidate_1.txt,1,4.5924,openai/gpt-oss-120b,1,12,11,16,39,
+mid_2,middle,test_inputs/middle_candidate_2.txt,1,18.9691,openai/gpt-oss-120b,1,17,20,20,57,
+bad_1,bad,test_inputs/bad_candidate_1.txt,1,15.0387,openai/gpt-oss-120b,1,4,0,13,17,
+bad_2,bad,test_inputs/bad_candidate_2.txt,1,15.3617,openai/gpt-oss-120b,1,1,0,14,15,

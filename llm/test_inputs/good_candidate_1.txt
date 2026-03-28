@@ -1,0 +1,13 @@
+Hello, my name is Aruzhan.
+
+I am applying to inVision U because I want to build products that solve real problems in education. I studied your program details and I like that learning is connected to practice, teamwork, and launching real initiatives. This is exactly the format where I perform best.
+
+I am especially interested in Innovative IT Product Design and Development. In school I built a simple web tool for classroom scheduling, and after testing it with teachers I improved the interface based on feedback. That experience showed me that product success depends on user understanding, not only on code quality.
+
+A leadership challenge happened during our hackathon preparation. We had five students, no clear scope, and only one week. I proposed a lightweight plan, split tasks by strengths, and set daily check-ins. In the middle of the week we discovered a major bug in data sync, and two teammates wanted to simplify the idea too much. I organized a short decision session, we agreed on a reduced but still useful MVP, and we finished on time. Our team won first place in the city stage.
+
+Long term, I want to create digital products that improve access to learning for students in small towns. I believe inVision U can help me combine product strategy, engineering, and entrepreneurship to make this goal realistic.
+
+My family supports my decision. My older sister, who is a teacher, motivates me most because she reminds me that technology should help people directly.
+
+Thank you for considering my application.

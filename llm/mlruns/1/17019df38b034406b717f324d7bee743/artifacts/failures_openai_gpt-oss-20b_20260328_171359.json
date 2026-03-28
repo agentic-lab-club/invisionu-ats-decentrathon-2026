@@ -1,0 +1,50 @@
+[
+  {
+    "test_id": "good_1",
+    "label": "good",
+    "path": "test_inputs/good_candidate_1.txt",
+    "schema_pass": 0,
+    "latency_sec": 31.8319194316864,
+    "model": "openai/gpt-oss-20b",
+    "attempt": null,
+    "result_count": null,
+    "error": "Не удалось получить валидный JSON после 4 попыток: Expecting ',' delimiter: line 15 column 8 (char 506)",
+    "answer": null
+  },
+  {
+    "test_id": "good_2",
+    "label": "good",
+    "path": "test_inputs/good_candidate_2.txt",
+    "schema_pass": 0,
+    "latency_sec": 80.07920002937317,
+    "model": "openai/gpt-oss-20b",
+    "attempt": null,
+    "result_count": null,
+    "error": "Не удалось получить валидный JSON после 4 попыток: Expecting ',' delimiter: line 85 column 4 (char 3907)",
+    "answer": null
+  },
+  {
+    "test_id": "mid_2",
+    "label": "middle",
+    "path": "test_inputs/middle_candidate_2.txt",
+    "schema_pass": 0,
+    "latency_sec": 70.04010915756226,
+    "model": "openai/gpt-oss-20b",
+    "attempt": null,
+    "result_count": null,
+    "error": "Не удалось получить валидный JSON после 4 попыток: Expecting ',' delimiter: line 56 column 8 (char 2466)",
+    "answer": null
+  },
+  {
+    "test_id": "bad_1",
+    "label": "bad",
+    "path": "test_inputs/bad_candidate_1.txt",
+    "schema_pass": 0,
+    "latency_sec": 68.1970899105072,
+    "model": "openai/gpt-oss-20b",
+    "attempt": null,
+    "result_count": null,
+    "error": "Не удалось получить валидный JSON после 4 попыток: Expecting ',' delimiter: line 35 column 8 (char 1549)",
+    "answer": null
+  }
+]

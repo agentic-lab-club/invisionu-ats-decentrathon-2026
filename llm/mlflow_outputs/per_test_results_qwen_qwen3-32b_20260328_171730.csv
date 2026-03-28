@@ -1,0 +1,7 @@
+test_id,label,path,schema_pass,latency_sec,model,attempt,motivation,leadership_potential,response_structure,total,error
+good_1,good,test_inputs/good_candidate_1.txt,1,5.3999,qwen/qwen3-32b,2,19,25,25,69,
+good_2,good,test_inputs/good_candidate_2.txt,1,16.7941,qwen/qwen3-32b,1,19,26,24,69,
+mid_1,middle,test_inputs/middle_candidate_1.txt,1,20.8233,qwen/qwen3-32b,1,14,15,18,47,
+mid_2,middle,test_inputs/middle_candidate_2.txt,1,19.3167,qwen/qwen3-32b,1,18,20,24,62,
+bad_1,bad,test_inputs/bad_candidate_1.txt,1,28.3934,qwen/qwen3-32b,1,5,4,13,22,
+bad_2,bad,test_inputs/bad_candidate_2.txt,1,15.8722,qwen/qwen3-32b,1,5,3,11,19,
