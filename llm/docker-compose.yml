@@ -1,0 +1,9 @@
+services:
+  app:
+    build: .
+    container_name: llm-api
+    ports:
+      - "9094:9094"
+    env_file:
+      - .env
+    restart: unless-stopped
