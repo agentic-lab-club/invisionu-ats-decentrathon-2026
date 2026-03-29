@@ -1,0 +1,9 @@
+services:
+  app:
+    build: .
+    container_name: stt-api
+    ports:
+      - "9095:9095"
+    env_file:
+      - .env
+    restart: unless-stopped
