@@ -209,6 +209,8 @@ input:
 Video Transcription
 
 output scoring engine:
+```plantuml
+@startuml
 
 json
 {
@@ -349,6 +351,7 @@ json
     "model": "openai/gpt-oss-120b"
 }
 
+@enduml
 ---
 
 Whisper (Python FastAPI webserver)
