@@ -9,7 +9,7 @@
 ---
 
 ```plantuml
-@startuml
+
 hide circle
 skinparam linetype ortho
 
@@ -139,7 +139,6 @@ personality_tests ||--o{ pt_questions : contains
 pt_questions ||--o{ pt_options : contains
 pt_questions ||--o{ app_test_answers : answered_in
 pt_options ||--o{ app_test_answers : selected_in
-@enduml
 ```
 
 ## System Flow
@@ -210,7 +209,6 @@ Video Transcription
 
 output scoring engine:
 ```plantuml
-@startuml
 
 json
 {
@@ -351,7 +349,7 @@ json
     "model": "openai/gpt-oss-120b"
 }
 
-@enduml
+```
 ---
 
 Whisper (Python FastAPI webserver)
