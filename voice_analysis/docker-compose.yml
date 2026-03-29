@@ -1,0 +1,31 @@
+services:
+  voice-analysis-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: voice-analysis-api
+    user: "${UID:-1000}:${GID:-1000}"
+    working_dir: /app
+    environment:
+      SERVICE_NAME: voice-analysis-api
+      SERVICE_VERSION: 0.1.0
+      ANALYSIS_SAMPLE_RATE: 16000
+      FRAME_LENGTH: 2048
+      HOP_LENGTH: 512
+      SILENCE_TOP_DB: 30
+      MIN_PAUSE_DURATION_SECONDS: 0.20
+      TEST_AUDIO_DIR: /workspace/STT/tests_audio
+      NUMBA_CACHE_DIR: /tmp/numba-cache
+    volumes:
+      - .:/app
+      - ../STT/tests_audio:/workspace/STT/tests_audio:ro
+      - ./results:/app/results
+    ports:
+      - "8096:8096"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8096/api/v1/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
