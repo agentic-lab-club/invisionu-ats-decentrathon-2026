@@ -20,6 +20,37 @@ environment: "development"
 gotenberg:
   url: "http://localhost:3000"
 
+auth:
+  jwt_access_secret: "change-me"
+  jwt_refresh_secret: "change-me-too"
+  access_token_ttl_seconds: 3600
+  refresh_token_ttl_seconds: 604800
+  email_verification_code_ttl_seconds: 900
+
+storage:
+  provider: "s3"
+  endpoint: "minio:9000"
+  region: "us-east-1"
+  bucket: "application-files"
+  access_key: "minioadmin"
+  secret_key: "minioadmin"
+  use_ssl: false
+
+messaging:
+  mode: "stub"
+  url: "amqp://guest:guest@rabbitmq:5672/"
+  exchange: "invisionu.events"
+  application_submitted_key: "application.submitted"
+
+email:
+  mode: "stub"
+  from_name: "InVisionU ATS"
+  from_email: "noreply@example.com"
+  smtp_host: "smtp.example.com"
+  smtp_port: 587
+  smtp_user: "smtp-user"
+  smtp_pass: "smtp-pass"
+
 # =========================
 # Modules and Services on internal/
 # =========================

@@ -120,7 +120,12 @@ func previewBody(b []byte, max int) string {
 
 // isSensitiveEndpoint проверяет, содержит ли эндпоинт чувствительные данные (карты, пароли)
 func isSensitiveEndpoint(path string) bool {
-	sensitivePaths := []string{}
+	sensitivePaths := []string{
+		"/auth/register",
+		"/auth/login",
+		"/auth/refresh",
+		"/auth/verify-email",
+	}
 	for _, sensitive := range sensitivePaths {
 		if strings.Contains(path, sensitive) {
 			return true

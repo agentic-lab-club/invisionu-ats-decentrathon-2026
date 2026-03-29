@@ -4,71 +4,88 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/timekit"
+	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/pkg/timekit"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 )
 
-type JWTClaims struct {
-	ID          uuid.UUID `json:"id"`
-	Role        uuid.UUID `json:"role"`
-	RoleName    string    `json:"roleName"`
-	AppAccess   bool      `json:"app_access"`
-	AdminAccess bool      `json:"admin_access"`
-	Type        string    `json:"type"`
+const (
+	TokenTypeAccess  = "access"
+	TokenTypeRefresh = "refresh"
+)
+
+type Claims struct {
+	UserID uuid.UUID `json:"user_id"`
+	Role   string    `json:"role"`
+	Type   string    `json:"type"`
 	jwt.RegisteredClaims
 }
 
-type TokenGenerator struct {
-	Secret string
-	TTL    time.Duration
+type TokenManager struct {
+	secret []byte
+	ttl    time.Duration
 }
 
-func NewTokenGenerator(secret string, ttlMin int) *TokenGenerator {
-	if ttlMin <= 0 {
-		ttlMin = 60 // default 60 minutes
+func NewTokenManager(secret string, ttlSeconds int) *TokenManager {
+	if ttlSeconds <= 0 {
+		ttlSeconds = 3600
 	}
-	return &TokenGenerator{
-		Secret: secret,
-		TTL:    time.Duration(ttlMin) * time.Minute,
+
+	return &TokenManager{
+		secret: []byte(secret),
+		ttl:    time.Duration(ttlSeconds) * time.Second,
 	}
 }
 
-func (tg *TokenGenerator) GenerateToken(userID, roleID uuid.UUID, roleName string) (string, error) {
-	claims := &JWTClaims{
-		ID:          userID,
-		Role:        roleID,
-		RoleName:    roleName,
-		AppAccess:   true,
-		AdminAccess: false,
-		Type:        "access",
+func (m *TokenManager) TTL() time.Duration {
+	return m.ttl
+}
+
+func (m *TokenManager) Generate(userID uuid.UUID, role string, tokenType string) (string, time.Time, error) {
+	if tokenType != TokenTypeAccess && tokenType != TokenTypeRefresh {
+		return "", time.Time{}, fmt.Errorf("unsupported token type: %s", tokenType)
+	}
+
+	now := timekit.NowUTC()
+	expiresAt := now.Add(m.ttl)
+	claims := Claims{
+		UserID: userID,
+		Role:   role,
+		Type:   tokenType,
 		RegisteredClaims: jwt.RegisteredClaims{
-			Issuer:    "directus",
 			Subject:   userID.String(),
-			ExpiresAt: jwt.NewNumericDate(timekit.NowUTC().Add(tg.TTL)),
-			IssuedAt:  jwt.NewNumericDate(timekit.NowUTC()),
+			IssuedAt:  jwt.NewNumericDate(now),
+			ExpiresAt: jwt.NewNumericDate(expiresAt),
 		},
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(tg.Secret))
+	signed, err := token.SignedString(m.secret)
+	if err != nil {
+		return "", time.Time{}, fmt.Errorf("failed to sign token: %w", err)
+	}
+
+	return signed, expiresAt, nil
 }
 
-func (tg *TokenGenerator) ValidateToken(tokenString string) (*JWTClaims, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
+func (m *TokenManager) Parse(tokenString string, expectedType string) (*Claims, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
-		return []byte(tg.Secret), nil
+		return m.secret, nil
 	})
-
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse token: %w", err)
 	}
 
-	if claims, ok := token.Claims.(*JWTClaims); ok && token.Valid {
-		return claims, nil
+	claims, ok := token.Claims.(*Claims)
+	if !ok || !token.Valid {
+		return nil, fmt.Errorf("invalid token")
+	}
+	if expectedType != "" && claims.Type != expectedType {
+		return nil, fmt.Errorf("invalid token type")
 	}
 
-	return nil, fmt.Errorf("invalid token")
+	return claims, nil
 }
