@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+langchain
+langchain-openai
+langchain-chroma
+langchain-text-splitters
+langserve[all]
+langchain-community
+pydantic
+python-dotenv
+httpx
+python-telegram-bot
+beautifulsoup4
