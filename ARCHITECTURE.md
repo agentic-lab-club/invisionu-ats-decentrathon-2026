@@ -2,6 +2,83 @@
 
 ## Architecture Diagram
 
+## C4 Diagram (Container Diagram)
+
+![](docs/images/architecture/c4-container-diagram.png)
+
+---
+
+```plantuml
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_WITH_LEGEND()
+
+title InVisionU ATS - Overall Architecture (Container Diagram)
+
+Person(applicant, "Applicant", "Registers, verifies email, uploads files, submits application, checks status")
+Person(admin, "Admin Reviewer", "Reviews candidates, updates review stage and decision")
+
+System_Boundary(ats, "InVisionU ATS Platform") {
+  Container(frontend, "Frontend", "Next.js / Web App", "Applicant and admin UI")
+
+  Container(backend, "Backend API", "Go + Fiber", "Auth, programs, uploads, personality test, applications, candidates")
+
+  ContainerDb(postgres, "PostgreSQL", "PostgreSQL", "Users, auth_codes, refresh_sessions, programs, applications, files, tests, scoring_runs")
+
+  Container(minio, "MinIO", "S3-compatible Object Storage", "Applicant uploaded files and derived media artifacts")
+
+  Container(rabbitmq, "RabbitMQ", "AMQP Broker", "Domain events and async processing entrypoint")
+
+  Container(llm, "LLM Scoring Service", "Python / FastAPI / Workers", "Consumes application pipeline events, transcription/scoring pipeline, writes scoring results")
+}
+
+System_Ext(smtp, "SMTP Provider", "Used only in production for email verification delivery")
+
+Rel(applicant, frontend, "Uses", "HTTPS")
+Rel(admin, frontend, "Uses", "HTTPS")
+
+Rel(frontend, backend, "Calls REST API", "HTTPS / JSON")
+
+Rel(backend, postgres, "Reads/Writes domain data", "SQL")
+Rel(backend, minio, "Stores and retrieves files", "S3 API")
+Rel(backend, rabbitmq, "Publishes domain events", "AMQP")
+Rel(backend, smtp, "Sends verification emails", "SMTP (production only)")
+
+Rel(llm, rabbitmq, "Consumes and publishes async events", "AMQP")
+Rel(llm, minio, "Reads media files / writes derived artifacts", "S3 API")
+Rel(llm, postgres, "Persists scoring results and processing state", "SQL")
+
+BiRel(frontend, minio, "No direct access in current backend-first flow", "n/a")
+
+note right of backend
+Modular monolith:
+- auth
+- programs
+- uploads
+- personalitytest
+- applications
+- candidates
+
+Infrastructure adapters:
+- internal/platform/email
+- internal/platform/storage
+- internal/platform/messaging
+end note
+
+note bottom of rabbitmq
+Current event focus:
+- application.submitted
+
+Planned pipeline events:
+- application.audio_ready
+- application.transcribed
+- scoring.completed
+end note
+
+@enduml
+```
+
 ## ERD (Entity Relationship Diagram)
 
 ![](docs/images/architecture/erd-database-tables-schema.png)

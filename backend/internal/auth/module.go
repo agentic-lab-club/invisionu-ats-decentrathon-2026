@@ -1,48 +1,29 @@
 package auth
 
 import (
-	"time"
-
+	platformEmail "github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/platform/email"
+	pkgAuth "github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/pkg/auth"
 	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/pkg/config"
 	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/pkg/database"
 	md "github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/pkg/http/middlewares"
-	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/pkg/telegram"
 	"github.com/gofiber/fiber/v3"
 )
 
-func Init(server *fiber.App, db *database.TrackedDB, cfg *config.Config, tgBot *telegram.Bot) {
-	RegisterRoutes(server, db, cfg, tgBot)
-
-	// Start cleanup goroutine
-	go startCleanupRoutine(db, cfg, tgBot)
-}
-
-func RegisterRoutes(server *fiber.App, db *database.TrackedDB, cfg *config.Config, tgBot *telegram.Bot) {
+func Init(server *fiber.App, db *database.TrackedDB, cfg *config.Config, sender platformEmail.Sender) *pkgAuth.TokenManager {
 	repo := NewRepository(db)
-	service := NewService(repo, cfg, tgBot)
+	accessManager := pkgAuth.NewTokenManager(cfg.Auth.JWTAccessSecret, cfg.Auth.AccessTokenTTLSeconds)
+	refreshManager := pkgAuth.NewTokenManager(cfg.Auth.JWTRefreshSecret, cfg.Auth.RefreshTokenTTLSeconds)
+	service := NewService(repo, cfg, accessManager, refreshManager, sender)
 	handler := NewHandler(service)
 
-	// API group with token protection
-	api := server.Group("/auth-otp")
-	// Apply rate limiting middleware
-	api.Use(handler.RateLimitMiddleware())
+	api := server.Group("/auth")
+	api.Post("/register", md.BindAndValidate[RegisterRequest](), handler.Register)
+	api.Post("/verify-email", md.BindAndValidate[VerifyEmailRequest](), handler.VerifyEmail)
+	api.Post("/login", md.BindAndValidate[LoginRequest](), handler.Login)
+	api.Post("/refresh", md.BindAndValidate[RefreshRequest](), handler.Refresh)
+	api.Post("/logout", md.BindAndValidate[LogoutRequest](), handler.Logout)
+	api.Post("/resend-code", md.BindAndValidate[ResendCodeRequest](), handler.ResendCode)
+	api.Get("/me", md.AuthRole(accessManager, RoleUser, RoleAdmin), handler.Me)
 
-	// Routes
-	api.Post("/request", md.BindAndValidate[OTPRequest](), handler.RequestOTP)    // Supports optional channel param
-	api.Post("/request-v2", md.BindAndValidate[OTPRequest](), handler.RequestOTP) // Same as /request (for backwards compatibility)
-	api.Post("/request-admin", md.AuthRole(cfg, db, md.RoleAdmin), md.BindAndValidate[OTPRequest](), handler.RequestOTPAdmin)
-	api.Post("/login", md.BindAndValidate[OTPLoginRequest](), handler.VerifyOTP)
-	api.Get("/health", handler.Health)
-}
-
-func startCleanupRoutine(db *database.TrackedDB, cfg *config.Config, tgBot *telegram.Bot) {
-	repo := NewRepository(db)
-	service := NewService(repo, cfg, tgBot)
-
-	ticker := time.NewTicker(10 * time.Minute) // Cleanup every 10 minutes
-	defer ticker.Stop()
-
-	for range ticker.C {
-		_ = service.CleanupExpired()
-	}
+	return accessManager
 }

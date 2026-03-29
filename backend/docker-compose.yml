@@ -1,36 +1,18 @@
+networks:
+  invisionu-ats-network:
+    external: true
+
 volumes:
-  postgres_dev_data:
   go-mod-cache: {}
   go-build-cache: {}
 
 services:
-  postgres:
-    image: postgres:17-alpine
-    container_name: postgres_dev
-    restart: unless-stopped
-    env_file:
-      - .env
-    environment:
-      POSTGRES_DB: ${DB_DATABASE}
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-    volumes:
-      - postgres_dev_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_DATABASE}"]
-      interval: 5s
-      timeout: 3s
-      retries: 20
-
   golang:
     build:
       context: .
       dockerfile: Dockerfile
       target: runner
-    container_name: golang_dev
-    depends_on:
-      postgres:
-        condition: service_healthy
+    container_name: invisionu_ats_backend_dev
     env_file:
       - .env
     ports:
@@ -39,13 +21,15 @@ services:
     command: ["-config=local"]
     volumes:
       - ./config:/app/config:ro
+    networks:
+      - invisionu-ats-network
 
   golang-test:
     build:
       context: .
       dockerfile: Dockerfile
       target: test
-    container_name: golang_test
+    container_name: invisionu_ats_backend_test
     working_dir: /src
     env_file:
       - .env
@@ -54,3 +38,5 @@ services:
       - go-mod-cache:/go/pkg/mod
       - go-build-cache:/root/.cache/go-build
     command: ["sh"]
+    networks:
+      - invisionu-ats-network

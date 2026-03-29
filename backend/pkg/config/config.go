@@ -34,10 +34,11 @@ type GotenbergConfig struct {
 
 // LoggingConfig holds logging configuration
 type LoggingConfig struct {
-	Level      string `mapstructure:"level"`
-	Format     string `mapstructure:"format"`
-	Output     string `mapstructure:"output"`
-	TimeFormat string `mapstructure:"time_format"`
+	Level          string   `mapstructure:"level"`
+	Format         string   `mapstructure:"format"`
+	Output         string   `mapstructure:"output"`
+	TimeFormat     string   `mapstructure:"time_format"`
+	SensitivePaths []string `mapstructure:"sensitive_paths"`
 }
 
 // SecurityConfig holds security-related configuration
@@ -61,6 +62,41 @@ type MetricsConfig struct {
 	Namespace string `mapstructure:"namespace"`
 }
 
+type AuthConfig struct {
+	JWTAccessSecret                 string `mapstructure:"jwt_access_secret"`
+	JWTRefreshSecret                string `mapstructure:"jwt_refresh_secret"`
+	AccessTokenTTLSeconds           int    `mapstructure:"access_token_ttl_seconds"`
+	RefreshTokenTTLSeconds          int    `mapstructure:"refresh_token_ttl_seconds"`
+	EmailVerificationCodeTTLSeconds int    `mapstructure:"email_verification_code_ttl_seconds"`
+}
+
+type StorageConfig struct {
+	Provider  string `mapstructure:"provider"`
+	Endpoint  string `mapstructure:"endpoint"`
+	Region    string `mapstructure:"region"`
+	Bucket    string `mapstructure:"bucket"`
+	AccessKey string `mapstructure:"access_key"`
+	SecretKey string `mapstructure:"secret_key"`
+	UseSSL    bool   `mapstructure:"use_ssl"`
+}
+
+type MessagingConfig struct {
+	Mode                    string `mapstructure:"mode"`
+	URL                     string `mapstructure:"url"`
+	Exchange                string `mapstructure:"exchange"`
+	ApplicationSubmittedKey string `mapstructure:"application_submitted_key"`
+}
+
+type EmailConfig struct {
+	Mode      string `mapstructure:"mode"`
+	FromName  string `mapstructure:"from_name"`
+	FromEmail string `mapstructure:"from_email"`
+	SMTPHost  string `mapstructure:"smtp_host"`
+	SMTPPort  int    `mapstructure:"smtp_port"`
+	SMTPUser  string `mapstructure:"smtp_user"`
+	SMTPPass  string `mapstructure:"smtp_pass"`
+}
+
 // Config is the root configuration.
 type Config struct {
 	Server      HttpConfig      `mapstructure:"server"`
@@ -70,6 +106,10 @@ type Config struct {
 	Logging     LoggingConfig   `mapstructure:"logging"`
 	Security    SecurityConfig  `mapstructure:"security"`
 	Metrics     MetricsConfig   `mapstructure:"metrics"`
+	Auth        AuthConfig      `mapstructure:"auth"`
+	Storage     StorageConfig   `mapstructure:"storage"`
+	Messaging   MessagingConfig `mapstructure:"messaging"`
+	Email       EmailConfig     `mapstructure:"email"`
 }
 
 func Load() (cfg *Config, err error) {
@@ -130,6 +170,33 @@ func Load() (cfg *Config, err error) {
 	if cfg.Metrics.Namespace == "" {
 		cfg.Metrics.Namespace = "backend"
 	}
+	if cfg.Auth.AccessTokenTTLSeconds == 0 {
+		cfg.Auth.AccessTokenTTLSeconds = 3600
+	}
+	if cfg.Auth.RefreshTokenTTLSeconds == 0 {
+		cfg.Auth.RefreshTokenTTLSeconds = 604800
+	}
+	if cfg.Auth.EmailVerificationCodeTTLSeconds == 0 {
+		cfg.Auth.EmailVerificationCodeTTLSeconds = 900
+	}
+	if cfg.Storage.Provider == "" {
+		cfg.Storage.Provider = "s3"
+	}
+	if cfg.Storage.Region == "" {
+		cfg.Storage.Region = "us-east-1"
+	}
+	if cfg.Messaging.Mode == "" {
+		cfg.Messaging.Mode = "stub"
+	}
+	if cfg.Messaging.Exchange == "" {
+		cfg.Messaging.Exchange = "invisionu.events"
+	}
+	if cfg.Messaging.ApplicationSubmittedKey == "" {
+		cfg.Messaging.ApplicationSubmittedKey = "application.submitted"
+	}
+	if cfg.Email.Mode == "" {
+		cfg.Email.Mode = "stub"
+	}
 
 	overrideFromEnv(cfg)
 
@@ -173,5 +240,82 @@ func overrideFromEnv(cfg *Config) {
 	}
 	if value := os.Getenv("METRICS_PATH"); value != "" {
 		cfg.Metrics.Path = value
+	}
+	if value := os.Getenv("JWT_ACCESS_SECRET"); value != "" {
+		cfg.Auth.JWTAccessSecret = value
+	}
+	if value := os.Getenv("JWT_REFRESH_SECRET"); value != "" {
+		cfg.Auth.JWTRefreshSecret = value
+	}
+	if value := os.Getenv("ACCESS_TOKEN_TTL_SECONDS"); value != "" {
+		if parsed, err := strconv.Atoi(value); err == nil {
+			cfg.Auth.AccessTokenTTLSeconds = parsed
+		}
+	}
+	if value := os.Getenv("REFRESH_TOKEN_TTL_SECONDS"); value != "" {
+		if parsed, err := strconv.Atoi(value); err == nil {
+			cfg.Auth.RefreshTokenTTLSeconds = parsed
+		}
+	}
+	if value := os.Getenv("EMAIL_VERIFICATION_CODE_TTL_SECONDS"); value != "" {
+		if parsed, err := strconv.Atoi(value); err == nil {
+			cfg.Auth.EmailVerificationCodeTTLSeconds = parsed
+		}
+	}
+	if value := os.Getenv("STORAGE_PROVIDER"); value != "" {
+		cfg.Storage.Provider = value
+	}
+	if value := os.Getenv("STORAGE_ENDPOINT"); value != "" {
+		cfg.Storage.Endpoint = value
+	}
+	if value := os.Getenv("STORAGE_REGION"); value != "" {
+		cfg.Storage.Region = value
+	}
+	if value := os.Getenv("STORAGE_BUCKET"); value != "" {
+		cfg.Storage.Bucket = value
+	}
+	if value := os.Getenv("STORAGE_ACCESS_KEY"); value != "" {
+		cfg.Storage.AccessKey = value
+	}
+	if value := os.Getenv("STORAGE_SECRET_KEY"); value != "" {
+		cfg.Storage.SecretKey = value
+	}
+	if value := os.Getenv("STORAGE_USE_SSL"); value != "" {
+		cfg.Storage.UseSSL = strings.EqualFold(value, "true") || value == "1"
+	}
+	if value := os.Getenv("MESSAGING_MODE"); value != "" {
+		cfg.Messaging.Mode = value
+	}
+	if value := os.Getenv("RABBITMQ_URL"); value != "" {
+		cfg.Messaging.URL = value
+	}
+	if value := os.Getenv("MESSAGING_EXCHANGE"); value != "" {
+		cfg.Messaging.Exchange = value
+	}
+	if value := os.Getenv("APPLICATION_SUBMITTED_ROUTING_KEY"); value != "" {
+		cfg.Messaging.ApplicationSubmittedKey = value
+	}
+	if value := os.Getenv("EMAIL_MODE"); value != "" {
+		cfg.Email.Mode = value
+	}
+	if value := os.Getenv("EMAIL_FROM_NAME"); value != "" {
+		cfg.Email.FromName = value
+	}
+	if value := os.Getenv("EMAIL_FROM_EMAIL"); value != "" {
+		cfg.Email.FromEmail = value
+	}
+	if value := os.Getenv("SMTP_HOST"); value != "" {
+		cfg.Email.SMTPHost = value
+	}
+	if value := os.Getenv("SMTP_PORT"); value != "" {
+		if parsed, err := strconv.Atoi(value); err == nil {
+			cfg.Email.SMTPPort = parsed
+		}
+	}
+	if value := os.Getenv("SMTP_USER"); value != "" {
+		cfg.Email.SMTPUser = value
+	}
+	if value := os.Getenv("SMTP_PASS"); value != "" {
+		cfg.Email.SMTPPass = value
 	}
 }

@@ -1,8 +1,8 @@
 package main
 
-// @title Backend API Template
+// @title InVisionU ATS Backend API
 // @version 1.0
-// @description Reusable Go Fiber backend template with PostgreSQL, healthchecks, metrics, and Swagger support.
+// @description Applicant tracking backend for InVisionU ATS.
 // @termsOfService https://yourdomain.com/terms/
 //
 // @contact.name API Support
@@ -24,9 +24,20 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
+	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/applications"
+	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/auth"
+	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/candidates"
 	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/healthcheck"
+	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/personalitytest"
+	platformEmail "github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/platform/email"
+	platformMessaging "github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/platform/messaging"
+	platformRabbitMQ "github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/platform/messaging/rabbitmq"
+	platformStorage "github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/platform/storage"
+	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/programs"
+	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/uploads"
 	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/pkg/config"
 	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/pkg/database"
 	md "github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/pkg/http/middlewares"
@@ -54,6 +65,16 @@ func main() {
 	}
 
 	trackedDB := database.NewTrackedDB(db)
+
+	emailSender := buildEmailSender(cfg)
+	messageBus, err := buildMessageBus(cfg)
+	if err != nil {
+		log.Fatal().Err(err).Str("event", "init_message_bus_failed").Msg("failed to init message bus")
+	}
+	objectStorage, err := platformStorage.NewMinIOStorage(cfg.Storage)
+	if err != nil {
+		log.Fatal().Err(err).Str("event", "init_object_storage_failed").Msg("failed to init object storage")
+	}
 
 	server := fiber.New()
 	server.Use(recover.New(recover.Config{EnableStackTrace: true}))
@@ -84,7 +105,7 @@ func main() {
 
 	server.Get("/", func(c fiber.Ctx) error {
 		return c.JSON(fiber.Map{
-			"service":     "backend-template",
+			"service":     "invisionu-ats",
 			"version":     "1.0.0",
 			"environment": cfg.Environment,
 			"endpoints": fiber.Map{
@@ -99,6 +120,12 @@ func main() {
 
 	registerDocsRoutes(server)
 	healthcheck.Init(server, trackedDB, cfg)
+	accessManager := auth.Init(server, trackedDB, cfg, emailSender)
+	programs.Init(server, trackedDB)
+	personalitytest.Init(server, trackedDB)
+	uploads.Init(server, trackedDB, accessManager, objectStorage)
+	applications.Init(server, trackedDB, cfg, accessManager, messageBus)
+	candidates.Init(server, trackedDB, accessManager)
 
 	log.Info().Str("event", "init_http_server_success").Int("port", cfg.Server.Port).Msg("HTTP server initialized successfully")
 
@@ -148,4 +175,21 @@ func docsPath() string {
 		return "/docs"
 	}
 	return "generate with `make swagger` or Docker build"
+}
+
+func buildEmailSender(cfg *config.Config) platformEmail.Sender {
+	env := strings.ToLower(strings.TrimSpace(cfg.Environment))
+	if env == "production" && strings.EqualFold(cfg.Email.Mode, "smtp") {
+		return platformEmail.NewSMTPSender(cfg.Email)
+	}
+
+	return platformEmail.NewStubSender(&log.Logger)
+}
+
+func buildMessageBus(cfg *config.Config) (platformMessaging.Bus, error) {
+	if strings.EqualFold(cfg.Messaging.Mode, "rabbitmq") {
+		return platformRabbitMQ.New(cfg.Messaging.URL, cfg.Messaging.Exchange)
+	}
+
+	return platformMessaging.NewStubBus(&log.Logger), nil
 }
