@@ -194,21 +194,23 @@ def generate_response(
     )
 
 
-def main() -> None:
+def main(input_data) -> dict:
     load_env_file()
 
     prompt_text = read_text_file("prompt.txt")
-    input_text = read_text_file("input.txt")
+    #input_text = read_text_file("input.txt")
     temperature = get_temperature()
 
     result = generate_response(
         prompt=prompt_text,
-        text=input_text,
+        text=input_data,
         model=None,
         max_retries=3,
         temperature=temperature,
     )
     print(json.dumps(result, ensure_ascii=False, indent=2))
+
+    return result
 
 
 

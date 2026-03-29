@@ -1,0 +1,4 @@
+groq
+pydantic
+fastapi
+uvicorn[standard]
