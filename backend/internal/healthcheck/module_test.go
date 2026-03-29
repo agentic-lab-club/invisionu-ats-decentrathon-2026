@@ -9,9 +9,9 @@ import (
 	"time"
 
 	sqlmock "github.com/DATA-DOG/go-sqlmock"
-	"github.com/dotpep/golang-backend-modular-tmpl/pkg/config"
-	"github.com/dotpep/golang-backend-modular-tmpl/pkg/database"
-	"github.com/dotpep/golang-backend-modular-tmpl/pkg/timekit"
+	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/pkg/config"
+	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/pkg/database"
+	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/pkg/timekit"
 	"github.com/gofiber/fiber/v3"
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog"

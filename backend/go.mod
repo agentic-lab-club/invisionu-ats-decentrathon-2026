@@ -1,4 +1,4 @@
-module github.com/dotpep/golang-backend-modular-tmpl
+module github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend
 
 go 1.25.1
 
