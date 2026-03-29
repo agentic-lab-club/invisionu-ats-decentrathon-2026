@@ -16,6 +16,19 @@ func NewHandler(service *Service) *Handler {
 	return &Handler{service: service}
 }
 
+// Upload godoc
+// @Summary Upload application file
+// @Description Uploads a file for the authenticated applicant and creates an unattached application file record.
+// @Tags @uploads
+// @Accept multipart/form-data
+// @Produce json
+// @Security BearerToken
+// @Param file_type formData string true "File type"
+// @Param file formData file true "Binary file payload"
+// @Success 201 {object} Response
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Router /uploads [post]
 func (h *Handler) Upload(c fiber.Ctx) error {
 	userID, ok := md.AuthID(c)
 	if !ok {

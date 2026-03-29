@@ -189,6 +189,7 @@ Use `internal/_module_template/` as the canonical scaffold for new modules. Copy
 
 Module README (required for every new module):
 - Create `internal/<module>/README.md` when you add a module.
+- It acts as Documentation and API Specification for module.
 - Keep it short and structured: purpose/scope, owned routes, external deps (other services, queues, third-party APIs), config/env keys used, migrations added, and how to run module-specific tests. Link to relevant Swagger tags (`@<module>`).
 - Update the README when adding significant behavior, new routes, or config flags.
 

@@ -1,74 +1,112 @@
-//go:build ignore
-
 package auth
 
 import (
 	"time"
 
-	"errors"
-
 	"github.com/google/uuid"
 )
 
-type OTPRequest struct {
-	PhoneNumber string `json:"phone_number" validate:"required"`
-}
-
-type OTPLoginRequest struct {
-	PhoneNumber string `json:"phone_number" validate:"required"`
-	Code        string `json:"code" validate:"required"`
-}
-
-type OTPResponse struct {
-	Success bool   `json:"success"`
-	Message string `json:"message"`
-}
-
-type OTPAdminResponse struct {
-	Success bool   `json:"success"`
-	Message string `json:"message"`
-	Code    string `json:"code"`
-}
-
-type LoginResponse struct {
-	Success     bool      `json:"success"`
-	AccessToken string    `json:"access_token"`
-	ExpiresAt   time.Time `json:"expires_at"`
-	User        UserInfo  `json:"user"`
-}
-
-type UserInfo struct {
-	ID          uuid.UUID `json:"id"`
-	PhoneNumber string    `json:"phone_number"`
-	Status      string    `json:"status"`
-	Role        RoleInfo  `json:"role"`
-	IsFixOTP    bool      `json:"-"` // из directus_users.is_fix_otp; не отдаём в API
-}
-
-type RoleInfo struct {
-	ID   uuid.UUID `json:"id"`
-	Name string    `json:"name"`
-}
-
-type HealthResponse struct {
-	Status    string    `json:"status"`
-	Timestamp time.Time `json:"timestamp"`
-	Version   string    `json:"version"`
-}
-
-type RateLimitError struct {
-	RetryAfter int `json:"retry_after"`
-}
-
 const (
-	UserStatusActive     = "Active"
-	UserStatusArchived   = "Archived"
-	UserStatusSuspended  = "Suspended"
-	UserStatusInvited    = "Invited"
-	UserStatusUnverified = "Unverified"
-	UserStatusDraft      = "Draft"
+	RoleUser  = "user"
+	RoleAdmin = "admin"
+
+	PurposeEmailVerification = "email_verification"
 )
 
-var (
-	ErrUserSuspended = errors.New("user suspended")
-)
+type RegisterRequest struct {
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required,min=8,max=72"`
+}
+
+type VerifyEmailRequest struct {
+	Email string `json:"email" validate:"required,email"`
+	Code  string `json:"code" validate:"required,len=6"`
+}
+
+type LoginRequest struct {
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required,min=8,max=72"`
+}
+
+type RefreshRequest struct {
+	RefreshToken string `json:"refresh_token" validate:"required"`
+}
+
+type ResendCodeRequest struct {
+	Email string `json:"email" validate:"required,email"`
+}
+
+type LogoutRequest struct {
+	RefreshToken string `json:"refresh_token" validate:"required"`
+}
+
+type MessageResponse struct {
+	Message string `json:"message"`
+}
+
+type TokenResponse struct {
+	AccessToken      string       `json:"access_token"`
+	RefreshToken     string       `json:"refresh_token"`
+	TokenType        string       `json:"token_type"`
+	ExpiresInSeconds int          `json:"expires_in_seconds"`
+	User             ResponseUser `json:"user"`
+}
+
+type ResponseUser struct {
+	ID              uuid.UUID `json:"id"`
+	Email           string    `json:"email"`
+	Role            string    `json:"role"`
+	IsEmailVerified bool      `json:"is_email_verified"`
+	FirstName       *string   `json:"first_name,omitempty"`
+	LastName        *string   `json:"last_name,omitempty"`
+	PhoneNumber     *string   `json:"phone_number,omitempty"`
+}
+
+type User struct {
+	ID              uuid.UUID `db:"id"`
+	Email           string    `db:"email"`
+	PasswordHash    string    `db:"password_hash"`
+	Role            string    `db:"role"`
+	IsEmailVerified bool      `db:"is_email_verified"`
+	FirstName       *string   `db:"first_name"`
+	LastName        *string   `db:"last_name"`
+	PhoneNumber     *string   `db:"phone_number"`
+	CreatedAt       time.Time `db:"created_at"`
+	UpdatedAt       time.Time `db:"updated_at"`
+}
+
+type AuthCode struct {
+	ID         uuid.UUID  `db:"id"`
+	UserID     uuid.UUID  `db:"user_id"`
+	Purpose    string     `db:"purpose"`
+	CodeHash   string     `db:"code_hash"`
+	ExpiresAt  time.Time  `db:"expires_at"`
+	ConsumedAt *time.Time `db:"consumed_at"`
+	CreatedAt  time.Time  `db:"created_at"`
+}
+
+type RefreshSession struct {
+	ID        uuid.UUID  `db:"id"`
+	UserID    uuid.UUID  `db:"user_id"`
+	TokenHash string     `db:"token_hash"`
+	ExpiresAt time.Time  `db:"expires_at"`
+	RevokedAt *time.Time `db:"revoked_at"`
+	UserAgent *string    `db:"user_agent"`
+	IPAddress *string    `db:"ip_address"`
+	CreatedAt time.Time  `db:"created_at"`
+	UpdatedAt time.Time  `db:"updated_at"`
+}
+
+type SessionWithUser struct {
+	RefreshSession
+	UserEmail           string  `db:"user_email"`
+	UserRole            string  `db:"user_role"`
+	UserIsEmailVerified bool    `db:"user_is_email_verified"`
+	UserFirstName       *string `db:"user_first_name"`
+	UserLastName        *string `db:"user_last_name"`
+	UserPhoneNumber     *string `db:"user_phone_number"`
+}
+
+type meResponse struct {
+	User ResponseUser `json:"user"`
+}

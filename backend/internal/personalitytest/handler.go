@@ -15,6 +15,15 @@ func NewHandler(service *Service) *Handler {
 	return &Handler{service: service}
 }
 
+// GetCurrent godoc
+// @Summary Get current active personality test
+// @Description Returns the active personality test with questions and options for the application form.
+// @Tags @personalitytest
+// @Produce json
+// @Success 200 {object} Test
+// @Failure 404 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /tests/personality/current [get]
 func (h *Handler) GetCurrent(c fiber.Ctx) error {
 	test, err := h.service.GetCurrent()
 	if err != nil {

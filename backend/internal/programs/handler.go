@@ -13,6 +13,14 @@ func NewHandler(service *Service) *Handler {
 	return &Handler{service: service}
 }
 
+// List godoc
+// @Summary List active programs
+// @Description Returns active programs sorted for the applicant program selection form.
+// @Tags @programs
+// @Produce json
+// @Success 200 {object} ListResponse
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/v1/programs [get]
 func (h *Handler) List(c fiber.Ctx) error {
 	items, err := h.service.List()
 	if err != nil {

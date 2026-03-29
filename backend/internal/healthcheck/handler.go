@@ -22,6 +22,7 @@ func NewHandler(service *Service) *Handler {
 // @Success 200 {object} HealthCheckResponse
 // @Failure 500 {object} map[string]string
 // @Failure 503 {object} HealthCheckResponse
+// @Router /health [get]
 // @Router /api/v1/healthcheck [get]
 func (h *Handler) HealthCheck(ctx fiber.Ctx) error {
 	l := ctx.Locals("log").(*zerolog.Logger)
@@ -50,6 +51,7 @@ func (h *Handler) HealthCheck(ctx fiber.Ctx) error {
 // @Tags @healthcheck
 // @Produce json
 // @Success 200 {object} LivenessResponse
+// @Router /health/liveness [get]
 // @Router /api/v1/healthcheck/liveness [get]
 func (h *Handler) LivenessProbe(ctx fiber.Ctx) error {
 	return respond.OK(ctx, h.service.CheckLiveness(), nil)
@@ -62,6 +64,7 @@ func (h *Handler) LivenessProbe(ctx fiber.Ctx) error {
 // @Produce json
 // @Success 200 {object} ReadinessResponse
 // @Failure 503 {object} map[string]string
+// @Router /health/readiness [get]
 // @Router /api/v1/healthcheck/readiness [get]
 func (h *Handler) ReadinessProbe(ctx fiber.Ctx) error {
 	l := ctx.Locals("log").(*zerolog.Logger)

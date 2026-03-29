@@ -1,381 +1,248 @@
-//go:build ignore
-
 package auth
 
 import (
+	"context"
 	"fmt"
 	"strings"
+	"time"
 
-	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/timekit"
-	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/pkg/auth"
+	platformEmail "github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/platform/email"
+	pkgAuth "github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/pkg/auth"
 	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/pkg/config"
-	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/pkg/metrics"
-	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/pkg/sms"
-	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/pkg/telegram"
+	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/pkg/timekit"
+	"github.com/google/uuid"
 )
 
 type Service struct {
-	repo         *Repository
-	otpGenerator *auth.OTPGenerator
-	tokenGen     *auth.TokenGenerator
-	rateLimiter  *auth.RateLimiter
-	smsClient    *sms.SMSClient
-	config       *config.Config
-	testAccounts map[string]string
-	tgBot        *telegram.Bot
+	repo           *Repository
+	cfg            *config.Config
+	accessManager  *pkgAuth.TokenManager
+	refreshManager *pkgAuth.TokenManager
+	emailSender    platformEmail.Sender
+	registerLimit  *pkgAuth.RateLimiter
+	verifyLimit    *pkgAuth.RateLimiter
 }
 
-func NewService(repo *Repository, cfg *config.Config, tgBot *telegram.Bot) *Service {
-	otpGen := auth.NewOTPGenerator(5, 5) // 5 digits, 5 minutes TTL
-	tokenGen := auth.NewTokenGenerator(cfg.Auth.JWTSecret, int(cfg.Auth.AccessTokenDuration.Minutes()))
-	rateLimiter := auth.NewRateLimiter()
-
-	smsClient := sms.NewSMSClient(
-		cfg.SMS.Login,
-		cfg.SMS.APIKey,
-		cfg.SMS.BaseURL,
-		cfg.SMS.Enabled,
-	)
-
-	// Parse test accounts from config
-	testAccounts := make(map[string]string)
-	if cfg.Auth.TestAccounts != "" {
-		pairs := strings.Split(cfg.Auth.TestAccounts, ",")
-		for _, pair := range pairs {
-			parts := strings.Split(strings.TrimSpace(pair), ":")
-			if len(parts) == 2 {
-				testAccounts[parts[0]] = parts[1]
-			}
-		}
-	}
-
+func NewService(repo *Repository, cfg *config.Config, accessManager *pkgAuth.TokenManager, refreshManager *pkgAuth.TokenManager, sender platformEmail.Sender) *Service {
 	return &Service{
-		repo:         repo,
-		otpGenerator: otpGen,
-		tokenGen:     tokenGen,
-		rateLimiter:  rateLimiter,
-		smsClient:    smsClient,
-		config:       cfg,
-		testAccounts: testAccounts,
-		tgBot:        tgBot,
+		repo:           repo,
+		cfg:            cfg,
+		accessManager:  accessManager,
+		refreshManager: refreshManager,
+		emailSender:    sender,
+		registerLimit:  pkgAuth.NewRateLimiter(),
+		verifyLimit:    pkgAuth.NewRateLimiter(),
 	}
 }
 
-func (s *Service) RequestOTP(phoneNumber string, channel string) (*RateLimitError, error) {
-	normalizedPhone := auth.NormalizePhone(phoneNumber)
-	if s.config.Auth.RateLimitEnabled {
-		result := s.rateLimiter.CheckOTPRequest(normalizedPhone)
-		if !result.OK {
-			return &RateLimitError{RetryAfter: result.RetryAfter}, nil
-		}
+func (s *Service) Register(ctx context.Context, req RegisterRequest) error {
+	email := normalizeEmail(req.Email)
+	if limit := s.registerLimit.Check("auth_register", email, 3, 60); !limit.OK {
+		return fmt.Errorf("register rate limit exceeded")
 	}
 
-	// 1. Проверяем наличие пользователя и флаг fix_otp
-	userByPhone, err := s.repo.FindUserByPhone(normalizedPhone)
+	existingUser, err := s.repo.FindUserByEmail(email)
 	if err != nil {
-		return nil, fmt.Errorf("database error: %w", err)
+		return err
+	}
+	if existingUser != nil {
+		return fmt.Errorf("user already exists")
 	}
 
-	// 2. Если номер тестовый или у пользователя включен fix_otp — не шлём и не сохраняем в БД
-	// Коды для них проверяются отдельно в VerifyOTP
-	_, isTest := s.testAccounts[normalizedPhone]
-	isFixOTP := userByPhone != nil && userByPhone.IsFixOTP && strings.TrimSpace(s.config.Auth.FixedOTPCode) != ""
-
-	if isTest || isFixOTP {
-		return nil, nil
-	}
-
-	// 3. Генерация и сохранение OTP для обычных пользователей
-	otp, err := s.otpGenerator.CreateOTP(normalizedPhone)
+	passwordHash, err := pkgAuth.HashPassword(req.Password)
 	if err != nil {
-		return nil, fmt.Errorf("failed to generate OTP: %w", err)
-	}
-	if err := s.repo.UpsertOTP(otp); err != nil {
-		return nil, fmt.Errorf("failed to save OTP: %w", err)
+		return err
 	}
 
-	// 4. Отправка по выбранному каналу
-	message := fmt.Sprintf("Ваш код подтверждения: %s", otp.Code)
-	ch := strings.ToLower(strings.TrimSpace(channel))
-	env := strings.ToLower(strings.TrimSpace(s.config.Environment))
-	isProd := env == "prod" || env == "production"
-	switch ch {
-	case "tg", "telegram":
-		// send via telegram only
-		// Telegram delivery is implemented via the same SMS provider (tg=1).
-		// On prod we must ensure SMS provider is configured and return error if not.
-		if isProd {
-			if !s.config.SMS.Enabled || s.config.SMS.Login == "" || s.config.SMS.APIKey == "" || s.config.SMS.BaseURL == "" {
-				return nil, fmt.Errorf("sms channel is not configured")
-			}
-			if s.smsClient == nil {
-				return nil, fmt.Errorf("sms client not initialized")
-			}
-			if _, err := s.smsClient.SendTelegram(normalizedPhone, message); err != nil {
-				return nil, fmt.Errorf("failed to send OTP via telegram: %w", err)
-			}
-			return nil, nil
-		}
-
-		// Non-prod: try to send if client is available, otherwise treat as no-op to not block development
-		if s.smsClient != nil {
-			if _, err := s.smsClient.SendTelegram(normalizedPhone, message); err != nil {
-				return nil, fmt.Errorf("failed to send OTP via telegram: %w", err)
-			}
-			return nil, nil
-		}
-		if s.tgBot != nil {
-			if err := s.tgBot.SendMessage(message); err != nil {
-				return nil, fmt.Errorf("failed to send OTP via telegram bot: %w", err)
-			}
-			return nil, nil
-		}
-		// no client configured in non-prod — silently succeed for developer convenience
-		return nil, nil
-	case "sms":
-		// send via SMS only
-		if isProd {
-			if !s.config.SMS.Enabled || s.config.SMS.Login == "" || s.config.SMS.APIKey == "" || s.config.SMS.BaseURL == "" {
-				return nil, fmt.Errorf("sms channel is not configured")
-			}
-			if s.smsClient == nil {
-				return nil, fmt.Errorf("sms client not initialized")
-			}
-			if _, err := s.smsClient.SendSMS(normalizedPhone, message); err != nil {
-				return nil, fmt.Errorf("failed to send OTP via sms: %w", err)
-			}
-			return nil, nil
-		}
-
-		// Non-prod: attempt send if client exists, otherwise no-op
-		if s.smsClient != nil {
-			if _, err := s.smsClient.SendSMS(normalizedPhone, message); err != nil {
-				return nil, fmt.Errorf("failed to send OTP via sms: %w", err)
-			}
-		}
-		return nil, nil
-	default:
-		return nil, fmt.Errorf("unsupported channel: %s", channel)
+	user, err := s.repo.CreateUser(email, passwordHash, RoleUser)
+	if err != nil {
+		return err
 	}
+
+	return s.issueVerificationCode(ctx, user.ID, user.Email)
 }
 
-func (s *Service) RequestOTPAdmin(phoneNumber string) (string, *RateLimitError, error) {
-	normalizedPhone := auth.NormalizePhone(phoneNumber)
-	if s.config.Auth.RateLimitEnabled {
-		result := s.rateLimiter.CheckOTPRequest(normalizedPhone)
-		if !result.OK {
-			return "", &RateLimitError{RetryAfter: result.RetryAfter}, nil
-		}
+func (s *Service) VerifyEmail(ctx context.Context, req VerifyEmailRequest) error {
+	email := normalizeEmail(req.Email)
+	if limit := s.verifyLimit.Check("auth_verify_email", email, 5, 300); !limit.OK {
+		return fmt.Errorf("verification rate limit exceeded")
 	}
 
-	userByPhone, err := s.repo.FindUserByPhone(normalizedPhone)
+	user, err := s.repo.FindUserByEmail(email)
 	if err != nil {
-		return "", nil, fmt.Errorf("database error: %w", err)
+		return err
+	}
+	if user == nil {
+		return fmt.Errorf("user not found")
 	}
 
-	if testCode, isTest := s.testAccounts[normalizedPhone]; isTest {
-		return testCode, nil, nil
-	}
-
-	isFixOTP := userByPhone != nil && userByPhone.IsFixOTP && strings.TrimSpace(s.config.Auth.FixedOTPCode) != ""
-	if isFixOTP {
-		return strings.TrimSpace(s.config.Auth.FixedOTPCode), nil, nil
-	}
-
-	otp, err := s.otpGenerator.CreateOTP(normalizedPhone)
+	authCode, err := s.repo.FindLatestActiveAuthCode(user.ID, PurposeEmailVerification)
 	if err != nil {
-		return "", nil, fmt.Errorf("failed to generate OTP: %w", err)
+		return err
 	}
-	if err := s.repo.UpsertOTP(otp); err != nil {
-		return "", nil, fmt.Errorf("failed to save OTP: %w", err)
+	if authCode == nil {
+		return fmt.Errorf("verification code not found")
+	}
+	if authCode.ConsumedAt != nil || timekit.NowUTC().After(authCode.ExpiresAt) {
+		return fmt.Errorf("verification code expired")
+	}
+	if pkgAuth.HashString(req.Code) != authCode.CodeHash {
+		return fmt.Errorf("invalid verification code")
 	}
 
-	return otp.Code, nil, nil
+	if err := s.repo.ConsumeAuthCode(authCode.ID); err != nil {
+		return err
+	}
+	if err := s.repo.MarkUserEmailVerified(user.ID); err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (s *Service) VerifyOTP(phoneNumber, code string) (*LoginResponse, *RateLimitError, error) {
-	normalizedPhone := auth.NormalizePhone(phoneNumber)
-	if s.config.Auth.RateLimitEnabled {
-		result := s.rateLimiter.CheckLoginAttempt(normalizedPhone)
-		if !result.OK {
-			return nil, &RateLimitError{RetryAfter: result.RetryAfter}, nil
-		}
-	}
-
-	userByPhone, err := s.repo.FindUserByPhone(normalizedPhone)
+func (s *Service) Login(ctx context.Context, req LoginRequest, userAgent string, ipAddress string) (*TokenResponse, error) {
+	user, err := s.repo.FindUserByEmail(normalizeEmail(req.Email))
 	if err != nil {
-		metrics.RecordAuthAttempt("failed", "otp")
-		return nil, nil, fmt.Errorf("database error: %w", err)
+		return nil, err
 	}
-	// Пользователь с is_fix_otp: принимаем только код из .env (auth.fixed_otp_code)
-	if userByPhone != nil && userByPhone.IsFixOTP {
-		fixedCode := strings.TrimSpace(s.config.Auth.FixedOTPCode)
-		if fixedCode != "" && code == fixedCode {
-			// фикс-OTP совпал — пропускаем проверку AUTH_OTP
-		} else {
-			metrics.RecordAuthAttempt("failed", "otp")
-			return nil, nil, fmt.Errorf("invalid OTP code")
-		}
-	} else if testCode, isTest := s.testAccounts[normalizedPhone]; isTest {
-		if code != testCode {
-			metrics.RecordAuthAttempt("failed", "otp")
-			return nil, nil, fmt.Errorf("invalid OTP code for test account")
-		}
-	} else {
-		otp, err := s.repo.GetOTPByPhone(normalizedPhone)
-		if err != nil {
-			metrics.RecordAuthAttempt("failed", "otp")
-			return nil, nil, fmt.Errorf("database error: %w", err)
-		}
-
-		if otp == nil {
-			metrics.RecordAuthAttempt("failed", "otp")
-			return nil, nil, fmt.Errorf("OTP not found")
-		}
-
-		if !otp.IsValid() {
-			metrics.RecordAuthAttempt("failed", "otp")
-			return nil, nil, fmt.Errorf("OTP is expired or already used")
-		}
-
-		if otp.Code != code {
-			metrics.RecordAuthAttempt("failed", "otp")
-			return nil, nil, fmt.Errorf("invalid OTP code")
-		}
-		if err := s.repo.MarkOTPAsUsed(otp.ID); err != nil {
-			return nil, nil, fmt.Errorf("failed to mark OTP as used: %w", err)
-		}
+	if user == nil {
+		return nil, fmt.Errorf("invalid credentials")
+	}
+	if err := pkgAuth.ComparePassword(user.PasswordHash, req.Password); err != nil {
+		return nil, fmt.Errorf("invalid credentials")
+	}
+	if !user.IsEmailVerified {
+		return nil, fmt.Errorf("email is not verified")
 	}
 
-	user, err := s.findOrCreateUser(normalizedPhone)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to find or create user: %w", err)
-	}
-	token, err := s.tokenGen.GenerateToken(user.ID, user.Role.ID, user.Role.Name)
-	if err != nil {
-		metrics.RecordAuthAttempt("failed", "otp")
-		return nil, nil, fmt.Errorf("failed to generate token: %w", err)
-	}
-
-	metrics.RecordAuthAttempt("success", "otp")
-	return &LoginResponse{
-		Success:     true,
-		AccessToken: token,
-		ExpiresAt:   timekit.NowUTC().Add(s.tokenGen.TTL),
-		User:        *user,
-	}, nil, nil
+	return s.createTokenResponse(ctx, user, userAgent, ipAddress)
 }
 
-func (s *Service) findOrCreateUser(phone string) (*UserInfo, error) {
-	user, err := s.repo.FindUserByPhone(phone)
+func (s *Service) Refresh(ctx context.Context, refreshToken string, userAgent string, ipAddress string) (*TokenResponse, error) {
+	tokenHash := pkgAuth.HashString(refreshToken)
+	session, err := s.repo.FindRefreshSessionByHash(tokenHash)
 	if err != nil {
-		return nil, fmt.Errorf("failed to find user: %w", err)
+		return nil, err
+	}
+	if session == nil {
+		return nil, fmt.Errorf("invalid refresh token")
+	}
+	if session.RevokedAt != nil || timekit.NowUTC().After(session.ExpiresAt) {
+		return nil, fmt.Errorf("refresh token expired")
 	}
 
-	if user != nil {
-		switch user.Status {
-
-		case UserStatusSuspended:
-			return nil, ErrUserSuspended
-
-		case UserStatusArchived, UserStatusInvited, UserStatusUnverified, UserStatusDraft:
-			if err := s.repo.UpdateStatus(user.ID, UserStatusActive); err != nil {
-				return nil, err
-			}
-			user.Status = UserStatusActive
-		}
-
-		return user, nil
+	if err := s.repo.RevokeRefreshSession(session.ID); err != nil {
+		return nil, err
 	}
 
-	// 2️⃣ Пользователь НИКОГДА не существовал → создаём
-	defaultRoleID, err := s.repo.GetDefaultRoleID()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get default role ID: %w", err)
+	user := &User{
+		ID:              session.UserID,
+		Email:           session.UserEmail,
+		Role:            session.UserRole,
+		IsEmailVerified: session.UserIsEmailVerified,
+		FirstName:       session.UserFirstName,
+		LastName:        session.UserLastName,
+		PhoneNumber:     session.UserPhoneNumber,
 	}
-
-	user, err = s.repo.CreateUser(phone, defaultRoleID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create user: %w", err)
-	}
-
-	metrics.RecordUserAction("created")
-	if s.tgBot != nil {
-		msg := fmt.Sprintf("👤 <b>Новый пользователь! [%s]</b>\n\n<b>Телефон:</b> <code>%s</code>", s.config.Environment, phone)
-		_ = s.tgBot.SendMessage(msg)
-	}
-	return user, nil
+	return s.createTokenResponse(ctx, user, userAgent, ipAddress)
 }
 
-func (s *Service) Health() *HealthResponse {
-	return &HealthResponse{
-		Status:    "ok",
-		Timestamp: timekit.NowUTC(),
-		Version:   "1.0.0",
+func (s *Service) Logout(_ context.Context, refreshToken string) error {
+	tokenHash := pkgAuth.HashString(refreshToken)
+	session, err := s.repo.FindRefreshSessionByHash(tokenHash)
+	if err != nil {
+		return err
 	}
+	if session == nil {
+		return nil
+	}
+	return s.repo.RevokeRefreshSession(session.ID)
 }
 
-func (s *Service) RequestOTPLegacy(phoneNumber string) (*RateLimitError, error) {
-	normalizedPhone := auth.NormalizePhone(phoneNumber)
-	if s.config.Auth.RateLimitEnabled {
-		result := s.rateLimiter.CheckOTPRequest(normalizedPhone)
-		if !result.OK {
-			return &RateLimitError{RetryAfter: result.RetryAfter}, nil
-		}
-	}
-
-	// 1. Проверяем наличие пользователя и флаг fix_otp
-	userByPhone, err := s.repo.FindUserByPhone(normalizedPhone)
+func (s *Service) ResendCode(ctx context.Context, email string) error {
+	user, err := s.repo.FindUserByEmail(normalizeEmail(email))
 	if err != nil {
-		return nil, fmt.Errorf("database error: %w", err)
+		return err
+	}
+	if user == nil {
+		return fmt.Errorf("user not found")
+	}
+	if user.IsEmailVerified {
+		return fmt.Errorf("email is already verified")
 	}
 
-	// 2. Если номер тестовый или у пользователя включен fix_otp — не шлём и не сохраняем в БД
-	_, isTest := s.testAccounts[normalizedPhone]
-	isFixOTP := userByPhone != nil && userByPhone.IsFixOTP && strings.TrimSpace(s.config.Auth.FixedOTPCode) != ""
-
-	if isTest || isFixOTP {
-		return nil, nil
-	}
-
-	// 3. Генерация и сохранение OTP
-	otp, err := s.otpGenerator.CreateOTP(normalizedPhone)
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate OTP: %w", err)
-	}
-	if err := s.repo.UpsertOTP(otp); err != nil {
-		return nil, fmt.Errorf("failed to save OTP: %w", err)
-	}
-
-	// 4. Отправка с fallback: попытка telegram, затем sms
-	message := fmt.Sprintf("Ваш код подтверждения: %s", otp.Code)
-
-	env := strings.ToLower(strings.TrimSpace(s.config.Environment))
-	isProd := env == "prod" || env == "production"
-
-	// На prod требуем настроенный SMS, на non-prod разрешаем no-op
-	if isProd {
-		if !s.config.SMS.Enabled || s.config.SMS.Login == "" || s.config.SMS.APIKey == "" || s.config.SMS.BaseURL == "" {
-			return nil, fmt.Errorf("sms channel is not configured")
-		}
-		if s.smsClient == nil {
-			return nil, fmt.Errorf("sms client not initialized")
-		}
-	}
-
-	// Check both that client exists AND is enabled before calling SendWithFallbackAsync
-	// to avoid nil pointer dereference in async fallback goroutine
-	if s.smsClient != nil && s.smsClient.Enabled {
-		_, err = s.smsClient.SendWithFallbackAsync(normalizedPhone, message, nil)
-		if err != nil {
-			return nil, fmt.Errorf("failed to send OTP: %w", err)
-		}
-	}
-
-	return nil, nil
+	return s.issueVerificationCode(ctx, user.ID, user.Email)
 }
 
-func (s *Service) CleanupExpired() error {
-	s.rateLimiter.CleanExpired()
-	return s.repo.CleanExpiredOTPs()
+func (s *Service) Me(_ context.Context, userID uuid.UUID) (*ResponseUser, error) {
+	user, err := s.repo.FindUserByID(userID)
+	if err != nil {
+		return nil, err
+	}
+	if user == nil {
+		return nil, fmt.Errorf("user not found")
+	}
+	response := toResponseUser(user)
+	return &response, nil
+}
+
+func (s *Service) issueVerificationCode(ctx context.Context, userID uuid.UUID, email string) error {
+	code, err := pkgAuth.GenerateVerificationCode(6)
+	if err != nil {
+		return err
+	}
+
+	expiresAt := timekit.NowUTC().Add(s.accessCodeTTL())
+	if err := s.repo.CreateAuthCode(userID, PurposeEmailVerification, pkgAuth.HashString(code), expiresAt); err != nil {
+		return err
+	}
+
+	if err := s.emailSender.SendVerificationCode(ctx, email, code); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *Service) createTokenResponse(_ context.Context, user *User, userAgent string, ipAddress string) (*TokenResponse, error) {
+	accessToken, _, err := s.accessManager.Generate(user.ID, user.Role, pkgAuth.TokenTypeAccess)
+	if err != nil {
+		return nil, err
+	}
+
+	refreshToken, refreshExpiresAt, err := s.refreshManager.Generate(user.ID, user.Role, pkgAuth.TokenTypeRefresh)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.repo.CreateRefreshSession(user.ID, pkgAuth.HashString(refreshToken), refreshExpiresAt, userAgent, ipAddress); err != nil {
+		return nil, err
+	}
+
+	return &TokenResponse{
+		AccessToken:      accessToken,
+		RefreshToken:     refreshToken,
+		TokenType:        "Bearer",
+		ExpiresInSeconds: s.cfg.Auth.AccessTokenTTLSeconds,
+		User:             toResponseUser(user),
+	}, nil
+}
+
+func (s *Service) accessCodeTTL() time.Duration {
+	return time.Duration(s.cfg.Auth.EmailVerificationCodeTTLSeconds) * time.Second
+}
+
+func normalizeEmail(email string) string {
+	return strings.ToLower(strings.TrimSpace(email))
+}
+
+func toResponseUser(user *User) ResponseUser {
+	return ResponseUser{
+		ID:              user.ID,
+		Email:           user.Email,
+		Role:            user.Role,
+		IsEmailVerified: user.IsEmailVerified,
+		FirstName:       user.FirstName,
+		LastName:        user.LastName,
+		PhoneNumber:     user.PhoneNumber,
+	}
 }
