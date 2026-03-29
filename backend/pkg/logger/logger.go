@@ -12,12 +12,14 @@ import (
 
 // Logger is the global logger instance
 var Logger zerolog.Logger
+var sensitivePaths []string
 
 // Init initializes the global logger and redirects the standard log package
 func Init(cfg config.LoggingConfig) {
 	zerolog.TimeFieldFormat = cfg.TimeFormat
 	level := parseLevel(cfg.Level)
 	zerolog.SetGlobalLevel(level)
+	sensitivePaths = normalizeSensitivePaths(cfg.SensitivePaths)
 
 	var output io.Writer = os.Stdout
 	switch cfg.Output {
@@ -52,6 +54,23 @@ func Init(cfg config.LoggingConfig) {
 
 	// Redirect standard logger to zerolog
 	log.Logger = Logger
+}
+
+func normalizeSensitivePaths(paths []string) []string {
+	if len(paths) == 0 {
+		return nil
+	}
+
+	normalized := make([]string, 0, len(paths))
+	for _, path := range paths {
+		path = strings.TrimSpace(path)
+		if path == "" {
+			continue
+		}
+		normalized = append(normalized, path)
+	}
+
+	return normalized
 }
 
 // parseLevel converts string log level to zerolog level

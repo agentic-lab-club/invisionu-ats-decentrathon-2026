@@ -34,10 +34,11 @@ type GotenbergConfig struct {
 
 // LoggingConfig holds logging configuration
 type LoggingConfig struct {
-	Level      string `mapstructure:"level"`
-	Format     string `mapstructure:"format"`
-	Output     string `mapstructure:"output"`
-	TimeFormat string `mapstructure:"time_format"`
+	Level          string   `mapstructure:"level"`
+	Format         string   `mapstructure:"format"`
+	Output         string   `mapstructure:"output"`
+	TimeFormat     string   `mapstructure:"time_format"`
+	SensitivePaths []string `mapstructure:"sensitive_paths"`
 }
 
 // SecurityConfig holds security-related configuration

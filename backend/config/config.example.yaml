@@ -66,7 +66,11 @@ logging:
   format: "console"        # json (production) or console (development)
   output: "stdout"         # stdout, stderr, or file path
   time_format: "2006-01-02T15:04:05Z07:00"
-  sensitive_paths:         # Endpoints with sensitive data (cards, passwords) - body_preview will be <redacted> (e.g. - "/api/v1/")
+  sensitive_paths:         # Endpoints with sensitive data - body_preview will be <redacted>
+    - "/auth/register"
+    - "/auth/login"
+    - "/auth/refresh"
+    - "/auth/verify-email"
 
 # =========================
 # SECURITY SETTINGS
