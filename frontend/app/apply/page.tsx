@@ -9,6 +9,7 @@ import {
   IdCard, Video, BookOpen, Paperclip, Users, AlertCircle,
   Loader2, Square, CheckSquare,
 } from 'lucide-react';
+import { OnboardingTour, useOnboarding, TourReplayButton } from '@/components/tours/Onboardingtour';
 
 // ================== Types ==================
 interface FileWithData {
@@ -877,6 +878,7 @@ function ApplicationSidebar() {
 
 // ================== Main Page ==================
 export default function ApplyPage() {
+  const { showTour, handleComplete, restartTour } = useOnboarding();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -980,6 +982,9 @@ const handleSubmit = async () => {
   const tabProps: TabProps = { data: formData, updateField, updateFile, updateFiles };
   return (
     <div className="w-[80%] mx-auto py-10">
+          {showTour && <OnboardingTour onComplete={handleComplete} />}
+    <TourReplayButton onClick={restartTour} /> {/* в хедер/навбар */}
+
       {/* Page header */}
       <div className="flex items-center justify-between mb-8">
         <div>
