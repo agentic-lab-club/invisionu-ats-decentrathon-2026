@@ -17,9 +17,4 @@ func RegisterRoutes(server *fiber.App, db *database.TrackedDB, cfg *config.Confi
 	server.Get("/health", h.HealthCheck)
 	server.Get("/health/liveness", h.LivenessProbe)
 	server.Get("/health/readiness", h.ReadinessProbe)
-
-	g := server.Group("/api/v1/healthcheck")
-	g.Get("/", h.HealthCheck)
-	g.Get("/liveness", h.LivenessProbe)
-	g.Get("/readiness", h.ReadinessProbe)
 }

@@ -50,3 +50,23 @@ func (s *MinIOStorage) Upload(ctx context.Context, input UploadInput) (*UploadRe
 		ETag:      strings.Trim(info.ETag, "\""),
 	}, nil
 }
+
+func (s *MinIOStorage) Download(ctx context.Context, bucket string, objectKey string) (*DownloadResult, error) {
+	object, err := s.client.GetObject(ctx, bucket, objectKey, minio.GetObjectOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get object: %w", err)
+	}
+
+	info, err := object.Stat()
+	if err != nil {
+		_ = object.Close()
+		return nil, fmt.Errorf("failed to stat object: %w", err)
+	}
+
+	return &DownloadResult{
+		Reader:      object,
+		ContentType: info.ContentType,
+		SizeBytes:   info.Size,
+		ETag:        strings.Trim(info.ETag, "\""),
+	}, nil
+}

@@ -81,6 +81,7 @@ type StorageConfig struct {
 }
 
 type MessagingConfig struct {
+	Enabled                 bool   `mapstructure:"enabled"`
 	Mode                    string `mapstructure:"mode"`
 	URL                     string `mapstructure:"url"`
 	Exchange                string `mapstructure:"exchange"`
@@ -88,6 +89,7 @@ type MessagingConfig struct {
 }
 
 type EmailConfig struct {
+	Enabled   bool   `mapstructure:"enabled"`
 	Mode      string `mapstructure:"mode"`
 	FromName  string `mapstructure:"from_name"`
 	FromEmail string `mapstructure:"from_email"`
@@ -95,6 +97,10 @@ type EmailConfig struct {
 	SMTPPort  int    `mapstructure:"smtp_port"`
 	SMTPUser  string `mapstructure:"smtp_user"`
 	SMTPPass  string `mapstructure:"smtp_pass"`
+}
+
+type LLMConfig struct {
+	Enabled bool `mapstructure:"enabled"`
 }
 
 // Config is the root configuration.
@@ -110,6 +116,7 @@ type Config struct {
 	Storage     StorageConfig   `mapstructure:"storage"`
 	Messaging   MessagingConfig `mapstructure:"messaging"`
 	Email       EmailConfig     `mapstructure:"email"`
+	LLM         LLMConfig       `mapstructure:"llm"`
 }
 
 func Load() (cfg *Config, err error) {
@@ -286,6 +293,9 @@ func overrideFromEnv(cfg *Config) {
 	if value := os.Getenv("MESSAGING_MODE"); value != "" {
 		cfg.Messaging.Mode = value
 	}
+	if value := os.Getenv("MESSAGING_ENABLED"); value != "" {
+		cfg.Messaging.Enabled = strings.EqualFold(value, "true") || value == "1"
+	}
 	if value := os.Getenv("RABBITMQ_URL"); value != "" {
 		cfg.Messaging.URL = value
 	}
@@ -297,6 +307,9 @@ func overrideFromEnv(cfg *Config) {
 	}
 	if value := os.Getenv("EMAIL_MODE"); value != "" {
 		cfg.Email.Mode = value
+	}
+	if value := os.Getenv("SMTP_ENABLED"); value != "" {
+		cfg.Email.Enabled = strings.EqualFold(value, "true") || value == "1"
 	}
 	if value := os.Getenv("EMAIL_FROM_NAME"); value != "" {
 		cfg.Email.FromName = value
@@ -317,5 +330,8 @@ func overrideFromEnv(cfg *Config) {
 	}
 	if value := os.Getenv("SMTP_PASS"); value != "" {
 		cfg.Email.SMTPPass = value
+	}
+	if value := os.Getenv("LLM_ENABLED"); value != "" {
+		cfg.LLM.Enabled = strings.EqualFold(value, "true") || value == "1"
 	}
 }

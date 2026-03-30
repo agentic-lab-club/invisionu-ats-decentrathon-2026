@@ -1,4 +1,4 @@
-package uploads
+package assets
 
 import (
 	"fmt"
@@ -21,7 +21,7 @@ func NewHandler(service *Service) *Handler {
 // Upload godoc
 // @Summary Upload asset
 // @Description Uploads a file for the authenticated applicant and creates an unattached application file record.
-// @Tags @uploads
+// @Tags @assets
 // @Accept multipart/form-data
 // @Produce json
 // @Security BearerToken
@@ -54,7 +54,7 @@ func (h *Handler) Upload(c fiber.Ctx) error {
 // GetAsset godoc
 // @Summary Get uploaded asset by ID
 // @Description Returns the uploaded asset binary payload for the owning applicant or admin reviewer.
-// @Tags @uploads
+// @Tags @assets
 // @Produce application/octet-stream
 // @Security BearerToken
 // @Param id path string true "Asset ID"
@@ -83,6 +83,7 @@ func (h *Handler) GetAsset(c fiber.Ctx) error {
 		}
 		return respond.ErrorStatus(c, err, status)
 	}
+
 	c.Set(fiber.HeaderContentType, asset.ContentType)
 	c.Set(fiber.HeaderContentDisposition, fmt.Sprintf("inline; filename=%q", asset.OriginalFilename))
 	c.Set(fiber.HeaderETag, asset.ETag)

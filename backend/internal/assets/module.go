@@ -1,4 +1,4 @@
-package uploads
+package assets
 
 import (
 	platformStorage "github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/platform/storage"

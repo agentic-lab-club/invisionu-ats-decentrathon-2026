@@ -44,7 +44,8 @@ swagger:
 	@go install github.com/swaggo/swag/cmd/swag@v1.8.1
 	@swag init -g cmd/server/main.go
 
+# docker compose -f docker-compose.infrastructure.yml exec -it postgres psql -d mydb -U myuser
 #psql:
-#	@docker compose -f $(NAMED_COMPOSE_FILE) exec -it $(DATABASE_SERVICE_NAME) psql -d directus_dev -U directus_dev
+#	@docker compose -f $(NAMED_COMPOSE_FILE) exec -it $(DATABASE_SERVICE_NAME) psql -d mydb -U myuser
 
 .PHONY: up down build logs rebuild sh swagger test test-build yc-push-staging yc-push-prod yc-setup yc-list-images verify-build install-hooks

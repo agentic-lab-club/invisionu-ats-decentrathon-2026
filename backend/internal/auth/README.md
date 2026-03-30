@@ -32,11 +32,12 @@ Owns applicant authentication for `invisionu-ats`: registration, email verificat
 - `auth.access_token_ttl_seconds`
 - `auth.refresh_token_ttl_seconds`
 - `auth.email_verification_code_ttl_seconds`
+- `email.enabled`
 - `email.mode`
 - `email.smtp_host`
 - `email.smtp_port`
-- `email.smtp_username`
-- `email.smtp_password`
+- `email.smtp_user`
+- `email.smtp_pass`
 - `email.from_email`
 - `email.from_name`
 

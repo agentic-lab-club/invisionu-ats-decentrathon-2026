@@ -20,7 +20,9 @@ func NewHandler(service *Service) *Handler {
 // @Description Returns the active personality test with questions and options for the application form.
 // @Tags @personalitytest
 // @Produce json
+// @Security BearerToken
 // @Success 200 {object} Test
+// @Failure 401 {object} map[string]interface{}
 // @Failure 404 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
 // @Router /tests/personality/current [get]

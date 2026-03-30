@@ -37,7 +37,8 @@ import (
 	platformRabbitMQ "github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/platform/messaging/rabbitmq"
 	platformStorage "github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/platform/storage"
 	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/programs"
-	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/uploads"
+	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/seeder"
+	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/assets"
 	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/pkg/config"
 	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/pkg/database"
 	md "github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/pkg/http/middlewares"
@@ -62,6 +63,9 @@ func main() {
 	db, err := database.InitDB(cfg)
 	if err != nil {
 		log.Fatal().Err(err).Str("event", "init_db_failed").Msgf("failed to init DB: %v", err)
+	}
+	if err := seeder.SeedDefaults(db); err != nil {
+		log.Fatal().Err(err).Str("event", "init_seed_failed").Msg("failed to seed default backend data")
 	}
 
 	trackedDB := database.NewTrackedDB(db)
@@ -121,9 +125,9 @@ func main() {
 	registerDocsRoutes(server)
 	healthcheck.Init(server, trackedDB, cfg)
 	accessManager := auth.Init(server, trackedDB, cfg, emailSender)
-	programs.Init(server, trackedDB)
-	personalitytest.Init(server, trackedDB)
-	uploads.Init(server, trackedDB, accessManager, objectStorage)
+	programs.Init(server, trackedDB, accessManager)
+	personalitytest.Init(server, trackedDB, accessManager)
+	assets.Init(server, trackedDB, accessManager, objectStorage)
 	applications.Init(server, trackedDB, cfg, accessManager, messageBus)
 	candidates.Init(server, trackedDB, accessManager)
 
@@ -179,7 +183,7 @@ func docsPath() string {
 
 func buildEmailSender(cfg *config.Config) platformEmail.Sender {
 	env := strings.ToLower(strings.TrimSpace(cfg.Environment))
-	if env == "production" && strings.EqualFold(cfg.Email.Mode, "smtp") {
+	if cfg.Email.Enabled && env == "production" && strings.EqualFold(cfg.Email.Mode, "smtp") {
 		return platformEmail.NewSMTPSender(cfg.Email)
 	}
 
@@ -187,6 +191,9 @@ func buildEmailSender(cfg *config.Config) platformEmail.Sender {
 }
 
 func buildMessageBus(cfg *config.Config) (platformMessaging.Bus, error) {
+	if !cfg.Messaging.Enabled || !cfg.LLM.Enabled {
+		return platformMessaging.NewStubBus(&log.Logger), nil
+	}
 	if strings.EqualFold(cfg.Messaging.Mode, "rabbitmq") {
 		return platformRabbitMQ.New(cfg.Messaging.URL, cfg.Messaging.Exchange)
 	}

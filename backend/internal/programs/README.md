@@ -2,7 +2,7 @@
 
 ## Purpose and Scope
 
-Owns the public read API for active ATS programs shown in the applicant form.
+Owns the authenticated read API for active ATS programs shown in the applicant form.
 
 ## Swagger Tag
 
@@ -15,6 +15,7 @@ Owns the public read API for active ATS programs shown in the applicant form.
 ## External Dependencies
 
 - PostgreSQL table: `programs`
+- shared auth middleware for bearer access control
 
 ## Config and Env Keys Used
 

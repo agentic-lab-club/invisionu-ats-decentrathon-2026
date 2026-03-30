@@ -2,7 +2,7 @@
 
 ## Purpose and Scope
 
-Owns read access to the current active personality test used by the applicant application flow.
+Owns authenticated read access to the current active personality test used by the applicant application flow.
 
 ## Swagger Tag
 
@@ -15,6 +15,7 @@ Owns read access to the current active personality test used by the applicant ap
 ## External Dependencies
 
 - PostgreSQL tables: `personality_tests`, `personality_test_questions`, `personality_test_options`
+- shared auth middleware for bearer access control
 
 ## Config and Env Keys Used
 

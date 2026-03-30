@@ -18,7 +18,9 @@ func NewHandler(service *Service) *Handler {
 // @Description Returns active programs sorted for the applicant program selection form.
 // @Tags @programs
 // @Produce json
+// @Security BearerToken
 // @Success 200 {object} ListResponse
+// @Failure 401 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
 // @Router /api/v1/programs [get]
 func (h *Handler) List(c fiber.Ctx) error {

@@ -2,7 +2,7 @@
 
 ## Purpose and Scope
 
-Owns authenticated applicant file uploads and creation of unattached `application_files` records before application submission.
+Owns authenticated applicant asset upload/download and creation of unattached `application_files` records before application submission.
 
 ## Swagger Tag
 
@@ -10,7 +10,8 @@ Owns authenticated applicant file uploads and creation of unattached `applicatio
 
 ## Owned Routes
 
-- `POST /uploads`
+- `POST /assets`
+- `GET /assets/:id`
 
 ## External Dependencies
 

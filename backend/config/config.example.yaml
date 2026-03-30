@@ -9,7 +9,7 @@ server:
 database:
   host: "localhost"
   port: 5432
-  user: "postgres"
+  user: "myuser"
   password: "password"
   name: "mydb"
   sslmode: "disable"
@@ -37,12 +37,14 @@ storage:
   use_ssl: false
 
 messaging:
+  enabled: false
   mode: "stub"
   url: "amqp://guest:guest@rabbitmq:5672/"
   exchange: "invisionu.events"
   application_submitted_key: "application.submitted"
 
 email:
+  enabled: false
   mode: "stub"
   from_name: "InVisionU ATS"
   from_email: "noreply@example.com"
@@ -50,6 +52,9 @@ email:
   smtp_port: 587
   smtp_user: "smtp-user"
   smtp_pass: "smtp-pass"
+
+llm:
+  enabled: false
 
 # =========================
 # Modules and Services on internal/
