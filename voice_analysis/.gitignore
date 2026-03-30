@@ -1,9 +1,0 @@
-.pytest_cache/
-__pycache__/
-.venv/
-.mypy_cache/
-.coverage
-results/
-tests_audio
-
-*.test.*
