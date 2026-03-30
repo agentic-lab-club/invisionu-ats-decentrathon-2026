@@ -1,0 +1,90 @@
+{
+  "version": "1.0.0",
+  "raw_score_scale": {
+    "min": 0,
+    "max": 4
+  },
+  "normalization": {
+    "target_min": 0,
+    "target_max": 100,
+    "formula": "(raw_score / 4) * 100"
+  },
+  "missing_source_strategy": "renormalize_remaining_weights_and_flag",
+  "metric_rules": {
+    "motivation": {
+      "contributors": [
+        { "question_id": "q1", "metric_name": "motivation", "weight": 0.50 },
+        { "question_id": "q2", "metric_name": "motivation", "weight": 0.15 },
+        { "question_id": "q4", "metric_name": "motivation", "weight": 0.30 },
+        { "question_id": "q6", "metric_name": "motivation", "weight": 0.05 }
+      ]
+    },
+    "leadership": {
+      "contributors": [
+        { "question_id": "q3", "metric_name": "leadership", "weight": 0.15 },
+        { "question_id": "q5", "metric_name": "leadership", "weight": 0.85 }
+      ]
+    },
+    "resilience": {
+      "contributors": [
+        { "question_id": "q3", "metric_name": "resilience", "weight": 0.80 },
+        { "question_id": "q6", "metric_name": "resilience", "weight": 0.20 }
+      ]
+    },
+    "planning": {
+      "contributors": [
+        { "question_id": "q1", "metric_name": "planning", "weight": 0.20 },
+        { "question_id": "q2", "metric_name": "planning", "weight": 0.30 },
+        { "question_id": "q4", "metric_name": "planning", "weight": 0.50 }
+      ]
+    },
+    "values": {
+      "contributors": [
+        { "question_id": "q3", "metric_name": "values", "weight": 0.25 },
+        { "question_id": "q5", "metric_name": "values", "weight": 0.75 }
+      ]
+    },
+    "social_support": {
+      "contributors": [
+        { "question_id": "q6", "metric_name": "social_support", "weight": 1.00 }
+      ]
+    }
+  },
+  "metric_penalties": {
+    "low_confidence_threshold": 0.60,
+    "low_confidence_penalty_per_source": 5,
+    "missing_evidence_penalty_per_source": 7,
+    "weak_evidence_penalty_per_source": 4,
+    "max_metric_penalty": 20
+  },
+  "overall_score_weights": {
+    "motivation": 0.22,
+    "leadership": 0.28,
+    "resilience": 0.16,
+    "planning": 0.14,
+    "values": 0.12,
+    "social_support": 0.08
+  },
+  "overall_penalties": {
+    "high_severity_contradiction": 10,
+    "medium_severity_contradiction": 5,
+    "low_severity_contradiction": 2,
+    "max_total_penalty": 25
+  },
+  "human_review_triggers": {
+    "metric_score_below_with_high_uncertainty": {
+      "score_threshold": 40,
+      "confidence_threshold": 0.55
+    },
+    "overall_score_requires_review_threshold": 50,
+    "max_allowed_high_severity_contradictions": 0,
+    "max_allowed_medium_severity_contradictions": 2,
+    "missing_primary_question_for_metric": true,
+    "parser_requires_human_review": true
+  },
+  "banding": {
+    "low": [0, 39],
+    "medium": [40, 69],
+    "high": [70, 100]
+  }
+}
