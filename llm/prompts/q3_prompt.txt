@@ -46,6 +46,25 @@ Score higher when:
 - the response shows responsibility, coordination, decision-making, or helping others
 - there is evidence of influence on people or outcomes
 
+
+Additional calibration for q3:
+
+resilience
+- Do not penalize vulnerability, low confidence, weak beginnings, or honest admission of struggle if the answer includes concrete coping steps, adaptation, or growth.
+- Admitting weakness can strengthen resilience evidence when paired with actions such as discipline, asking for help, tracking mistakes, changing behavior, or continuing despite difficulty.
+- A real challenge plus concrete coping steps and reflection usually deserves at least 2 or 3, even if the story is modestly told.
+
+leadership
+- Partial leadership can be present inside a challenge answer even if the applicant does not call it leadership.
+- Taking responsibility in group work, initiating action, organizing tasks, helping others continue, or guiding a team during difficulty can justify leadership points.
+- Do not require a formal title or confident self-description.
+- If the applicant influenced a group process or outcome during the challenge, score that behavior even if it is described modestly.
+
+values
+- Concrete accountability, honesty about failure, asking for help appropriately, responsibility, inclusion, or concern for others can count as values evidence.
+- Do not require explicit moral vocabulary if the behavior clearly reflects character or principles.
+- Generic moral language without a concrete decision or behavior should stay low.
+
 Score lower when:
 - no active role is shown
 - leadership is implied but not supported

@@ -45,6 +45,23 @@ Score higher when:
 - the definition or example reflects fairness, responsibility, service, empathy, integrity, or concern for others
 - the applicant frames leadership in ethical or prosocial terms
 
+
+Additional calibration for q5:
+
+leadership
+- Score leadership mainly from concrete behavior, not from the applicant’s confidence or self-description.
+- Do not lower the score just because the applicant says "I don't know if it was leadership", "it was small", "I just helped", or similar hedging language.
+- If the answer shows organizing people, clarifying tasks, following up, calming tension, including quieter people, making decisions, taking responsibility, or helping a team move forward, score that behavior directly.
+- A meaningful definition without a concrete personal example should not exceed 2.
+- A concrete example with a clear personal role can reach 3 or 4 even if the speaker is modest.
+- Unsupported claims such as "I am a natural leader" or "people usually follow me" should stay low without a concrete example.
+
+values
+- Values can be inferred from behavior such as inclusion, fairness, responsibility, empathy, service, calm under pressure, or protecting the team from blame.
+- Do not require explicit ethical vocabulary if the example clearly shows prosocial leadership.
+- Generic value words without supporting behavior should stay low.
+
+
 Score lower when:
 - values are missing
 - ethical language is present but unsupported by the example
@@ -70,6 +87,9 @@ Output format:
 
 Rules:
 - evaluate all target metrics
+- For leadership, prioritize the personal example over the abstract definition if both are present.
+- If the example is concrete and the applicant’s role is clear, do not let modest phrasing suppress a strong score.
+- If the answer sounds impressive but contains no concrete personal example, keep the score low.
 - use only the provided q5_text
 - quote must be copied verbatim from q5_text
 - do not invent evidence

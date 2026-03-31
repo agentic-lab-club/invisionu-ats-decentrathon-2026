@@ -50,6 +50,18 @@ Score lower when:
 - the choice appears random or poorly justified
 - there is no sign of direction or future use
 
+Additional calibration for q1:
+
+motivation
+- A response can score 2 or 3 even without polished language if it clearly explains a personal need, growth reason, or meaningful fit with the environment.
+- Honest statements about needing challenge, serious peers, pressure, structure, or real work can count as authentic motivation when tied to the applicant’s own habits or growth.
+- Generic prestige/opportunity language without personal grounding should stay low.
+
+planning
+- Do not require a detailed career roadmap in q1.
+- A deliberate explanation of why this environment fits the applicant’s current stage or development need can justify a moderate planning score.
+- Broad future direction without any link to why this program fits should stay low.
+
 Output format:
 {
   "question_id": "q1",

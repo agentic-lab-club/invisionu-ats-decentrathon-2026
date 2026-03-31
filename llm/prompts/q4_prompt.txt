@@ -35,6 +35,18 @@ Score higher when:
 - the response shows a coherent connection between present action and future direction
 - the plan appears intentional and structured
 
+Additional calibration for q4:
+
+planning
+- Do not require a polished long-term roadmap.
+- A broad but coherent direction can score 2 or 3 if it connects future goals, present intent, and how the program helps.
+- Honest uncertainty about the exact form of the future goal should not be punished if the direction is clear.
+- Score higher when the answer links a real direction to a plausible use of the program.
+
+motivation
+- Personal purpose tied to lived experience, opportunities, support, weak beginnings, or helping others can count as authentic motivation even if phrased simply.
+- Generic success language such as "I want to be successful" or "make a difference" without grounding should stay low.
+
 Score lower when:
 - goals are vague or overly broad
 - the answer lists ambitions without a pathway

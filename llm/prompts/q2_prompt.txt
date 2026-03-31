@@ -49,6 +49,18 @@ Score lower when:
 - the explanation is vague or disconnected from future goals
 - the answer lacks structure or direction
 
+
+Additional calibration for q2:
+
+motivation
+- Sincere interest can be shown through the kind of problems the applicant likes to handle, not only through polished enthusiasm.
+- Statements about liking ambiguity, initiative, building, organizing, or turning unclear situations into action can count as meaningful motivation if connected to the chosen program.
+
+planning
+- A score of 2 or 3 can be justified by a clear fit between the chosen program and the applicant’s way of working, growth direction, or intended development, even if no precise job title is named.
+- Naming a program without explaining personal fit should stay low.
+- Do not confuse broad ambition with actual planning.
+
 Output format:
 {
   "question_id": "q2",
