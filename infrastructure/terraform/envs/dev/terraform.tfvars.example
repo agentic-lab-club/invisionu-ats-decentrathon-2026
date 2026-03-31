@@ -1,0 +1,5 @@
+aws_region          = "us-east-1"
+availability_zone   = "us-east-1a"
+key_pair_name       = "your-existing-keypair"
+ssh_allowed_cidrs   = ["203.0.113.10/32"]
+uploads_bucket_name = "invisionu-ats-dev-uploads-example"
