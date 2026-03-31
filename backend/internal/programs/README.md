@@ -1,55 +1,114 @@
-# Programs API Specification and Documentation
+# Programs Module Contract
 
-## Purpose and Scope
+## Purpose
 
-Owns the authenticated read API for active ATS programs shown in the applicant form.
+Own the authenticated read API for active admission programs used in the application form.
 
-## Business Rules
+## Responsibilities
 
-- Route is available to authenticated `user` and `admin` roles.
-- Only active programs are returned.
-- Results are sorted for frontend form rendering.
+- Return active programs only.
+- Preserve DB sort order for frontend selection lists.
+- Expose stable program identifiers (`code`) used by the applications module.
 
-## Swagger Tag
+## Out Of Scope
 
-- `@programs`
+- Program creation/update/deactivation.
+- Program detail endpoint.
+- Public anonymous catalog access.
 
-## Owned Routes
+## Domain Concepts / Entities
 
-- `GET /api/v1/programs`
+### `Program`
 
-## Auth Requirements
+Exposed fields:
+- `id`
+- `level`
+- `code`
+- `name`
 
-- Bearer token with role `user` or `admin`
+Stored but not exposed in JSON:
+- `is_active`
+- `sort_order`
 
-## Request and Response Examples
+## Endpoint Overview
 
-`GET /api/v1/programs`
+### `GET /api/v1/programs`
 
-- success:
-  `{"items":[{"code":"undergrad_tech","name":"Tech (Innovative IT Product Design and Development)"}]}`
+Return all active programs.
 
-## Error Cases
+Success example:
 
-- `401`: missing or invalid bearer token
-- `500`: repository query failure
-
-## External Dependencies
-
-- PostgreSQL table: `programs`
-- shared auth middleware for bearer access control
-
-## Config and Env Keys Used
-
-- `auth.jwt_access_secret`
-- `auth.access_token_ttl_seconds`
-
-## Migrations Added
-
-- `db/migrations/20260329195000_ats_schema.sql`
-
-## Module Tests
-
-```bash
-go test ./internal/programs
+```json
+{
+  "items": [
+    {
+      "id": 1,
+      "level": "undergraduate",
+      "code": "undergrad_tech",
+      "name": "Tech (Innovative IT Product Design and Development)"
+    }
+  ]
+}
 ```
+
+## Auth / Roles
+
+- Bearer token required.
+- Allowed roles: `user`, `admin`.
+
+## Request / Response Conventions
+
+- No request body.
+- No query params.
+- Response is JSON object with `items`.
+- Programs are ordered by `sort_order ASC, id ASC` in repository SQL.
+
+## Business Flows
+
+1. Auth middleware validates bearer token.
+2. Repository selects rows where `is_active = TRUE`.
+3. Handler returns `ListResponse{items}`.
+
+## Validation Rules
+
+- No user-supplied input other than bearer token.
+
+## Lifecycle / State Transitions
+
+- This module is read-only.
+- Program activation/deactivation lifecycle is managed outside this module.
+
+## Error Handling
+
+- `401 Unauthorized`
+  - missing or invalid bearer token
+- `500 Internal Server Error`
+  - repository query failure
+
+## Security Notes
+
+- Program list is not public; callers must be authenticated.
+- Returned data is low sensitivity reference data.
+
+## Frontend Integration Notes
+
+- Use `code` as the value submitted to the applications module.
+- Do not rely on hidden fields like `sort_order`; backend does not expose them.
+- Both applicant and admin flows can call the same endpoint.
+
+## Known Limitations / TODO
+
+- No per-program detail endpoint.
+- No public unauthenticated access.
+- No explicit versioning for program catalog changes.
+
+## Related Files / Modules
+
+- `internal/programs/module.go`
+- `internal/programs/handler.go`
+- `internal/programs/service.go`
+- `internal/programs/repository.go`
+- `internal/programs/domain.go`
+- `internal/programs/queries.go`
+- `internal/applications`
+- `internal/seeder`

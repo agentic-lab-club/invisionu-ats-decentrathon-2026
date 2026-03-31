@@ -1,56 +1,141 @@
-# Personality Test API Specification and Documentation
+# Personality Test Module Contract
 
-## Purpose and Scope
+## Purpose
 
-Owns authenticated read access to the current active personality test used by the applicant application flow.
+Own authenticated read access to the current active personality test used in the application flow.
 
-## Business Rules
+## Responsibilities
 
-- Route is available to authenticated `user` and `admin` roles.
-- Only the current active test is returned.
-- Questions include ordered options for frontend form rendering.
+- Return the single active personality test.
+- Return nested questions and options in query order.
+- Expose IDs that the applications module later validates in submitted answers.
 
-## Swagger Tag
+## Out Of Scope
 
-- `@personalitytest`
+- Test authoring or editing.
+- Test submission.
+- Scoring or interpretation of answers.
+- Listing historical/inactive test versions.
 
-## Owned Routes
+## Domain Concepts / Entities
 
-- `GET /tests/personality/current`
+### `Test`
 
-## Auth Requirements
+Fields:
+- `test_id`
+- `code`
+- `title`
+- `questions`
 
-- Bearer token with role `user` or `admin`
+### `Question`
 
-## Request and Response Examples
+Fields:
+- `id`
+- `order`
+- `text`
+- `options`
 
-`GET /tests/personality/current`
+### `Option`
 
-- success:
-  `{"id":"uuid","code":"personality_v1","title":"Personality Test","questions":[...]}`
+Fields:
+- `id`
+- `key`
+- `text`
 
-## Error Cases
+Internal field `option_order` exists in code but is not emitted in JSON.
 
-- `401`: missing or invalid bearer token
-- `404`: no active personality test found
-- `500`: repository query failure
+## Endpoint Overview
 
-## External Dependencies
+### `GET /tests/personality/current`
 
-- PostgreSQL tables: `personality_tests`, `personality_test_questions`, `personality_test_options`
-- shared auth middleware for bearer access control
+Return the current active personality test.
 
-## Config and Env Keys Used
+Success example:
 
-- `auth.jwt_access_secret`
-- `auth.access_token_ttl_seconds`
-
-## Migrations Added
-
-- `db/migrations/20260329195000_ats_schema.sql`
-
-## Module Tests
-
-```bash
-go test ./internal/personalitytest
+```json
+{
+  "test_id": "11111111-1111-1111-1111-111111111111",
+  "code": "personality_v1",
+  "title": "Personality Test",
+  "questions": [
+    {
+      "id": "22222222-2222-2222-2222-222222222222",
+      "order": 1,
+      "text": "Question text",
+      "options": [
+        {
+          "id": "33333333-3333-3333-3333-333333333333",
+          "key": "A",
+          "text": "Option text"
+        }
+      ]
+    }
+  ]
+}
 ```
+
+## Auth / Roles
+
+- Bearer token required.
+- Allowed roles: `user`, `admin`.
+
+## Request / Response Conventions
+
+- No request body.
+- No query params.
+- Response is a single `Test` object, not wrapped in `{items: ...}`.
+- Error body shape uses shared responder helpers.
+
+## Business Flows
+
+1. Auth middleware validates bearer token.
+2. Repository selects rows for `personality_tests.is_active = TRUE`.
+3. Repository assembles flat SQL rows into nested `questions -> options`.
+4. Handler returns `404` when no active test is found.
+
+## Validation Rules
+
+- No user-supplied input other than bearer token.
+- Active-test selection is driven by DB flag `is_active = TRUE`.
+
+## Lifecycle / State Transitions
+
+- This module is read-only.
+- Test activation/inactivation lifecycle is managed outside this module, currently by seeding/upsert logic.
+
+## Error Handling
+
+- `401 Unauthorized`
+  - missing or invalid bearer token
+- `404 Not Found`
+  - no active personality test rows returned
+- `500 Internal Server Error`
+  - repository query failure
+
+## Security Notes
+
+- Endpoint is authenticated even though data is mostly reference data.
+- IDs returned here are later accepted by the applications module and validated against DB.
+
+## Frontend Integration Notes
+
+- Use question/option IDs exactly as returned when submitting `personality_test_answers` to the applications module.
+- Respect `order` when rendering questions.
+- Do not depend on `option_order`; it is not part of the JSON contract.
+
+## Known Limitations / TODO
+
+- No endpoint to fetch a test by code or version.
+- No endpoint to submit answers independently of application submission.
+- If more than one test is marked active in DB, query behavior depends on data integrity; module assumes one active test.
+
+## Related Files / Modules
+
+- `internal/personalitytest/module.go`
+- `internal/personalitytest/handler.go`
+- `internal/personalitytest/service.go`
+- `internal/personalitytest/repository.go`
+- `internal/personalitytest/domain.go`
+- `internal/personalitytest/queries.go`
+- `internal/applications`
+- `internal/seeder`
