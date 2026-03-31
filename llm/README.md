@@ -1,0 +1,251 @@
+# LLM Service (Scoring & Analysis)
+
+Сервис анализа и скоринга кандидатов для пайплайна ATS.
+Оценивает ответы кандидатов на основе заданных промптов и возвращает структурированный результат в JSON.
+
+---
+
+## Что делает сервис
+
+- Принимает текстовые данные (`input_data`)
+- Обрабатывает данные через LLM
+- Возвращает оценку (скоринг) и анализ кандидата в формате JSON
+
+---
+
+## Стек
+
+- Python 3.11+
+- FastAPI + Uvicorn
+- python-dotenv (в зависимости от реализации)
+
+---
+
+## Структура
+
+- `main.py` — основная логика обработки, промптов и взаимодействия с LLM
+- `main_api.py` — HTTP API (FastAPI)
+- `Dockerfile` / `docker-compose.yml` — контейнеризация
+- `.env` / `.env.example` — переменные окружения
+
+---
+
+## Локальный запуск
+
+1. Установить зависимости:
+
+```bash
+pip install -r requirements.txt
+```
+
+2. Запустить API:
+
+```bash
+uvicorn main_api:app --host 0.0.0.0 --port 9094
+```
+
+Сервис будет доступен на `http://localhost:9094`.
+
+---
+
+## Запуск в Docker
+
+```bash
+docker compose up --build
+```
+
+Порт: `9094:9094`
+
+---
+
+## API
+
+### POST `/analyze`
+
+Тело запроса:
+
+```json
+{
+  "input_data": "Текст интервью или ответов кандидата..."
+}
+```
+
+Успешный ответ (`200`):
+
+Возвращает структурированный результат скоринга кандидата (JSON-объект).
+
+Ошибки:
+
+- `500` — внутренняя ошибка (например, проблемы с API, парсингом или валидацией)
+
+---
+
+## Пример запроса
+
+```bash
+curl -X POST http://localhost:9094/analyze \
+  -H "Content-Type: application/json" \
+  -d '{"input_data":"Привет, я разработчик..."}'
+```
+
+---
+
+## Example
+```json
+{
+    "workflow_status": "success",
+    "stt_length": 4066,
+    "candidate_breakdown": {
+        "q1_text": "why I apply to inVision U, because I feel I need this type environment, not only for study like passive, but place where people do real things, make project, discuss, try, fail, improve, and I think for me this is important now because I learn better when I am inside serious people and serious process, not when I just sit and listen, and also I think when around you people who want more from life, you also start ask more from yourself, and I want this",
+        "q2_text": "about program, I think more leadership and entrepreneurship part, because I like when situation is not clear yet, maybe little chaos, and somebody need start, like okay what is problem, what first, who can do what, how we make first version, because I am not person who know everything, no, but I feel interest when from confusion you make some movement, some structure, and I want learn how do this better, not only random, not only by feeling, but more correct and more strong",
+        "q3_text": "major challenge for me was beginning in new academic environment, because honestly my start was bad, like really bad, and I feel many times maybe I am not same level like other people, maybe they are more ready, more smart, more confident, and I spend too much energy to not look weak, and because of this I was not improving fast, I was more hiding, and later I understand this is wrong way, and what help me was small things, not one big success, but discipline, asking help earlier, stop acting like I understand when I do not understand, checking where exactly I fail, and continue even if confidence is not coming, because if wait for confidence always, then maybe you never start",
+        "q4_text": "long term I want build things which help other people get more opportunity, maybe in education, maybe for young people, because I know if start is weak it can change how you see yourself, and also I know right environment can change person a lot, so for me motivation is this idea that your beginning should not decide all your future, maybe it affects, yes, but should not finish everything, and I want become person who not only grow for himself but also create better start for others, and I think this program can help me because it gives community, challenge, guidance, and real level where you test yourself",
+        "q5_text": "for me leadership is not loud talking or looking strong in room, I think leadership is more when situation becomes difficult, people confused, energy down, nobody connect things, and then someone take some responsibility and help team move again, and I remember one project where our team was going in circles, everybody talking but no connection, and deadline looked still far so some people already delay, and I was not best speaker there and not strongest technically also, but I see if nobody organize this, later we panic, so I make one shared document, very simple, what tasks, who do, when update, where blocker, and I check with people, especially quieter people, because many times they have useful thought but they do not push into conversation, and near deadline I try keep focus on what still possible, not blaming each other, and for me this was important because I understand leadership maybe is not beautiful thing, sometimes just practical thing, reduce chaos little bit and help people continue",
+        "q6_text": "yes my family support me, maybe they cannot explain every program or every opportunity in detailed way, but they support me in important meaning, they want me go forward, go higher, not stay inside weak beginning, and also some teachers and mentors support me, and I think this matters because sometimes other people see something in you before you fully see it, and this gives strength, but also I learn that one time you must continue not only because somebody push you, but because you decide not stop"
+    },
+    "llm_evaluations": {
+        "q1": {
+            "question_id": "q1",
+            "scores": [
+                {
+                    "metric_name": "motivation",
+                    "score": 4,
+                    "quote": "I feel I need this type environment, not only for study like passive, but place where people do real things, make project, discuss, try, fail, improve",
+                    "reason": "The answer clearly explains a personal need for an active, project‑based environment and links it to the applicant’s learning style, showing authentic motivation beyond generic enthusiasm."
+                },
+                {
+                    "metric_name": "planning",
+                    "score": 2,
+                    "quote": "I think for me this is important now because I learn better when I am inside serious people and serious process",
+                    "reason": "The response indicates a current developmental need and a desire to be in a serious environment, but it lacks a detailed future plan or explicit link to long‑term goals."
+                }
+            ]
+        },
+        "q2": {
+            "question_id": "q2",
+            "scores": [
+                {
+                    "metric_name": "motivation",
+                    "score": 3,
+                    "quote": "I like when situation is not clear yet, maybe little chaos, and somebody need start, like okay what is problem, what first, who can do what, how we make first version",
+                    "reason": "The answer shows genuine interest in turning ambiguity into structure, indicating sincere motivation for the program."
+                },
+                {
+                    "metric_name": "planning",
+                    "score": 3,
+                    "quote": "I think more leadership and entrepreneurship part, because I want learn how do this better, not only random, not only by feeling, but more correct and more strong",
+                    "reason": "The applicant identifies the desired program (leadership and entrepreneurship) and explains how it aligns with their desire to bring structure to unclear situations, demonstrating deliberate future-oriented decision-making."
+                }
+            ]
+        },
+        "q3": {
+            "question_id": "q3",
+            "scores": [
+                {
+                    "metric_name": "resilience",
+                    "score": 3,
+                    "quote": "what help me was small things, not one big success, but discipline, asking help earlier, stop acting like I understand when I do not understand, checking where exactly I fail, and continue even if confidence is not coming",
+                    "reason": "The answer describes a real challenge (starting in a new academic environment), outlines concrete coping steps (discipline, seeking help, honest self-assessment), and reflects on persistence and growth."
+                },
+                {
+                    "metric_name": "leadership",
+                    "score": 1,
+                    "quote": "asking help earlier",
+                    "reason": "The response shows personal initiative but no evidence of leading or influencing others."
+                },
+                {
+                    "metric_name": "values",
+                    "score": 2,
+                    "quote": "stop acting like I understand when I do not understand",
+                    "reason": "Demonstrates honesty, accountability, and integrity in confronting personal shortcomings."
+                }
+            ]
+        },
+        "q4": {
+            "question_id": "q4",
+            "scores": [
+                {
+                    "metric_name": "planning",
+                    "score": 3,
+                    "quote": "long term I want build things which help other people get more opportunity, maybe in education, maybe for young people, ... I think this program can help me because it gives community, challenge, guidance, and real level where you test yourself",
+                    "reason": "The applicant states a clear long‑term goal of building opportunities for others, identifies education and youth as focus areas, and explains how the program’s community, challenge, and guidance will support that goal. The plan is broad but coherent and shows intentional connection between present action and future direction."
+                },
+                {
+                    "metric_name": "motivation",
+                    "score": 3,
+                    "quote": "so for me motivation is this idea that your beginning should not decide all your future, maybe it affects, yes, but should not finish everything, and I want become person who not only grow for himself but also create better start for others",
+                    "reason": "The response articulates a personal, authentic motivation rooted in the belief that early disadvantages should not dictate destiny, and a desire to help others create better starts. This internal drive is clearly linked to the applicant’s future goals."
+                }
+            ]
+        },
+        "q5": {
+            "question_id": "q5",
+            "scores": [
+                {
+                    "metric_name": "leadership",
+                    "score": 4,
+                    "quote": "I make one shared document, very simple, what tasks, who do, when update, where blocker, and I check with people, especially quieter people, because many times they have useful thought but they do not push into conversation",
+                    "reason": "The answer provides a concrete example of organizing a shared document, coordinating tasks, checking in with quieter team members, and maintaining focus—clear evidence of initiative, responsibility, and influence."
+                },
+                {
+                    "metric_name": "values",
+                    "score": 4,
+                    "quote": "I check with people, especially quieter people, because many times they have useful thought but they do not push into conversation",
+                    "reason": "The example demonstrates inclusion, empathy, and fairness by actively engaging quieter team members and avoiding blame, reflecting strong value-based leadership."
+                }
+            ]
+        },
+        "q6": {
+            "question_id": "q6",
+            "scores": [
+                {
+                    "metric_name": "social_support",
+                    "score": 3,
+                    "quote": "yes my family support me, maybe they cannot explain every program or every opportunity in detailed way, but they support me in important meaning, they want me go forward, go higher, not stay inside weak beginning, and also some teachers and mentors support me",
+                    "reason": "Clearly identifies family, teachers, mentors as sources of support and explains their encouragement to progress."
+                },
+                {
+                    "metric_name": "resilience",
+                    "score": 3,
+                    "quote": "I learn that one time you must continue not only because somebody push you, but because you decide not stop",
+                    "reason": "Shows ability to persist despite limited external push, indicating resilience."
+                },
+                {
+                    "metric_name": "motivation",
+                    "score": 3,
+                    "quote": "this matters because sometimes other people see something in you before you fully see it, and this gives strength",
+                    "reason": "Links external support to internal motivation and strength to continue."
+                }
+            ]
+        }
+    },
+    "aggregated_metrics": {
+        "Motivation": 3.35,  
+        "Planning": 2.85,
+        "Resilience": 3.0,
+        "Leadership": 3.1,
+        "Values": 3.2,
+        "Social_Support": 3.0
+    },
+    "global_score": {
+        "LeadershipIndex": 3.08,
+        "AdmissionsPotential": 3.08
+    }
+}
+```
+# Логика подсчета
+
+```plantuml
+
+# 2. Считаем агрегированные метрики по формулам
+Agg_M = (0.35 * scores["q1_motivation"]) + (0.20 * scores["q2_motivation"]) + (0.35 * scores["q4_motivation"]) + (0.10 * scores["q6_motivation"])
+Agg_P = (0.15 * scores["q1_planning"]) + (0.35 * scores["q2_planning"]) + (0.50 * scores["q4_planning"])
+Agg_R = (0.80 * scores["q3_resilience"]) + (0.20 * scores["q6_resilience"])
+Agg_L = (0.30 * scores["q3_leadership"]) + (0.70 * scores["q5_leadership"])
+Agg_V = (0.40 * scores["q3_values"]) + (0.60 * scores["q5_values"])
+Agg_S = 1.0 * scores["q6_social_support"]
+
+# 3. Считаем глобальные индексы
+LeadershipIndex = (0.35 * Agg_L) + (0.20 * Agg_R) + (0.20 * Agg_P) + (0.15 * Agg_M) + (0.10 * Agg_V)
+AdmissionsPotential = (0.25 * Agg_L) + (0.20 * Agg_P) + (0.20 * Agg_M) + (0.20 * Agg_R) + (0.10 * Agg_V) + (0.05 * Agg_S)
+```
