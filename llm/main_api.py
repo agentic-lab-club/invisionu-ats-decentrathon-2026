@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-import llm.main as scoring
+import main as scoring
 
 app = FastAPI()
 
