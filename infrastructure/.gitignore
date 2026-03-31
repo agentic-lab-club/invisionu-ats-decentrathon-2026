@@ -1,3 +1,9 @@
+*.pem
+
+*.tfstate
+*.tfstate.*
+!terraform.tfvars.example
+
 .terraform/
 terraform.tfstate
 terraform.tfstate.*
