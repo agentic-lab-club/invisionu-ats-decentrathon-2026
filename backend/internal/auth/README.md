@@ -2,7 +2,15 @@
 
 ## Purpose and Scope
 
-Owns applicant authentication for `invisionu-ats`: registration, email verification, login, refresh rotation, logout, and current-user lookup.
+Owns applicant authentication for the ATS backend: registration, email verification, login, refresh rotation, logout, resend-code, and current-user lookup.
+
+## Business Rules
+
+- New users are created with role `user`.
+- Login is allowed only after email verification.
+- `login` and `refresh` return both token pair and current user role.
+- Refresh rotates the previous refresh session.
+- Email delivery is stubbed when `email.enabled=false` or environment is not production.
 
 ## Swagger Tag
 
@@ -18,11 +26,36 @@ Owns applicant authentication for `invisionu-ats`: registration, email verificat
 - `POST /auth/resend-code`
 - `GET /auth/me`
 
+## Auth Requirements
+
+- Public: register, verify-email, login, refresh, logout, resend-code
+- Bearer token required: `GET /auth/me`
+
+## Request and Response Examples
+
+`POST /auth/login`
+
+- request:
+  `{"email":"user@example.com","password":"StrongPass123!"}`
+- success:
+  `{"access_token":"...","refresh_token":"...","token_type":"Bearer","expires_in_seconds":3600,"user":{"id":"uuid","email":"user@example.com","role":"user","is_email_verified":true}}`
+
+`POST /auth/refresh`
+
+- request:
+  `{"refresh_token":"..."}`
+
+## Error Cases
+
+- `400`: invalid payload, user already exists, verification errors, resend errors
+- `401`: invalid credentials, invalid access token, invalid refresh token
+- `404`: user not found in `me`
+
 ## External Dependencies
 
 - PostgreSQL tables: `users`, `auth_codes`, `refresh_sessions`
-- `internal/platform/email` for verification code delivery
-- `pkg/auth` for password hashing, JWT generation, refresh rotation, and token hashing
+- `internal/platform/email` for verification delivery
+- `pkg/auth` for password hashing and JWT token management
 
 ## Config and Env Keys Used
 

@@ -2,7 +2,14 @@
 
 ## Purpose and Scope
 
-Owns public liveness, readiness, and health endpoints used by local development, orchestration probes, and service monitoring.
+Owns public liveness, readiness, and health endpoints for local development, Docker probes, and service monitoring.
+
+## Business Rules
+
+- `/health` performs composite checks and returns structured status.
+- `/health/readiness` requires a working database ping.
+- `/health/liveness` is process-only and does not require database access.
+- Legacy aliases under `/api/v1/healthcheck` are kept for compatibility with older checks and tests.
 
 ## Swagger Tag
 
@@ -14,8 +21,29 @@ Owns public liveness, readiness, and health endpoints used by local development,
 - `GET /health/liveness`
 - `GET /health/readiness`
 - `GET /api/v1/healthcheck`
+- `GET /api/v1/healthcheck/`
 - `GET /api/v1/healthcheck/liveness`
 - `GET /api/v1/healthcheck/readiness`
+
+## Auth Requirements
+
+- None
+
+## Request and Response Examples
+
+`GET /health`
+
+- success:
+  `{"status":"healthy","checks":{"database_ping":{"status":"healthy"}}}`
+
+`GET /health/readiness`
+
+- success:
+  `{"status":"ready"}`
+
+## Error Cases
+
+- `503`: readiness failure because database is unavailable
 
 ## External Dependencies
 

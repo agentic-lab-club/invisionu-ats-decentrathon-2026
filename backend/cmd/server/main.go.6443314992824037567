@@ -28,7 +28,6 @@ import (
 	"time"
 
 	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/applications"
-	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/assets"
 	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/auth"
 	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/candidates"
 	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/healthcheck"
@@ -39,6 +38,7 @@ import (
 	platformStorage "github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/platform/storage"
 	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/programs"
 	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/seeder"
+	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/assets"
 	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/pkg/config"
 	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/pkg/database"
 	md "github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/pkg/http/middlewares"

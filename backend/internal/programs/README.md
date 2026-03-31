@@ -4,6 +4,12 @@
 
 Owns the authenticated read API for active ATS programs shown in the applicant form.
 
+## Business Rules
+
+- Route is available to authenticated `user` and `admin` roles.
+- Only active programs are returned.
+- Results are sorted for frontend form rendering.
+
 ## Swagger Tag
 
 - `@programs`
@@ -12,6 +18,22 @@ Owns the authenticated read API for active ATS programs shown in the applicant f
 
 - `GET /api/v1/programs`
 
+## Auth Requirements
+
+- Bearer token with role `user` or `admin`
+
+## Request and Response Examples
+
+`GET /api/v1/programs`
+
+- success:
+  `{"items":[{"code":"undergrad_tech","name":"Tech (Innovative IT Product Design and Development)"}]}`
+
+## Error Cases
+
+- `401`: missing or invalid bearer token
+- `500`: repository query failure
+
 ## External Dependencies
 
 - PostgreSQL table: `programs`
@@ -19,7 +41,8 @@ Owns the authenticated read API for active ATS programs shown in the applicant f
 
 ## Config and Env Keys Used
 
-- none
+- `auth.jwt_access_secret`
+- `auth.access_token_ttl_seconds`
 
 ## Migrations Added
 
