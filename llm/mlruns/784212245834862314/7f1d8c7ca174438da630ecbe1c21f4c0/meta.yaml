@@ -1,0 +1,16 @@
+artifact_uri: mlflow-artifacts:/784212245834862314/7f1d8c7ca174438da630ecbe1c21f4c0/artifacts
+deleted_time: 1775070032090
+end_time: 1775069573940
+entry_point_name: ''
+experiment_id: '784212245834862314'
+lifecycle_stage: deleted
+run_id: 7f1d8c7ca174438da630ecbe1c21f4c0
+run_name: llama-3.3-70b-versatile__v2_20260401_234938
+run_uuid: 7f1d8c7ca174438da630ecbe1c21f4c0
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1775069378865
+status: 3
+tags: []
+user_id: alexseyka

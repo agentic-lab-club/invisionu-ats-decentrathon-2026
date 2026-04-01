@@ -1,0 +1,16 @@
+artifact_uri: mlflow-artifacts:/784212245834862314/d490eec101f842f38f2523e0b75b576e/artifacts
+deleted_time: 1775074659863
+end_time: 1775071695211
+entry_point_name: ''
+experiment_id: '784212245834862314'
+lifecycle_stage: deleted
+run_id: d490eec101f842f38f2523e0b75b576e
+run_name: meta-llama/llama-4-scout-17b-16e-instruct__v2_20260402_002715
+run_uuid: d490eec101f842f38f2523e0b75b576e
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1775071635804
+status: 3
+tags: []
+user_id: alexseyka

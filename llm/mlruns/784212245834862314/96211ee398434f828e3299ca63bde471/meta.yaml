@@ -1,0 +1,15 @@
+artifact_uri: mlflow-artifacts:/784212245834862314/96211ee398434f828e3299ca63bde471/artifacts
+end_time: 1775072756127
+entry_point_name: ''
+experiment_id: '784212245834862314'
+lifecycle_stage: active
+run_id: 96211ee398434f828e3299ca63bde471
+run_name: allam-2-7b__v2_20260402_004536
+run_uuid: 96211ee398434f828e3299ca63bde471
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1775072736159
+status: 3
+tags: []
+user_id: alexseyka

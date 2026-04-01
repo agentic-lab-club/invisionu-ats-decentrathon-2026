@@ -1,0 +1,122 @@
+[
+  {
+    "test_id": "good_1",
+    "label": "good",
+    "latency_sec": 39.47457814216614,
+    "metrics": {
+      "Agg_M": 2.9,
+      "Agg_P": 2.8499999999999996,
+      "Agg_R": 3.6,
+      "Agg_L": 3.6999999999999997,
+      "Agg_V": 3.6,
+      "Agg_S": 3.0
+    },
+    "globals": {
+      "LeadershipIndex": 3.38,
+      "AdmissionsPotential": 3.3049999999999997
+    },
+    "total_score": 3.3049999999999997,
+    "valid_json": 1.0,
+    "status": "success"
+  },
+  {
+    "test_id": "good_2",
+    "label": "good",
+    "latency_sec": 73.09198188781738,
+    "metrics": {
+      "Agg_M": 3.0,
+      "Agg_P": 2.5,
+      "Agg_R": 3.4000000000000004,
+      "Agg_L": 3.6999999999999997,
+      "Agg_V": 3.0,
+      "Agg_S": 4.0
+    },
+    "globals": {
+      "LeadershipIndex": 3.2249999999999996,
+      "AdmissionsPotential": 3.205
+    },
+    "total_score": 3.205,
+    "valid_json": 1.0,
+    "status": "success"
+  },
+  {
+    "test_id": "mid_1",
+    "label": "middle",
+    "latency_sec": 72.80727553367615,
+    "metrics": {
+      "Agg_M": 3.0,
+      "Agg_P": 2.5,
+      "Agg_R": 3.0000000000000004,
+      "Agg_L": 2.8,
+      "Agg_V": 3.2,
+      "Agg_S": 3.0
+    },
+    "globals": {
+      "LeadershipIndex": 2.8500000000000005,
+      "AdmissionsPotential": 2.8700000000000006
+    },
+    "total_score": 2.8700000000000006,
+    "valid_json": 1.0,
+    "status": "success"
+  },
+  {
+    "test_id": "mid_2",
+    "label": "middle",
+    "latency_sec": 79.14818596839905,
+    "metrics": {
+      "Agg_M": 2.9,
+      "Agg_P": 2.5,
+      "Agg_R": 2.4000000000000004,
+      "Agg_L": 3.4,
+      "Agg_V": 2.5999999999999996,
+      "Agg_S": 4.0
+    },
+    "globals": {
+      "LeadershipIndex": 2.8649999999999998,
+      "AdmissionsPotential": 2.87
+    },
+    "total_score": 2.87,
+    "valid_json": 1.0,
+    "status": "success"
+  },
+  {
+    "test_id": "bad_1",
+    "label": "bad",
+    "latency_sec": 85.73062586784363,
+    "metrics": {
+      "Agg_M": 2.45,
+      "Agg_P": 2.0,
+      "Agg_R": 2.4000000000000004,
+      "Agg_L": 2.0999999999999996,
+      "Agg_V": 1.6,
+      "Agg_S": 4.0
+    },
+    "globals": {
+      "LeadershipIndex": 2.1424999999999996,
+      "AdmissionsPotential": 2.2550000000000003
+    },
+    "total_score": 2.2550000000000003,
+    "valid_json": 1.0,
+    "status": "success"
+  },
+  {
+    "test_id": "bad_2",
+    "label": "bad",
+    "latency_sec": 78.03523445129395,
+    "metrics": {
+      "Agg_M": 3.25,
+      "Agg_P": 2.5,
+      "Agg_R": 2.6000000000000005,
+      "Agg_L": 0.7,
+      "Agg_V": 2.0,
+      "Agg_S": 4.0
+    },
+    "globals": {
+      "LeadershipIndex": 1.9525000000000001,
+      "AdmissionsPotential": 2.2450000000000006
+    },
+    "total_score": 2.2450000000000006,
+    "valid_json": 1.0,
+    "status": "success"
+  }
+]

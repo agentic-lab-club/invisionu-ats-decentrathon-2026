@@ -1,0 +1,16 @@
+artifact_uri: mlflow-artifacts:/784212245834862314/d18ce943a1834653b084e6a1dd3a46b2/artifacts
+deleted_time: 1775069491890
+end_time: 1775068194393
+entry_point_name: ''
+experiment_id: '784212245834862314'
+lifecycle_stage: deleted
+run_id: d18ce943a1834653b084e6a1dd3a46b2
+run_name: openai/gpt-oss-20b__v2_20260401_232453
+run_uuid: d18ce943a1834653b084e6a1dd3a46b2
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1775067893322
+status: 3
+tags: []
+user_id: alexseyka

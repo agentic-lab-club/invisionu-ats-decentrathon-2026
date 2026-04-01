@@ -1,0 +1,6 @@
+artifact_location: mlflow-artifacts:/784212245834862314
+creation_time: 1775067893319
+experiment_id: '784212245834862314'
+last_update_time: 1775067893319
+lifecycle_stage: active
+name: llm_v2_comparison

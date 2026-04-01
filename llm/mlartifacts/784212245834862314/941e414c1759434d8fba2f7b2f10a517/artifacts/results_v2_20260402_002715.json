@@ -1,0 +1,122 @@
+[
+  {
+    "test_id": "good_1",
+    "label": "good",
+    "latency_sec": 3.4071075916290283,
+    "metrics": {
+      "Agg_M": 0.0,
+      "Agg_P": 0.0,
+      "Agg_R": 0.0,
+      "Agg_L": 0.0,
+      "Agg_V": 0.0,
+      "Agg_S": 0.0
+    },
+    "globals": {
+      "LeadershipIndex": 0.0,
+      "AdmissionsPotential": 0.0
+    },
+    "total_score": 0.0,
+    "valid_json": 0.0,
+    "status": "success"
+  },
+  {
+    "test_id": "good_2",
+    "label": "good",
+    "latency_sec": 3.3364686965942383,
+    "metrics": {
+      "Agg_M": 0.0,
+      "Agg_P": 0.0,
+      "Agg_R": 0.0,
+      "Agg_L": 0.0,
+      "Agg_V": 0.0,
+      "Agg_S": 0.0
+    },
+    "globals": {
+      "LeadershipIndex": 0.0,
+      "AdmissionsPotential": 0.0
+    },
+    "total_score": 0.0,
+    "valid_json": 0.0,
+    "status": "success"
+  },
+  {
+    "test_id": "mid_1",
+    "label": "middle",
+    "latency_sec": 3.356419324874878,
+    "metrics": {
+      "Agg_M": 0.0,
+      "Agg_P": 0.0,
+      "Agg_R": 0.0,
+      "Agg_L": 0.0,
+      "Agg_V": 0.0,
+      "Agg_S": 0.0
+    },
+    "globals": {
+      "LeadershipIndex": 0.0,
+      "AdmissionsPotential": 0.0
+    },
+    "total_score": 0.0,
+    "valid_json": 0.0,
+    "status": "success"
+  },
+  {
+    "test_id": "mid_2",
+    "label": "middle",
+    "latency_sec": 3.337955951690674,
+    "metrics": {
+      "Agg_M": 0.0,
+      "Agg_P": 0.0,
+      "Agg_R": 0.0,
+      "Agg_L": 0.0,
+      "Agg_V": 0.0,
+      "Agg_S": 0.0
+    },
+    "globals": {
+      "LeadershipIndex": 0.0,
+      "AdmissionsPotential": 0.0
+    },
+    "total_score": 0.0,
+    "valid_json": 0.0,
+    "status": "success"
+  },
+  {
+    "test_id": "bad_1",
+    "label": "bad",
+    "latency_sec": 3.335392475128174,
+    "metrics": {
+      "Agg_M": 0.0,
+      "Agg_P": 0.0,
+      "Agg_R": 0.0,
+      "Agg_L": 0.0,
+      "Agg_V": 0.0,
+      "Agg_S": 0.0
+    },
+    "globals": {
+      "LeadershipIndex": 0.0,
+      "AdmissionsPotential": 0.0
+    },
+    "total_score": 0.0,
+    "valid_json": 0.0,
+    "status": "success"
+  },
+  {
+    "test_id": "bad_2",
+    "label": "bad",
+    "latency_sec": 3.334246873855591,
+    "metrics": {
+      "Agg_M": 0.0,
+      "Agg_P": 0.0,
+      "Agg_R": 0.0,
+      "Agg_L": 0.0,
+      "Agg_V": 0.0,
+      "Agg_S": 0.0
+    },
+    "globals": {
+      "LeadershipIndex": 0.0,
+      "AdmissionsPotential": 0.0
+    },
+    "total_score": 0.0,
+    "valid_json": 0.0,
+    "status": "success"
+  }
+]
