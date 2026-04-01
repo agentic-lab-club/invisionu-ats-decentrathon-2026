@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+psycopg2-binary
+openai
+pydantic-settings
+pgvector
+python-dotenv
+tenacity
