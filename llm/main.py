@@ -76,7 +76,7 @@ def main(input_text: str) -> dict:
         prompt_text=input_text.strip(), 
         system_message=parser_system_prompt,
         require_json=True,
-        max_tokens=8000,
+        max_tokens=6900,
         max_retries=3
     )
 

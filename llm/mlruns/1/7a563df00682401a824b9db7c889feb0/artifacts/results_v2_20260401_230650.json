@@ -1,0 +1,110 @@
+[
+  {
+    "test_id": "good_1",
+    "label": "good",
+    "latency_sec": 53.515217542648315,
+    "metrics": {
+      "Agg_M": 2.9,
+      "Agg_P": 2.8499999999999996,
+      "Agg_R": 2.8000000000000003,
+      "Agg_L": 3.6999999999999997,
+      "Agg_V": 3.2,
+      "Agg_S": 3.0
+    },
+    "globals": {
+      "LeadershipIndex": 3.1799999999999997,
+      "AdmissionsPotential": 3.105
+    },
+    "status": "success"
+  },
+  {
+    "test_id": "good_2",
+    "label": "good",
+    "latency_sec": 64.94237852096558,
+    "metrics": {
+      "Agg_M": 3.0999999999999996,
+      "Agg_P": 2.6999999999999997,
+      "Agg_R": 2.6000000000000005,
+      "Agg_L": 3.6999999999999997,
+      "Agg_V": 2.5999999999999996,
+      "Agg_S": 3.0
+    },
+    "globals": {
+      "LeadershipIndex": 3.0799999999999996,
+      "AdmissionsPotential": 3.0149999999999997
+    },
+    "status": "success"
+  },
+  {
+    "test_id": "mid_1",
+    "label": "middle",
+    "latency_sec": 48.92830157279968,
+    "metrics": {
+      "Agg_M": 2.3499999999999996,
+      "Agg_P": 2.15,
+      "Agg_R": 2.8000000000000003,
+      "Agg_L": 2.0999999999999996,
+      "Agg_V": 1.7999999999999998,
+      "Agg_S": 3.0
+    },
+    "globals": {
+      "LeadershipIndex": 2.2575,
+      "AdmissionsPotential": 2.315
+    },
+    "status": "success"
+  },
+  {
+    "test_id": "mid_2",
+    "label": "middle",
+    "latency_sec": 66.98582768440247,
+    "metrics": {
+      "Agg_M": 2.3499999999999996,
+      "Agg_P": 2.15,
+      "Agg_R": 2.4000000000000004,
+      "Agg_L": 3.4,
+      "Agg_V": 2.1999999999999997,
+      "Agg_S": 3.0
+    },
+    "globals": {
+      "LeadershipIndex": 2.6725000000000003,
+      "AdmissionsPotential": 2.6
+    },
+    "status": "success"
+  },
+  {
+    "test_id": "bad_1",
+    "label": "bad",
+    "latency_sec": 50.50896120071411,
+    "metrics": {
+      "Agg_M": 1.0,
+      "Agg_P": 1.0,
+      "Agg_R": 1.6,
+      "Agg_L": 2.0999999999999996,
+      "Agg_V": 0.6,
+      "Agg_S": 2.0
+    },
+    "globals": {
+      "LeadershipIndex": 1.4649999999999999,
+      "AdmissionsPotential": 1.405
+    },
+    "status": "success"
+  },
+  {
+    "test_id": "bad_2",
+    "label": "bad",
+    "latency_sec": 42.88566565513611,
+    "metrics": {
+      "Agg_M": 1.65,
+      "Agg_P": 1.85,
+      "Agg_R": 2.6000000000000005,
+      "Agg_L": 1.0,
+      "Agg_V": 0.4,
+      "Agg_S": 2.0
+    },
+    "globals": {
+      "LeadershipIndex": 1.5275000000000003,
+      "AdmissionsPotential": 1.6100000000000003
+    },
+    "status": "success"
+  }
+]
