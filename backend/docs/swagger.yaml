@@ -1,0 +1,944 @@
+basePath: /
+definitions:
+  applications.AnswerInput:
+    properties:
+      option_id:
+        type: string
+      question_id:
+        type: string
+    required:
+    - option_id
+    - question_id
+    type: object
+  applications.CreateRequest:
+    properties:
+      certificate_file_id:
+        type: string
+      english_result_file_id:
+        type: string
+      first_name:
+        maxLength: 255
+        minLength: 1
+        type: string
+      last_name:
+        maxLength: 255
+        minLength: 1
+        type: string
+      personality_test_answers:
+        items:
+          $ref: '#/definitions/applications.AnswerInput'
+        type: array
+      phone_number:
+        maxLength: 64
+        minLength: 3
+        type: string
+      portfolio_file_id:
+        type: string
+      program_code:
+        type: string
+      video_file_id:
+        type: string
+    required:
+    - first_name
+    - last_name
+    - phone_number
+    - program_code
+    - video_file_id
+    type: object
+  applications.CreateResponse:
+    properties:
+      application_id:
+        type: string
+    type: object
+  applications.StatusResponse:
+    properties:
+      application_id:
+        type: string
+      decision:
+        type: string
+      review_stage:
+        type: string
+      screening_error:
+        type: string
+    type: object
+  auth.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        maxLength: 72
+        minLength: 8
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  auth.LogoutRequest:
+    properties:
+      refresh_token:
+        type: string
+    required:
+    - refresh_token
+    type: object
+  auth.MessageResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  auth.RefreshRequest:
+    properties:
+      refresh_token:
+        type: string
+    required:
+    - refresh_token
+    type: object
+  auth.RegisterRequest:
+    properties:
+      email:
+        type: string
+      password:
+        maxLength: 72
+        minLength: 8
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  auth.ResendCodeRequest:
+    properties:
+      email:
+        type: string
+    required:
+    - email
+    type: object
+  auth.ResponseUser:
+    properties:
+      email:
+        type: string
+      first_name:
+        type: string
+      id:
+        type: string
+      is_email_verified:
+        type: boolean
+      last_name:
+        type: string
+      phone_number:
+        type: string
+      role:
+        type: string
+    type: object
+  auth.TokenResponse:
+    properties:
+      access_token:
+        type: string
+      expires_in_seconds:
+        type: integer
+      refresh_token:
+        type: string
+      token_type:
+        type: string
+      user:
+        $ref: '#/definitions/auth.ResponseUser'
+    type: object
+  auth.VerifyEmailRequest:
+    properties:
+      code:
+        type: string
+      email:
+        type: string
+    required:
+    - code
+    - email
+    type: object
+  auth.meResponse:
+    properties:
+      user:
+        $ref: '#/definitions/auth.ResponseUser'
+    type: object
+  candidates.Detail:
+    properties:
+      application_id:
+        type: string
+      decision:
+        type: string
+      email:
+        type: string
+      files:
+        items:
+          $ref: '#/definitions/candidates.DetailFile'
+        type: array
+      first_name:
+        type: string
+      last_name:
+        type: string
+      latest_scoring_run:
+        $ref: '#/definitions/candidates.ScoringResult'
+      phone_number:
+        type: string
+      program_name:
+        type: string
+      review_stage:
+        type: string
+      screening_error:
+        type: string
+      video_transcript:
+        type: string
+    type: object
+  candidates.DetailFile:
+    properties:
+      content_type:
+        type: string
+      file_type:
+        type: string
+      id:
+        type: string
+      original_filename:
+        type: string
+      size_bytes:
+        type: integer
+    type: object
+  candidates.ListItem:
+    properties:
+      application_id:
+        type: string
+      decision:
+        type: string
+      full_name:
+        type: string
+      program_name:
+        type: string
+      recommendation:
+        type: string
+      review_stage:
+        type: string
+    type: object
+  candidates.ListResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/candidates.ListItem'
+        type: array
+    type: object
+  candidates.MessageResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  candidates.ScoringResult:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      model_name:
+        type: string
+      recommendation:
+        type: string
+      result_json:
+        items:
+          type: integer
+        type: array
+    type: object
+  candidates.UpdateStageRequest:
+    properties:
+      decision:
+        enum:
+        - pending
+        - accepted
+        - rejected
+        type: string
+      review_stage:
+        enum:
+        - initial_screening
+        - application_review
+        - decision
+        type: string
+    required:
+    - review_stage
+    type: object
+  healthcheck.CheckResult:
+    properties:
+      latency:
+        type: string
+      message:
+        type: string
+      status:
+        type: string
+    type: object
+  healthcheck.HealthCheckResponse:
+    properties:
+      checks:
+        additionalProperties:
+          $ref: '#/definitions/healthcheck.CheckResult'
+        type: object
+      status:
+        type: string
+      timestamp:
+        type: string
+    type: object
+  healthcheck.LivenessResponse:
+    properties:
+      status:
+        type: string
+    type: object
+  healthcheck.ReadinessResponse:
+    properties:
+      status:
+        type: string
+    type: object
+  personalitytest.Option:
+    properties:
+      id:
+        type: string
+      key:
+        type: string
+      text:
+        type: string
+    type: object
+  personalitytest.Question:
+    properties:
+      id:
+        type: string
+      options:
+        items:
+          $ref: '#/definitions/personalitytest.Option'
+        type: array
+      order:
+        type: integer
+      text:
+        type: string
+    type: object
+  personalitytest.Test:
+    properties:
+      code:
+        type: string
+      questions:
+        items:
+          $ref: '#/definitions/personalitytest.Question'
+        type: array
+      test_id:
+        type: string
+      title:
+        type: string
+    type: object
+  programs.ListResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/programs.Program'
+        type: array
+    type: object
+  programs.Program:
+    properties:
+      code:
+        type: string
+      id:
+        type: integer
+      level:
+        type: string
+      name:
+        type: string
+    type: object
+  uploads.Response:
+    properties:
+      file_id:
+        type: string
+      file_type:
+        type: string
+      original_filename:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@yourdomain.com
+    name: API Support
+    url: http://yourdomain.com/support
+  description: 'JWT Token as Bearer: Authorization: Bearer {token}'
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: https://yourdomain.com/terms/
+  title: InVisionU ATS Backend API
+  version: "1.0"
+paths:
+  /api/v1/healthcheck:
+    get:
+      description: Returns the application health status and dependency checks.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/healthcheck.HealthCheckResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/healthcheck.HealthCheckResponse'
+      summary: Health check
+      tags:
+      - '@healthcheck'
+  /api/v1/healthcheck/liveness:
+    get:
+      description: Returns whether the process is alive.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/healthcheck.LivenessResponse'
+      summary: Liveness probe
+      tags:
+      - '@healthcheck'
+  /api/v1/healthcheck/readiness:
+    get:
+      description: Returns whether the service is ready to serve traffic.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/healthcheck.ReadinessResponse'
+        "503":
+          description: Service Unavailable
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Readiness probe
+      tags:
+      - '@healthcheck'
+  /api/v1/programs:
+    get:
+      description: Returns active programs sorted for the applicant program selection
+        form.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/programs.ListResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: List active programs
+      tags:
+      - '@programs'
+  /applications:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new ATS application for the authenticated applicant and
+        publishes the submission event.
+      parameters:
+      - description: Application submission payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/applications.CreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/applications.CreateResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerToken: []
+      summary: Submit application
+      tags:
+      - '@applications'
+  /applications/status:
+    get:
+      description: Returns the latest application status for the authenticated applicant.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/applications.StatusResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerToken: []
+      summary: Get current application status
+      tags:
+      - '@applications'
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticates a verified user and returns access and refresh tokens.
+      parameters:
+      - description: Login payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/auth.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/auth.TokenResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Login with email and password
+      tags:
+      - '@auth'
+  /auth/logout:
+    post:
+      consumes:
+      - application/json
+      description: Revokes the provided refresh token session.
+      parameters:
+      - description: Logout payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/auth.LogoutRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/auth.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Logout current refresh session
+      tags:
+      - '@auth'
+  /auth/me:
+    get:
+      description: Returns the current user profile extracted from the bearer access
+        token.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/auth.meResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerToken: []
+      summary: Get current authenticated user
+      tags:
+      - '@auth'
+  /auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Rotates the refresh session and returns a new access and refresh
+        token pair.
+      parameters:
+      - description: Refresh token payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/auth.RefreshRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/auth.TokenResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Refresh access token
+      tags:
+      - '@auth'
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new user account and issues an email verification code.
+      parameters:
+      - description: Registration payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/auth.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/auth.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Register applicant account
+      tags:
+      - '@auth'
+  /auth/resend-code:
+    post:
+      consumes:
+      - application/json
+      description: Issues a new verification code for an existing unverified user.
+      parameters:
+      - description: Resend code payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/auth.ResendCodeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/auth.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Resend email verification code
+      tags:
+      - '@auth'
+  /auth/verify-email:
+    post:
+      consumes:
+      - application/json
+      description: Verifies a user's email address using the latest active verification
+        code.
+      parameters:
+      - description: Email verification payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/auth.VerifyEmailRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/auth.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Verify email with code
+      tags:
+      - '@auth'
+  /candidates:
+    get:
+      description: Returns candidate applications with optional admin filters.
+      parameters:
+      - description: Filter by program code
+        in: query
+        name: program_code
+        type: string
+      - description: Filter by review stage
+        in: query
+        name: review_stage
+        type: string
+      - description: Filter by decision
+        in: query
+        name: decision
+        type: string
+      - description: Search by applicant name or email
+        in: query
+        name: search
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/candidates.ListResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerToken: []
+      summary: List candidates for admin review
+      tags:
+      - '@candidates'
+  /candidates/{applicationId}:
+    get:
+      description: Returns the full admin review view for a candidate application.
+      parameters:
+      - description: Application ID
+        in: path
+        name: applicationId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/candidates.Detail'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerToken: []
+      summary: Get candidate detail
+      tags:
+      - '@candidates'
+  /candidates/{applicationId}/stage:
+    patch:
+      consumes:
+      - application/json
+      description: Updates the admin review stage and optional decision for a candidate
+        application.
+      parameters:
+      - description: Application ID
+        in: path
+        name: applicationId
+        required: true
+        type: string
+      - description: Stage update payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/candidates.UpdateStageRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/candidates.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerToken: []
+      summary: Update candidate review stage
+      tags:
+      - '@candidates'
+  /health:
+    get:
+      description: Returns the application health status and dependency checks.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/healthcheck.HealthCheckResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/healthcheck.HealthCheckResponse'
+      summary: Health check
+      tags:
+      - '@healthcheck'
+  /health/liveness:
+    get:
+      description: Returns whether the process is alive.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/healthcheck.LivenessResponse'
+      summary: Liveness probe
+      tags:
+      - '@healthcheck'
+  /health/readiness:
+    get:
+      description: Returns whether the service is ready to serve traffic.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/healthcheck.ReadinessResponse'
+        "503":
+          description: Service Unavailable
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Readiness probe
+      tags:
+      - '@healthcheck'
+  /tests/personality/current:
+    get:
+      description: Returns the active personality test with questions and options
+        for the application form.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/personalitytest.Test'
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get current active personality test
+      tags:
+      - '@personalitytest'
+  /uploads:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Uploads a file for the authenticated applicant and creates an unattached
+        application file record.
+      parameters:
+      - description: File type
+        in: formData
+        name: file_type
+        required: true
+        type: string
+      - description: Binary file payload
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/uploads.Response'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerToken: []
+      summary: Upload application file
+      tags:
+      - '@uploads'
+schemes:
+- http
+- https
+securityDefinitions:
+  BearerToken:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

@@ -1,5 +1,5 @@
 networks:
-  myproject-network:
+  invisionu-ats-network:
     external: true
 
 volumes:
@@ -22,7 +22,7 @@ services:
       timeout: 3s
       retries: 20
     networks:
-      - myproject-network
+      - invisionu-ats-network
 
   golang:
     build:
@@ -43,4 +43,4 @@ services:
       - "traefik.http.routers.golang.tls.certresolver=myresolver"
       - "traefik.http.services.golang.loadbalancer.server.port=8080"  # Internal порт
     networks:
-      - myproject-network
+      - invisionu-ats-network

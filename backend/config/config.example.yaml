@@ -9,7 +9,7 @@ server:
 database:
   host: "localhost"
   port: 5432
-  user: "postgres"
+  user: "myuser"
   password: "password"
   name: "mydb"
   sslmode: "disable"
@@ -19,6 +19,42 @@ environment: "development"
 
 gotenberg:
   url: "http://localhost:3000"
+
+auth:
+  jwt_access_secret: "change-me"
+  jwt_refresh_secret: "change-me-too"
+  access_token_ttl_seconds: 3600
+  refresh_token_ttl_seconds: 604800
+  email_verification_code_ttl_seconds: 900
+
+storage:
+  provider: "s3"
+  endpoint: "minio:9000"
+  region: "us-east-1"
+  bucket: "application-files"
+  access_key: "minioadmin"
+  secret_key: "minioadmin"
+  use_ssl: false
+
+messaging:
+  enabled: false
+  mode: "stub"
+  url: "amqp://guest:guest@rabbitmq:5672/"
+  exchange: "invisionu.events"
+  application_submitted_key: "application.submitted"
+
+email:
+  enabled: false
+  mode: "stub"
+  from_name: "InVisionU ATS"
+  from_email: "noreply@example.com"
+  smtp_host: "smtp.example.com"
+  smtp_port: 587
+  smtp_user: "smtp-user"
+  smtp_pass: "smtp-pass"
+
+llm:
+  enabled: false
 
 # =========================
 # Modules and Services on internal/
@@ -35,7 +71,11 @@ logging:
   format: "console"        # json (production) or console (development)
   output: "stdout"         # stdout, stderr, or file path
   time_format: "2006-01-02T15:04:05Z07:00"
-  sensitive_paths:         # Endpoints with sensitive data (cards, passwords) - body_preview will be <redacted> (e.g. - "/api/v1/")
+  sensitive_paths:         # Endpoints with sensitive data - body_preview will be <redacted>
+    - "/auth/register"
+    - "/auth/login"
+    - "/auth/refresh"
+    - "/auth/verify-email"
 
 # =========================
 # SECURITY SETTINGS
