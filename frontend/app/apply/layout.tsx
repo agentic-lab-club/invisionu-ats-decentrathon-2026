@@ -16,10 +16,8 @@ export const metadata: Metadata = {
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${raleway.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col">
-          {children}
-      </body>
-    </html>
+    <>
+    {children}
+    </>
   );
 }

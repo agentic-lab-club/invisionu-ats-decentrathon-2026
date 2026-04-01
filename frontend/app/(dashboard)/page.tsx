@@ -6,7 +6,6 @@ import CandidatesTable from '@/components/candidates/CandidatesTable';
 import CandidateFilters from '@/components/candidates/CandidateFilters';
 import { OnboardingTour, useOnboarding } from '@/components/tours/Onboardingtour';
 
-// ================== Skeleton ==================
 function TableSkeleton() {
   return (
     <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
@@ -28,7 +27,6 @@ function TableSkeleton() {
   );
 }
 
-// ================== Page ==================
 export default function CandidatesPage() {
   const { showTour, handleComplete, restartTour } = useOnboarding();
   const [activePreset, setActivePreset] = useState<string | null>(null);
@@ -38,8 +36,6 @@ export default function CandidatesPage() {
       {showTour && <OnboardingTour onComplete={handleComplete} />}
 
       <div className="w-[100%] mx-auto py-2 space-y-6">
-
-        {/* ── Page header ── */}
         <div className="flex items-center justify-between" data-tour="header">
           <div>
             <p className="text-[11px] uppercase tracking-widest text-gray-400 font-semibold mb-1">
@@ -52,7 +48,6 @@ export default function CandidatesPage() {
               Candidates
             </h1>
           </div>
-
           <button
             onClick={restartTour}
             className="flex items-center gap-2 px-3.5 py-2 text-xs font-medium text-gray-500 border border-gray-200 rounded-lg hover:border-gray-300 hover:text-gray-700 transition-colors"
@@ -62,21 +57,15 @@ export default function CandidatesPage() {
           </button>
         </div>
 
-        {/* ── Smart filters ── */}
         <div data-tour="filters">
-          <CandidateFilters
-            onSelectPreset={setActivePreset}
-            activePreset={activePreset}
-          />
+          <CandidateFilters onSelectPreset={setActivePreset} activePreset={activePreset} />
         </div>
 
-        {/* ── Table ── */}
         <div data-tour="table">
           <Suspense fallback={<TableSkeleton />}>
             <CandidatesTable preset={activePreset} />
           </Suspense>
         </div>
-
       </div>
     </>
   );

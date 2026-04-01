@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "../globals.css";
 import { Raleway } from 'next/font/google';
 import DashboardNav from "@/components/dashboard/DashboardNav";
+import AuthGuard from '@/components/auth/AuthGuard';
 const raleway = Raleway({
   subsets: ['latin'],
   display: 'swap',
@@ -16,16 +17,12 @@ export const metadata: Metadata = {
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html
-      lang="en"
-      className={`${raleway.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col">
-<DashboardNav activeTab="orders">
-  {children}
-</DashboardNav>
-
-      </body>
-    </html>
+    <div className="min-h-full flex flex-col">
+      <AuthGuard>
+        <DashboardNav activeTab="orders">
+          {children}
+        </DashboardNav>
+        </AuthGuard>
+      </div>
   );
 }
