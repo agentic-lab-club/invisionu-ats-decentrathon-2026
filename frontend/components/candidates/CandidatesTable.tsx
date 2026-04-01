@@ -7,31 +7,24 @@ import {
   UserCircle2, ArrowUpDown,
 } from 'lucide-react';
 import { getAccessToken } from '@/lib/auth';
+import StatusBadge from '@/components/ui/StatusBadge';
 
 // ================== Types ==================
 interface Candidate {
-  application_id: string;      // from backend
+  application_id: string;
   full_name: string;
   program_name: string;
-  overall_score?: number;      // may be absent
-  review_stage: string;        // 'new', 'review', 'interview', 'recommended', 'rejected'
-  decision?: string;
-  recommendation?: string;     // explanation
+  overall_score?: number;
+  backendReviewStage: string;   // original backend field: 'initial_screening', 'application_review', 'decision'
+  backendDecision?: string;     // original backend field: 'pending', 'accepted', 'rejected'
+  uiStatus: string;             // mapped UI status: 'new', 'review', 'recommended', 'rejected'
+  recommendation?: string;
   ielts_score?: number;
 }
 
 interface CandidatesTableProps {
   preset?: string | null;
 }
-
-// ================== Status config ==================
-const STATUS_CONFIG: Record<string, { label: string; dot: string; pill: string; text: string }> = {
-  new:         { label: 'New',         dot: '#3b82f6', pill: '#eff6ff',   text: '#2563eb' },
-  review:      { label: 'In review',   dot: '#f59e0b', pill: '#fffbeb',   text: '#d97706' },
-  interview:   { label: 'Interview',   dot: '#8b5cf6', pill: '#f5f3ff',   text: '#7c3aed' },
-  recommended: { label: 'Recommended', dot: '#b5e220', pill: '#f7fde8',   text: '#4d7c0f' },
-  rejected:    { label: 'Rejected',    dot: '#ef4444', pill: '#fef2f2',   text: '#dc2626' },
-};
 
 // ================== Helpers ==================
 function getInitials(name: string) {
@@ -67,16 +60,6 @@ function ScoreBar({ score }: { score: number }) {
       </div>
       <span className="text-xs font-semibold tabular-nums" style={{ color }}>{score}</span>
     </div>
-  );
-}
-
-function StatusPill({ status }: { status: string }) {
-  const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.new;
-  return (
-    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold" style={{ background: cfg.pill, color: cfg.text }}>
-      <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: cfg.dot }} />
-      {cfg.label}
-    </span>
   );
 }
 
@@ -116,54 +99,67 @@ export default function CandidatesTable({ preset }: CandidatesTableProps) {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [filterStatus, setFilterStatus] = useState<string>('all');
 
-useEffect(() => {
-  const fetchCandidates = async () => {
-    setLoading(true);
-    const token = getAccessToken();
-    if (!token) {
-      setCandidates([]);
-      setLoading(false);
-      return;
-    }
-
-    // Создаём URL и всегда добавляем параметры (даже пустые)
-    const url = new URL('/api/backend/candidates', window.location.origin);
-    
-    // Добавляем параметры фильтрации (всегда, даже если preset пустой)
-    // Если preset передан, используем его, иначе передаём пустые строки
-    // (В реальности preset – это специальный фильтр, но для простоты передадим все параметры)
-    url.searchParams.set('program_code', preset ? '' : '');
-    url.searchParams.set('review_stage', '');
-    url.searchParams.set('decision', '');
-    url.searchParams.set('search', '');
-
-    try {
-      const res = await fetch(url.toString(), {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      const items = data?.items ?? (Array.isArray(data) ? data : []);
-      const mapped = items.map((item: any) => ({
-        application_id: item.application_id,
-        full_name: item.full_name,
-        program_name: item.program_name,
-        overall_score: item.overall_score ?? 0,
-        review_stage: item.review_stage ?? 'new',
-        decision: item.decision,
-        recommendation: item.recommendation,
-        ielts_score: item.ielts_score,
-      }));
-      setCandidates(mapped);
-    } catch (err) {
-      console.error(err);
-      setCandidates([]);
-    } finally {
-      setLoading(false);
-    }
+  // Mapping from backend review_stage to UI status
+  const reviewStageMapping: Record<string, string> = {
+    initial_screening: 'new',
+    application_review: 'review',
+    decision: 'decision',  // will be mapped further by StatusBadge based on decision
   };
-  fetchCandidates();
-}, [preset]);
 
+  useEffect(() => {
+    const fetchCandidates = async () => {
+      setLoading(true);
+      const token = getAccessToken();
+      if (!token) {
+        setCandidates([]);
+        setLoading(false);
+        return;
+      }
+
+      const url = new URL('/api/backend/candidates', window.location.origin);
+      url.searchParams.set('program_code', '');
+      url.searchParams.set('review_stage', '');
+      url.searchParams.set('decision', '');
+      url.searchParams.set('search', '');
+
+      try {
+        const res = await fetch(url.toString(), {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        const items = data?.items ?? (Array.isArray(data) ? data : []);
+        const mapped = items.map((item: any) => {
+          const backendReviewStage = item.review_stage;
+          const backendDecision = item.decision;
+          let uiStatus = reviewStageMapping[backendReviewStage] ?? 'new';
+          // Special handling for 'decision' stage – map based on decision
+          if (uiStatus === 'decision') {
+            if (backendDecision === 'accepted') uiStatus = 'recommended';
+            else if (backendDecision === 'rejected') uiStatus = 'rejected';
+            else uiStatus = 'review'; // fallback
+          }
+          return {
+            application_id: item.application_id,
+            full_name: item.full_name,
+            program_name: item.program_name,
+            overall_score: item.overall_score ?? 0,
+            backendReviewStage,
+            backendDecision,
+            uiStatus,
+            recommendation: item.recommendation,
+            ielts_score: item.ielts_score,
+          };
+        });
+        setCandidates(mapped);
+      } catch (err) {
+        console.error(err);
+        setCandidates([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCandidates();
+  }, [preset]);
 
   const handleSort = (field: typeof sortField) => {
     if (sortField === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
@@ -171,36 +167,45 @@ useEffect(() => {
   };
 
   const filtered = candidates.filter(c =>
-    filterStatus === 'all' || c.review_stage === filterStatus
+    filterStatus === 'all' || c.uiStatus === filterStatus
   );
 
-const sorted = [...filtered].sort((a, b) => {
-  let av: string | number;
-  let bv: string | number;
-  if (sortField === 'full_name') {
-    av = a.full_name;
-    bv = b.full_name;
-  } else if (sortField === 'program_name') {
-    av = a.program_name;
-    bv = b.program_name;
-  } else { // overall_score
-    av = a.overall_score ?? 0;
-    bv = b.overall_score ?? 0;
-  }
-  // теперь av и bv гарантированно string | number (без undefined)
-  if (typeof av === 'string' && typeof bv === 'string')
-    return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
-  if (typeof av === 'number' && typeof bv === 'number')
-    return sortDir === 'asc' ? av - bv : bv - av;
-  return 0;
-});
+  const sorted = [...filtered].sort((a, b) => {
+    let av: string | number;
+    let bv: string | number;
+    if (sortField === 'full_name') {
+      av = a.full_name;
+      bv = b.full_name;
+    } else if (sortField === 'program_name') {
+      av = a.program_name;
+      bv = b.program_name;
+    } else { // overall_score
+      av = a.overall_score ?? 0;
+      bv = b.overall_score ?? 0;
+    }
+    if (typeof av === 'string' && typeof bv === 'string')
+      return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
+    if (typeof av === 'number' && typeof bv === 'number')
+      return sortDir === 'asc' ? av - bv : bv - av;
+    return 0;
+  });
 
   const counts = candidates.reduce<Record<string, number>>((acc, c) => {
-    acc[c.review_stage] = (acc[c.review_stage] ?? 0) + 1;
+    acc[c.uiStatus] = (acc[c.uiStatus] ?? 0) + 1;
     return acc;
   }, {});
 
   if (loading) return <TableSkeleton />;
+
+  // Filter buttons with inline styles
+  const statusFilterButtons = [
+    { value: 'all', label: 'All', color: '' },
+    { value: 'new', label: 'New', color: 'bg-blue-100 text-blue-800' },
+    { value: 'review', label: 'In Review', color: 'bg-amber-100 text-amber-800' },
+    { value: 'interview', label: 'Interview', color: 'bg-purple-100 text-purple-800' },
+    { value: 'recommended', label: 'Recommended', color: 'bg-[#b5e220]/15 text-[#6a8a10]' },
+    { value: 'rejected', label: 'Rejected', color: 'bg-red-100 text-red-800' },
+  ];
 
   return (
     <div className="bg-white rounded-xl border border-gray-100 overflow-hidden" data-tour="candidates-table">
@@ -211,27 +216,30 @@ const sorted = [...filtered].sort((a, b) => {
             {preset && <span className="ml-1.5 text-[#4d7c0f] normal-case tracking-normal">· filtered</span>}
           </p>
           <div className="flex items-center gap-1 border-l border-gray-100 pl-3">
-            {(['all', 'new', 'review', 'interview', 'recommended', 'rejected'] as const).map(s => {
-              const isAll = s === 'all';
-              const cfg = isAll ? null : STATUS_CONFIG[s];
-              const count = isAll ? candidates.length : (counts[s] ?? 0);
-              const isActive = filterStatus === s;
+            {statusFilterButtons.map(s => {
+              const count = s.value === 'all' ? candidates.length : (counts[s.value] ?? 0);
+              const isActive = filterStatus === s.value;
               return (
                 <button
-                  key={s}
-                  onClick={() => setFilterStatus(s)}
-                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all"
-                  style={
-                    isActive && !isAll
-                      ? { background: cfg!.pill, color: cfg!.text }
+                  key={s.value}
+                  onClick={() => setFilterStatus(s.value)}
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all ${
+                    isActive && s.value !== 'all'
+                      ? s.color
                       : isActive
-                      ? { background: '#f3f4f6', color: '#374151' }
-                      : { color: '#9ca3af' }
-                  }
+                      ? 'bg-gray-100 text-gray-700'
+                      : 'text-gray-400 hover:bg-gray-50'
+                  }`}
                 >
-                  {!isAll && <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: isActive ? cfg!.dot : '#d1d5db' }} />}
-                  {isAll ? 'All' : cfg!.label}
-                  {count > 0 && <span className="text-[10px] tabular-nums" style={{ color: isActive && !isAll ? cfg!.text : '#9ca3af' }}>{count}</span>}
+                  {s.value !== 'all' && (
+                    <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${isActive ? 'bg-current' : 'bg-gray-300'}`} />
+                  )}
+                  {s.label}
+                  {count > 0 && (
+                    <span className={`text-[10px] tabular-nums ${isActive ? 'opacity-80' : 'text-gray-400'}`}>
+                      {count}
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -290,29 +298,27 @@ const sorted = [...filtered].sort((a, b) => {
                   <td className="px-6 py-3.5 whitespace-nowrap"><div className="flex items-center gap-2.5"><Avatar name={candidate.full_name} /><span className="text-sm font-medium text-gray-900 leading-tight">{candidate.full_name}</span></div></td>
                   <td className="px-6 py-3.5 whitespace-nowrap"><span className="text-xs text-gray-500 bg-gray-50 border border-gray-100 px-2 py-1 rounded-md">{candidate.program_name}</span></td>
                   <td className="px-6 py-3.5 whitespace-nowrap"><ScoreBar score={candidate.overall_score ?? 0} /></td>
-                  <td className="px-6 py-3.5 whitespace-nowrap">{candidate.ielts_score != null ? <span className="text-xs font-semibold tabular-nums px-2 py-1 rounded-md" style={candidate.ielts_score >= 6.5 ? { background: '#f7fde8', color: '#4d7c0f' } : candidate.ielts_score >= 5.5 ? { background: '#fffbeb', color: '#d97706' } : { background: '#fef2f2', color: '#dc2626' }}>{candidate.ielts_score.toFixed(1)}</span> : <span className="text-sm text-gray-300">—</span>}</td>
-                  <td className="px-6 py-3.5 whitespace-nowrap"><StatusPill status={candidate.review_stage} /></td>
+                  <td className="px-6 py-3.5 whitespace-nowrap">
+                    {candidate.ielts_score != null ? (
+                      <span className="text-xs font-semibold tabular-nums px-2 py-1 rounded-md" style={candidate.ielts_score >= 6.5 ? { background: '#f7fde8', color: '#4d7c0f' } : candidate.ielts_score >= 5.5 ? { background: '#fffbeb', color: '#d97706' } : { background: '#fef2f2', color: '#dc2626' }}>{candidate.ielts_score.toFixed(1)}</span>
+                    ) : <span className="text-sm text-gray-300">—</span>}
+                  </td>
+                  <td className="px-6 py-3.5 whitespace-nowrap">
+                    <StatusBadge reviewStage={candidate.backendReviewStage} decision={candidate.backendDecision} />
+                  </td>
                   <td className="px-6 py-3.5 max-w-xs"><p className="text-xs text-gray-400 line-clamp-2 leading-relaxed">{candidate.recommendation ?? '—'}</p></td>
-                  <td className="px-6 py-3.5 whitespace-nowrap text-right"><Link href={`/candidate/${candidate.application_id}`} className="inline-flex items-center gap-1 text-xs font-medium text-gray-300 hover:text-[#8aaa18] transition-colors group-hover:text-gray-500">Details<ChevronRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" /></Link></td>
+                  <td className="px-6 py-3.5 whitespace-nowrap text-right">
+                    <Link href={`/candidate/${candidate.application_id}`} className="inline-flex items-center gap-1 text-xs font-medium text-gray-300 hover:text-[#8aaa18] transition-colors group-hover:text-gray-500">
+                      Details
+                      <ChevronRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
+                    </Link>
+                  </td>
                 </tr>
               ))
             )}
           </tbody>
         </table>
       </div>
-
-      {sorted.length > 0 && (
-        <div className="px-6 py-3 border-t border-gray-50 flex items-center justify-between">
-          <p className="text-[11px] text-gray-300">Showing {sorted.length} of {candidates.length} candidates</p>
-          <div className="flex items-center gap-3">
-            {Object.entries(STATUS_CONFIG).map(([key, cfg]) => {
-              const n = counts[key] ?? 0;
-              if (!n) return null;
-              return <div key={key} className="flex items-center gap-1.5 text-[11px] text-gray-400"><span className="w-1.5 h-1.5 rounded-full" style={{ background: cfg.dot }} />{cfg.label} · {n}</div>;
-            })}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

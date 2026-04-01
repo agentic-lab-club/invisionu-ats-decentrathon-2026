@@ -3,8 +3,9 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Loader2, AlertCircle, CheckCircle2, XCircle } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
 import { getAccessToken } from '@/lib/auth';
+import StatusBadge from '@/components/ui/StatusBadge';
 
 interface CandidateDetail {
   application_id: string;
@@ -14,19 +15,12 @@ interface CandidateDetail {
   review_stage: string;
   decision: string;
   screening_error?: string;
-  // другие поля не обязательны
 }
 
 const stageLabels: Record<string, string> = {
   initial_screening: 'Initial Screening',
   application_review: 'Application Review',
   decision: 'Decision',
-};
-
-const decisionColors: Record<string, { bg: string; text: string; icon: React.ReactNode }> = {
-  pending: { bg: 'bg-yellow-100', text: 'text-yellow-800', icon: <Loader2 className="w-4 h-4 animate-spin" /> },
-  accepted: { bg: 'bg-green-100', text: 'text-green-800', icon: <CheckCircle2 className="w-4 h-4" /> },
-  rejected: { bg: 'bg-red-100', text: 'text-red-800', icon: <XCircle className="w-4 h-4" /> },
 };
 
 export default function StatusPage() {
@@ -92,8 +86,6 @@ export default function StatusPage() {
 
   if (!candidate) return null;
 
-  const decisionConfig = decisionColors[candidate.decision] || decisionColors.pending;
-
   return (
     <div className="max-w-2xl mx-auto p-6 space-y-6">
       <div className="bg-white rounded-xl border border-gray-100 p-6">
@@ -108,11 +100,8 @@ export default function StatusPage() {
             <span className="font-medium text-gray-900">{stageLabels[candidate.review_stage] || candidate.review_stage}</span>
           </div>
           <div className="flex justify-between items-center border-b border-gray-100 pb-3">
-            <span className="text-gray-600">Decision</span>
-            <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${decisionConfig.bg} ${decisionConfig.text}`}>
-              {decisionConfig.icon}
-              {candidate.decision.toUpperCase()}
-            </div>
+            <span className="text-gray-600">Status</span>
+            <StatusBadge reviewStage={candidate.review_stage} decision={candidate.decision} />
           </div>
           {candidate.screening_error && (
             <div className="bg-red-50 border border-red-100 rounded-lg p-3 text-sm text-red-600">

@@ -8,25 +8,39 @@ import CategorySection from '@/components/candidates/CategorySection';
 import SkillsRadar from '@/components/candidates/SkillsRadar';
 import HumanInLoop from '@/components/candidates/HumanInLoop';
 import { ChevronLeft, User, TrendingUp, LayoutGrid } from 'lucide-react';
-import MLAnalysisPanel, { MOCK_ML_ANALYSIS } from '@/components/candidates/MLAnalysisPanel';
+import MLAnalysisPanel from '@/components/candidates/MLAnalysisPanel';
+import { getAccessToken } from '@/lib/auth';
+import StatusBadge from '@/components/ui/StatusBadge';
 
+// Интерфейс для данных из бэкенда (храним в состоянии)
 interface Candidate {
-  id: string;
-  name: string;
-  position: string;
-  overallScore: number;
+  application_id: string;
+  first_name: string;
+  last_name: string;
+  program_name: string;
+  overall_score?: number;
+  review_stage: string;      // original from backend
+  decision?: string;
+  recommendation?: string;
   subscores: Record<string, number>;
   evidence: Record<string, string>;
-  status: string;
+  video_transcript?: string;
+  files?: any[];
+  screening_error?: string;
+  latest_scoring_run?: any;
 }
 
-const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
-  new:         { label: 'New',         className: 'bg-blue-50 text-blue-600 border border-blue-100' },
-  review:      { label: 'In Review',   className: 'bg-amber-50 text-amber-600 border border-amber-100' },
-  interview:   { label: 'Interview',   className: 'bg-violet-50 text-violet-600 border border-violet-100' },
-  recommended: { label: 'Recommended', className: 'bg-[#b5e220]/15 text-[#6a8a10] border border-[#b5e220]/30' },
-  rejected:    { label: 'Rejected',    className: 'bg-red-50 text-red-500 border border-red-100' },
-};
+// Вспомогательная функция для получения UI-статуса (для HumanInLoop)
+function getUIStatus(reviewStage: string, decision?: string): string {
+  if (reviewStage === 'initial_screening') return 'new';
+  if (reviewStage === 'application_review') return 'review';
+  if (reviewStage === 'decision') {
+    if (decision === 'accepted') return 'recommended';
+    if (decision === 'rejected') return 'rejected';
+    return 'review';
+  }
+  return 'new';
+}
 
 function ScoreRing({ score }: { score: number }) {
   const r = 28;
@@ -55,18 +69,65 @@ export default function CandidatePage() {
   const id = params.id as string;
   const [candidate, setCandidate] = useState<Candidate | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const fetchCandidate = async () => {
+    const token = getAccessToken();
+    if (!token) {
+      setError('Not authenticated');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/backend/candidates/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.status === 404) {
+        setError('Candidate not found');
+        setLoading(false);
+        return;
+      }
+      if (!res.ok) throw new Error('Failed to fetch');
+      const data = await res.json();
+
+      const overallScore = data.latest_scoring_run?.result_json?.overall_score ?? 0;
+      const subscores = data.latest_scoring_run?.result_json?.subscores ?? {};
+      const evidence = data.latest_scoring_run?.result_json?.evidence ?? {};
+
+      setCandidate({
+        application_id: data.application_id,
+        first_name: data.first_name,
+        last_name: data.last_name,
+        program_name: data.program_name,
+        overall_score: overallScore,
+        review_stage: data.review_stage,
+        decision: data.decision,
+        recommendation: data.latest_scoring_run?.recommendation,
+        subscores,
+        evidence,
+        video_transcript: data.video_transcript,
+        files: data.files,
+        screening_error: data.screening_error,
+        latest_scoring_run: data.latest_scoring_run,
+      });
+    } catch (err) {
+      console.error(err);
+      setError('Failed to load candidate');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    if (!id) return;
-    fetch(`/api/candidates/${id}`)
-      .then(r => { if (!r.ok) throw new Error(); return r.json(); })
-      .then(data => setCandidate(data))
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    if (id) fetchCandidate();
   }, [id]);
 
   const handleStatusUpdate = (newStatus: string) => {
-    if (candidate) setCandidate({ ...candidate, status: newStatus });
+    // Обновляем локальное состояние кандидата после успешного PATCH
+    // Для этого нужно преобразовать UI-статус обратно в review_stage и decision
+    // Но проще перезагрузить данные с сервера
+    fetchCandidate();
   };
 
   if (loading) {
@@ -80,11 +141,11 @@ export default function CandidatePage() {
     );
   }
 
-  if (!candidate) {
+  if (error || !candidate) {
     return (
       <div className="flex items-center justify-center py-24">
         <div className="text-center space-y-2">
-          <p className="text-sm text-gray-500">Candidate not found.</p>
+          <p className="text-sm text-gray-500">{error || 'Candidate not found.'}</p>
           <Link href="/" className="text-xs text-[#8aaa18] hover:underline">← Back to candidates</Link>
         </div>
       </div>
@@ -92,11 +153,10 @@ export default function CandidatePage() {
   }
 
   const categories = Object.keys(candidate.subscores);
-  const statusCfg = STATUS_CONFIG[candidate.status];
+  const uiStatus = getUIStatus(candidate.review_stage, candidate.decision);
 
   return (
     <div className="space-y-6">
-      {/* Breadcrumb */}
       <Link
         href="/"
         className="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 transition-colors"
@@ -105,35 +165,28 @@ export default function CandidatePage() {
         Candidates
       </Link>
 
-      {/* Hero card */}
       <div className="bg-white rounded-xl border border-gray-100 p-6">
         <div className="flex items-start gap-5">
-          {/* Avatar */}
           <div className="w-12 h-12 rounded-xl bg-[#b5e220]/15 flex items-center justify-center flex-shrink-0">
             <User className="w-5 h-5 text-[#8aaa18]" />
           </div>
 
-          {/* Name + position + status */}
           <div className="flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-2 mb-1">
-              <h1 className="text-xl font-semibold text-gray-900 leading-tight">{candidate.name}</h1>
-              {statusCfg && (
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-medium ${statusCfg.className}`}>
-                  {statusCfg.label}
-                </span>
-              )}
+              <h1 className="text-xl font-semibold text-gray-900 leading-tight">
+                {candidate.first_name} {candidate.last_name}
+              </h1>
+              <StatusBadge reviewStage={candidate.review_stage} decision={candidate.decision} />
             </div>
-            <p className="text-sm text-gray-400">{candidate.position}</p>
+            <p className="text-sm text-gray-400">{candidate.program_name}</p>
           </div>
 
-          {/* Score ring */}
           <div className="flex flex-col items-center gap-1 flex-shrink-0">
-            <ScoreRing score={candidate.overallScore} />
+            <ScoreRing score={candidate.overall_score ?? 0} />
             <p className="text-[10px] uppercase tracking-widest text-gray-400 font-semibold">Potential</p>
           </div>
         </div>
 
-        {/* Subscore pills */}
         {categories.length > 0 && (
           <div className="mt-5 pt-5 border-t border-gray-100 flex flex-wrap gap-3">
             {categories.map(cat => {
@@ -153,11 +206,8 @@ export default function CandidatePage() {
         )}
       </div>
 
-      {/* Main grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left column */}
         <div className="lg:col-span-1 space-y-6">
-          {/* Skills radar */}
           <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
               <TrendingUp className="w-3.5 h-3.5 text-gray-300" />
@@ -168,15 +218,13 @@ export default function CandidatePage() {
             </div>
           </div>
 
-          {/* Human-in-loop */}
           <HumanInLoop
-            candidateId={candidate.id}
-            initialStatus={candidate.status}
+            candidateId={candidate.application_id}
+            initialStatus={uiStatus}
             onStatusUpdate={handleStatusUpdate}
           />
         </div>
 
-        {/* Right column */}
         <div className="lg:col-span-2 space-y-4">
           <div className="flex items-center gap-2 px-1">
             <LayoutGrid className="w-3.5 h-3.5 text-gray-300" />
@@ -192,9 +240,8 @@ export default function CandidatePage() {
               evidence={candidate.evidence[cat] || 'No data'}
             />
           ))}
-                    {/* ML Analysis */}
-          <MLAnalysisPanel analysis={MOCK_ML_ANALYSIS} />
 
+          <MLAnalysisPanel analysis={candidate.latest_scoring_run?.result_json} />
         </div>
       </div>
     </div>
