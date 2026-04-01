@@ -8,7 +8,6 @@ services:
     env_file:
       - .env
     environment:
-      # В контейнере приложения БД должна быть доступна по имени сервиса `db`.
       DATABASE_URL: postgresql+psycopg2://${DB_USER:-postgres}:${DB_PASSWORD:-root}@db:5432/${DB_DATABASE:-llm_assessment}
     depends_on:
       db:

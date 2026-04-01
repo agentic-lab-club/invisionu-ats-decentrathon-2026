@@ -10,7 +10,6 @@ from pydantic import BaseModel, Field, validator
 from sqlalchemy import create_engine, Column, Integer, String, Text, JSON, ARRAY, DateTime, Float, func, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
-from pgvector.sqlalchemy import Vector
 from openai import OpenAI, APIError, RateLimitError
 from dotenv import load_dotenv
 import tenacity
@@ -34,9 +33,7 @@ app = FastAPI(
 # API Keys & DB
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 DATABASE_URL = os.getenv("DATABASE_URL")
-EMBEDDING_SIMILARITY_THRESHOLD = float(os.getenv("EMBEDDING_SIMILARITY_THRESHOLD", "0.15"))
 ASSESSMENT_TIMEOUT_MINUTES = int(os.getenv("ASSESSMENT_TIMEOUT_MINUTES", "15"))
-MAX_QUESTIONS_RETRIES = int(os.getenv("MAX_QUESTIONS_RETRIES", "3"))
 
 if not OPENAI_API_KEY or not DATABASE_URL:
     raise ValueError("Отсутствуют обязательные переменные окружения: OPENAI_API_KEY, DATABASE_URL")
@@ -56,17 +53,6 @@ Base = declarative_base()
 
 
 # ====================== МОДЕЛИ БД ======================
-class QuestionBank(Base):
-    __tablename__ = "question_bank"
-    id = Column(Integer, primary_key=True, index=True)
-    text = Column(Text, unique=True, nullable=False)
-    embedding = Column(Vector(1536), nullable=False)  # text-embedding-3-small
-    specialization = Column(String(255), index=True, nullable=False)
-    difficulty = Column(String(50), default="medium")  # easy, medium, hard
-    created_at = Column(DateTime, default=datetime.utcnow, index=True)
-    usage_count = Column(Integer, default=0)  # для статистики
-
-
 class AssessmentSession(Base):
     __tablename__ = "assessment_sessions"
     id = Column(Integer, primary_key=True, index=True)
@@ -104,14 +90,7 @@ class EvaluationAudit(Base):
 # ====================== ЗАПУСК БД ======================
 @app.on_event("startup")
 def startup_event():
-    """Инициализация БД и pgvector"""
-    try:
-        with engine.begin() as conn:
-            conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
-        logger.info("✅ pgvector extension инициализирован")
-    except Exception as e:
-        logger.error(f"⚠️ Ошибка инициализации pgvector: {e}")
-
+    """Инициализация БД"""
     try:
         Base.metadata.create_all(bind=engine)
         logger.info("✅ Таблицы БД созданы")
@@ -129,28 +108,6 @@ def get_db():
 
 
 # ====================== RETRY-ЛОГИКА ======================
-@tenacity.retry(
-    stop=tenacity.stop_after_attempt(3),
-    wait=tenacity.wait_exponential(multiplier=1, min=2, max=10),
-    retry=tenacity.retry_if_exception_type((RateLimitError, APIError)),
-    before_sleep=lambda retry_state: logger.warning(
-        f"Retry #{retry_state.attempt_number} OpenAI API call..."
-    )
-)
-def get_embedding(text: str) -> List[float]:
-    """Получить эмбеддинг с retry-логикой"""
-    try:
-        resp = client.embeddings.create(
-            model="text-embedding-3-small",
-            input=text,
-            encoding_format="float"
-        )
-        return resp.data[0].embedding
-    except APIError as e:
-        logger.error(f"OpenAI embedding error: {e}")
-        raise
-
-
 @tenacity.retry(
     stop=tenacity.stop_after_attempt(2),
     wait=tenacity.wait_exponential(multiplier=1, min=1, max=5),
@@ -205,47 +162,6 @@ f"""Ты — эксперт по {specialization}. Сгенерируй РОВН
     except Exception as e:
         logger.error(f"Error generating questions: {e}")
         raise
-
-
-# ====================== ЛОГИКА УНИКАЛЬНОСТИ ======================
-def save_if_unique(db: Session, question: str, specialization: str) -> bool:
-    """
-    Сохранить вопрос, если он уникален.
-    Cosine distance < threshold ≈ cosine similarity > (1 - threshold)
-    """
-    try:
-        emb = get_embedding(question)
-    except Exception as e:
-        logger.error(f"Failed to get embedding for question: {e}")
-        return False
-
-    try:
-        # Поиск похожих вопросов по cosine distance (pgvector)
-        similar = db.query(QuestionBank).filter(
-            QuestionBank.specialization == specialization,
-            QuestionBank.embedding.op('<=>')(emb) < EMBEDDING_SIMILARITY_THRESHOLD
-        ).first()
-
-        if similar:
-            logger.debug(f"Duplicate detected: '{question[:50]}...'")
-            return False
-
-        # Сохранение нового вопроса
-        new_q = QuestionBank(
-            text=question,
-            embedding=emb,
-            specialization=specialization,
-            difficulty="medium"
-        )
-        db.add(new_q)
-        db.commit()
-        logger.info(f"✅ Question saved: {question[:60]}...")
-        return True
-
-    except Exception as e:
-        logger.error(f"Error saving question: {e}")
-        db.rollback()
-        return False
 
 
 # ====================== PYDANTIC МОДЕЛИ ======================
@@ -309,45 +225,8 @@ def generate_questions(body: GenerateRequest, db: Session = Depends(get_db)):
         logger.error(f"Failed to generate questions: {e}")
         raise HTTPException(500, "Не удалось сгенерировать вопросы")
 
-    # Проверка уникальности и сохранение
-    final_questions = []
-    for i, q in enumerate(questions):
-        attempts = 0
-        current_q = q
-
-        while attempts < MAX_QUESTIONS_RETRIES:
-            if save_if_unique(db, current_q, body.specialization):
-                final_questions.append(current_q)
-                break
-
-            # Генерация альтернативного вопроса
-            try:
-                alt = client.chat.completions.create(
-                    model="gpt-4o-mini",
-                    messages=[{
-                        "role": "user",
-                        "content": f"""Сгенерируй СОВЕРШЕННО ДРУГОЙ вариант вопроса для собеседования.
-Оригинальный: {current_q}
-Специализация: {body.specialization}
-
-Требования:
-- Другой сценарий и угол атаки
-- Но проверяет ту же компетенцию (лидерство + техническое глубина)
-- Сложный, сценарийный
-
-Ответ: только текст вопроса, без кавычек"""
-                    }],
-                    max_tokens=150,
-                    temperature=0.9
-                )
-                current_q = alt.choices[0].message.content.strip()
-            except Exception as e:
-                logger.warning(f"Failed to regenerate question {i}: {e}")
-                current_q = q  # fallback
-
-            attempts += 1
-
-        final_questions.append(current_q)
+    # Один запрос к LLM: возвращаем полученные вопросы как есть (в JSON).
+    final_questions = questions[:body.num_questions]
 
     # Создание сессии
     expires = datetime.utcnow() + timedelta(minutes=ASSESSMENT_TIMEOUT_MINUTES)

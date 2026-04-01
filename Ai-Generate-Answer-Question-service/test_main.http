@@ -2,7 +2,7 @@
 @port = 9977
 @baseUrl = http://{{host}}:{{port}}
 @specialization = Инновационные цифровые продукты и сервисы: разработка IT-решений управление продуктами.
-@numQuestions = 3
+@numQuestions = 2
 @userId = 123
 
 ### 0) Health check
