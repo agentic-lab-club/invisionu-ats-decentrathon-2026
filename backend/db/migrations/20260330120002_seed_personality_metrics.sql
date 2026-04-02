@@ -635,3 +635,5 @@ WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_o
 
 
 -- +goose Down
+-- TODO: fix the SHIT!
+SELECT 1;

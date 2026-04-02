@@ -17,7 +17,6 @@ func NewRepository(db *database.TrackedDB) *Repository {
 	return &Repository{db: db}
 }
 
-<<<<<<< HEAD
 // ИЗМЕНЕНИЯ, КОТОРЫЕ НУЖНО СДЕЛАТЬ, ИЛЬЯС
 func (r *Repository) List(programCode string, reviewStage string, decision string, search string) ([]ListItem, error) {
 	var items []ListItem
@@ -86,24 +85,6 @@ WHERE 1=1
 }
 
 
-=======
-func (r *Repository) List(programCode string, reviewStage string, decision string, search string) ([]ListItem, error) {
-	var items []ListItem
-	search = strings.TrimSpace(search)
-	if search != "" {
-		search = "%" + strings.ToLower(search) + "%"
-	}
-	programFilter := emptyToNil(programCode)
-	stageFilter := emptyToNil(reviewStage)
-	decisionFilter := emptyToNil(decision)
-	searchFilter := emptyToNil(search)
-	if err := r.db.TrackedSelect(&items, r.db.Rebind(listCandidatesQuery), programFilter, programFilter, stageFilter, stageFilter, decisionFilter, decisionFilter, searchFilter, searchFilter, searchFilter); err != nil {
-		return nil, fmt.Errorf("failed to list candidates: %w", err)
-	}
-	return items, nil
-}
-
->>>>>>> 6b0b155e42d452c85448ede2ed708fcf55c63c87
 func (r *Repository) GetDetail(applicationID uuid.UUID) (*Detail, error) {
 	var row detailRow
 	if err := r.db.TrackedGet(&row, r.db.Rebind(getCandidateDetailQuery), applicationID); err != nil {
