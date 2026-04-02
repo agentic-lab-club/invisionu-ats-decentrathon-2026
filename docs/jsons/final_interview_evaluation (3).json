@@ -1,0 +1,140 @@
+{
+    "workflow_status": "success",
+    "stt_length": 2569,
+    "candidate_breakdown": {
+        "q1_text": "Hi my name is Dias and I want join inVision U because I think this kind of program is where student can really test himself, not only collect certificate and say nice words. I want be in place where I need think, solve problems, communicate with people, maybe fail also, and then learn from this. I am not best presenter maybe, but in real work I stay serious and practical.",
+        "q2_text": "Program I am most interested is entrepreneurship and innovation because for me this is not only business for money. It is about seeing problem and making workable solution. I got interested in this when I joined one student initiative and I saw many ideas die not because they are stupid, but because nobody structure them and nobody take process seriously. I want improve exactly this skill.",
+        "q3_text": "Major challenge I overcame was when I was leading part of student event and one week before date two important people leave the team. At that moment I felt stress a lot because if nobody reorganize, event will fail and many people already expected it. First idea in my head was just do everything myself, but then I understand this is bad decision. So I split work into smaller urgent tasks, made short meeting, asked each person choose one responsibility they can really finish, and I took communication with speakers on myself. What helped me was trying stay practical and not lose time in panic. Event was not perfect in end, but it happened well and participants gave good feedback.",
+        "q4_text": "My long term goal is build projects that improve opportunities for students, maybe in education technology or youth development. I still don't know exact title of future work, but I know I want role where I combine management, problem solving, and social value. This program can help me because I need stronger tools, not only motivation. What motivates me is progress and usefulness, when I see work creates something bigger than myself.",
+        "q5_text": "Leadership for me means taking responsibility for direction and energy of group when situation becomes uncertain. It also means making decisions without ignoring people. I remember one team discussion where people argued too much about small details and all energy was going away. I said first we need agree on main goal, then separate urgent things from not urgent things. After that discussion became calmer and more focused. I think that was leadership because I did not only speak loud, I helped group move.",
+        "q6_text": "Yes my family supports me. Biggest source of encouragement is my father because he always says if I see chance to grow, I should not choose comfort too early."
+    },
+    "llm_evaluations": {
+        "q1": {
+            "question_id": "q1",
+            "scores": [
+                {
+                    "metric_name": "motivation",
+                    "score": 3,
+                    "quote": "I want join inVision U because I think this kind of program is where student can really test himself, not only collect certificate and say nice words.",
+                    "reason": "The applicant clearly explains a personal need for challenge and growth, showing authentic motivation for applying to inVision U."
+                },
+                {
+                    "metric_name": "planning",
+                    "score": 2,
+                    "quote": "I want be in place where I need think, solve problems, communicate with people, maybe fail also, and then learn from this.",
+                    "reason": "The applicant shows a thought-out reason for choosing inVision U, implying a desire for direction and future development, but lacks a detailed explanation of their future path."
+                }
+            ]
+        },
+        "q2": {
+            "question_id": "q2",
+            "scores": [
+                {
+                    "metric_name": "motivation",
+                    "score": 3,
+                    "quote": "It is about seeing problem and making workable solution",
+                    "reason": "The applicant shows sincere interest in the program by highlighting a meaningful reason for choosing it, which is to create workable solutions to problems."
+                },
+                {
+                    "metric_name": "planning",
+                    "score": 3,
+                    "quote": "I want improve exactly this skill",
+                    "reason": "The applicant clearly identifies the desired program and explains why it fits their path, showing deliberate decision-making by wanting to improve their skill in structuring ideas and taking the process seriously."
+                }
+            ]
+        },
+        "q3": {
+            "question_id": "q3",
+            "scores": [
+                {
+                    "metric_name": "resilience",
+                    "score": 3,
+                    "quote": "trying stay practical and not lose time in panic",
+                    "reason": "The applicant describes a real challenge, shows actions taken to deal with it, and explains what helped them move through the difficulty, demonstrating growth and adaptation."
+                },
+                {
+                    "metric_name": "leadership",
+                    "score": 3,
+                    "quote": "I split work into smaller urgent tasks, made short meeting, asked each person choose one responsibility they can really finish",
+                    "reason": "The applicant took initiative, showed responsibility, and coordinated tasks, demonstrating leadership skills during the challenge."
+                },
+                {
+                    "metric_name": "values",
+                    "score": 2,
+                    "quote": "event will fail and many people already expected it",
+                    "reason": "The applicant shows concern for others (the event participants) and a sense of responsibility, but the values evidence is partial and not as strongly demonstrated as resilience and leadership."
+                }
+            ]
+        },
+        "q4": {
+            "question_id": "q4",
+            "scores": [
+                {
+                    "metric_name": "planning",
+                    "score": 3,
+                    "quote": "My long term goal is build projects that improve opportunities for students, maybe in education technology or youth development. ... This program can help me because I need stronger tools, not only motivation.",
+                    "reason": "The applicant states a long-term goal and explains how the program supports it, showing a coherent connection between present action and future direction."
+                },
+                {
+                    "metric_name": "motivation",
+                    "score": 3,
+                    "quote": "What motivates me is progress and usefulness, when I see work creates something bigger than myself.",
+                    "reason": "The applicant explains what drives them in life, showing authentic internal motivation tied to creating meaningful impact."
+                }
+            ]
+        },
+        "q5": {
+            "question_id": "q5",
+            "scores": [
+                {
+                    "metric_name": "leadership",
+                    "score": 4,
+                    "quote": "I said first we need agree on main goal, then separate urgent things from not urgent things. After that discussion became calmer and more focused.",
+                    "reason": "The applicant provides a concrete example of leadership behavior, demonstrating initiative, responsibility, and influence, which had a positive effect on the group discussion."
+                },
+                {
+                    "metric_name": "values",
+                    "score": 3,
+                    "quote": "making decisions without ignoring people",
+                    "reason": "The applicant's definition of leadership reflects a value of inclusivity and consideration for others, and the example shows an effort to calm tension and focus the group."
+                }
+            ]
+        },
+        "q6": {
+            "question_id": "q6",
+            "scores": [
+                {
+                    "metric_name": "social_support",
+                    "score": 3,
+                    "quote": "Yes my family supports me. Biggest source of encouragement is my father",
+                    "reason": "The applicant clearly identifies a source of support (family and father) and explains how that support matters (encouragement to grow)."
+                },
+                {
+                    "metric_name": "resilience",
+                    "score": 2,
+                    "quote": "he always says if I see chance to grow, I should not choose comfort too early",
+                    "reason": "The applicant implies resilience by mentioning the father's advice to not choose comfort too early, suggesting a willingness to take on challenges."
+                },
+                {
+                    "metric_name": "motivation",
+                    "score": 2,
+                    "quote": "if I see chance to grow, I should not choose comfort too early",
+                    "reason": "The applicant's motivation is partially visible through the father's advice, which connects to the applicant's drive to grow, but the link to persistence or direction is not strongly established."
+                }
+            ]
+        }
+    },
+    "aggregated_metrics": {
+        "Motivation": 2.9,
+        "Planning": 2.85,
+        "Resilience": 2.8,
+        "Leadership": 3.7,
+        "Values": 2.6,
+        "Social_Support": 3.0
+    },
+    "global_score": {
+        "LeadershipIndex": 3.12,
+        "AdmissionsPotential": 3.04
+    }
+}

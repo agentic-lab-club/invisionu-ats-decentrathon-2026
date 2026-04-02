@@ -1,0 +1,140 @@
+{
+    "workflow_status": "success",
+    "stt_length": 2491,
+    "candidate_breakdown": {
+        "q1_text": "Hello my name is Aliya and I apply to inVision U because I really want grow not only like student but like person who can do useful things with other people. I am not very strong in presenting myself maybe, but I know for me only university classes is not enough. I need place where people do real work, real projects, and learn by action not only by theory.",
+        "q2_text": "Program I want most is leadership and social impact because I care about student problems and I don't like when everybody just complain and then nothing move. I want learn how take concern and make it to action. My English maybe not perfect and sometimes I speak not so clear, but I know I am serious in this and I really want improve this side.",
+        "q3_text": "Big challenge for me was first year when I joined one student project team. Very fast I saw people say many motivated words but actually nobody organize work. At first I keep quiet because I think maybe I am too new and maybe I should not speak. But deadline come closer and confusion stay same, so I made simple task plan, timeline, and who can do what. It was not beautiful and not everyone liked in start, but later it helped us finish in time. What helped me there was understanding that waiting for perfect moment is more dangerous than making one useful step.",
+        "q4_text": "My long term goal is become person who can lead education or youth projects, maybe nonprofit, maybe social entrepreneurship, I am still learning exact direction. But I know I want work where strategy and human meaning go together. This program can help me because I need stronger environment, mentors, and people who also want build something. What motivates me is when I see small organized effort can really improve something for others.",
+        "q5_text": "For me leadership is not being loudest. Leadership is when people feel lost and somebody can bring clarity, movement, and trust. One time in volunteer event two team members stop joining because they think their work is not important. I talked with them one by one, asked what work they can take comfortable, and then changed our plan little bit so roles become more clear. After this they become active again and preparation was much smoother. For me this was important because I learn leadership is also seeing people, not only pushing tasks.",
+        "q6_text": "Yes my family supports me. Sometimes they worry I take too much responsibility, but they support because they know I am serious. Biggest encouragement is my mother because she always says confidence comes after action, not before."
+    },
+    "llm_evaluations": {
+        "q1": {
+            "question_id": "q1",
+            "scores": [
+                {
+                    "metric_name": "motivation",
+                    "score": 3,
+                    "quote": "I really want grow not only like student but like person who can do useful things with other people",
+                    "reason": "The applicant clearly explains a personal need for growth and a desire to do meaningful work with others, showing authentic motivation"
+                },
+                {
+                    "metric_name": "planning",
+                    "score": 2,
+                    "quote": "I need place where people do real work, real projects, and learn by action not only by theory",
+                    "reason": "The applicant shows a thought-out reason for choosing inVision U, implying a need for a practical learning environment, but does not provide a detailed future plan"
+                }
+            ]
+        },
+        "q2": {
+            "question_id": "q2",
+            "scores": [
+                {
+                    "metric_name": "motivation",
+                    "score": 3,
+                    "quote": "I care about student problems and I don't like when everybody just complain and then nothing move",
+                    "reason": "The applicant shows sincere interest in addressing specific problems and a desire to create change, indicating meaningful motivation"
+                },
+                {
+                    "metric_name": "planning",
+                    "score": 2,
+                    "quote": "I want learn how take concern and make it to action",
+                    "reason": "The applicant explains why the program fits their goals, showing a clear direction, but lacks specific details about their future plans or how the program will help them achieve their objectives"
+                }
+            ]
+        },
+        "q3": {
+            "question_id": "q3",
+            "scores": [
+                {
+                    "metric_name": "resilience",
+                    "score": 3,
+                    "quote": "But deadline come closer and confusion stay same, so I made simple task plan, timeline, and who can do what.",
+                    "reason": "The applicant describes a real challenge, takes action to deal with it, and explains what helped them move through the difficulty, showing growth and adaptation."
+                },
+                {
+                    "metric_name": "leadership",
+                    "score": 3,
+                    "quote": "so I made simple task plan, timeline, and who can do what.",
+                    "reason": "The applicant took initiative, showed responsibility, and helped the team by creating a plan, which influenced the outcome and demonstrates leadership."
+                },
+                {
+                    "metric_name": "values",
+                    "score": 3,
+                    "quote": "What helped me there was understanding that waiting for perfect moment is more dangerous than making one useful step.",
+                    "reason": "The applicant's decision to take action despite imperfections reflects a value of responsibility, proactivity, and a commitment to progress over perfection."
+                }
+            ]
+        },
+        "q4": {
+            "question_id": "q4",
+            "scores": [
+                {
+                    "metric_name": "planning",
+                    "score": 3,
+                    "quote": "My long term goal is become person who can lead education or youth projects, maybe nonprofit, maybe social entrepreneurship, I am still learning exact direction. But I know I want work where strategy and human meaning go together. This program can help me because I need stronger environment, mentors, and people who also want build something.",
+                    "reason": "The applicant states a broad but coherent long-term direction, explains how the program supports those goals, and shows a connection between present action and future direction."
+                },
+                {
+                    "metric_name": "motivation",
+                    "score": 3,
+                    "quote": "What motivates me is when I see small organized effort can really improve something for others.",
+                    "reason": "The applicant explains what drives them in life, showing authentic internal motivation tied to helping others, and links purpose to future action in the context of leading education or youth projects."
+                }
+            ]
+        },
+        "q5": {
+            "question_id": "q5",
+            "scores": [
+                {
+                    "metric_name": "leadership",
+                    "score": 4,
+                    "quote": "I talked with them one by one, asked what work they can take comfortable, and then changed our plan little bit so roles become more clear.",
+                    "reason": "The applicant provides a concrete example of leadership behavior, demonstrating initiative, responsibility, and coordination, with a clear positive effect on team members and the outcome."
+                },
+                {
+                    "metric_name": "values",
+                    "score": 4,
+                    "quote": "I learn leadership is also seeing people, not only pushing tasks.",
+                    "reason": "The example reflects values of empathy, responsibility, and concern for others, showing that the applicant frames leadership in prosocial terms and prioritizes the well-being of team members."
+                }
+            ]
+        },
+        "q6": {
+            "question_id": "q6",
+            "scores": [
+                {
+                    "metric_name": "social_support",
+                    "score": 3,
+                    "quote": "Yes my family supports me. ... Biggest encouragement is my mother",
+                    "reason": "The applicant clearly identifies family and specifically mother as a source of support and explains how that support matters."
+                },
+                {
+                    "metric_name": "resilience",
+                    "score": 2,
+                    "quote": "Sometimes they worry I take too much responsibility",
+                    "reason": "The answer implies the applicant can continue despite some concern from the family, showing some level of resilience."
+                },
+                {
+                    "metric_name": "motivation",
+                    "score": 3,
+                    "quote": "Biggest encouragement is my mother because she always says confidence comes after action, not before",
+                    "reason": "The support from the mother is linked to the applicant's motivation and drive, as it encourages action and perseverance."
+                }
+            ]
+        }
+    },
+    "aggregated_metrics": {
+        "Motivation": 3.0,
+        "Planning": 2.5,
+        "Resilience": 2.8,
+        "Leadership": 3.7,
+        "Values": 3.6,
+        "Social_Support": 3.0
+    },
+    "global_score": {
+        "LeadershipIndex": 3.16,
+        "AdmissionsPotential": 3.09
+    }
+}
