@@ -8,6 +8,8 @@ RUN npm ci --only=production && npm cache clean --force
 # Этап 2: Сборка приложения
 FROM node:20-alpine AS builder
 WORKDIR /app
+ARG BACKEND_INTERNAL_URL=http://backend:8080
+ENV BACKEND_INTERNAL_URL=$BACKEND_INTERNAL_URL
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm ci                 # устанавливаем dev-зависимости для сборки
