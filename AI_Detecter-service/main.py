@@ -132,7 +132,7 @@ async def detect(request: TextInput) -> Dict:
 
         avg_ai_prob = sum(ai_probs) / len(ai_probs) if ai_probs else 0.5
 
-        verdict = "Скорее всего сгенерировано ИИ" if avg_ai_prob > 0.60 else "Скорее всего написано человеком"
+        verdict = "Скорее всего сгенерировано ИИ" if avg_ai_prob > 0.5 else "Скорее всего написано человеком"
 
         return {
             "verdict": verdict,

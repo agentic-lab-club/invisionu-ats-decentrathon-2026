@@ -81,6 +81,7 @@ func main() {
 		log.Fatal().Err(err).Str("event", "init_object_storage_failed").Msg("failed to init object storage")
 	}
 
+	// Моя замена
 	server := fiber.New(fiber.Config{
 		BodyLimit: 100 * 1024 * 1024, // 100 МБ (можно увеличить до 200–500 МБ)
 		ReadBufferSize: 32768,        // если ранее уже увеличивали для заголовков

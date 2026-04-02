@@ -3,7 +3,7 @@ networks:
     driver: bridge
 
 volumes:
-  postgres_dev_data:
+  postgres_dev_data: {} 
   go-mod-cache: {}
   go-build-cache: {}
 

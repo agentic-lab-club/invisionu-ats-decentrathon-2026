@@ -17,6 +17,76 @@ func NewRepository(db *database.TrackedDB) *Repository {
 	return &Repository{db: db}
 }
 
+<<<<<<< HEAD
+// ИЗМЕНЕНИЯ, КОТОРЫЕ НУЖНО СДЕЛАТЬ, ИЛЬЯС
+func (r *Repository) List(programCode string, reviewStage string, decision string, search string) ([]ListItem, error) {
+	var items []ListItem
+
+	query := `
+SELECT
+    a.id AS application_id,
+    TRIM(COALESCE(u.first_name, '') || ' ' || COALESCE(u.last_name, '')) AS full_name,
+    p.name AS program_name,
+    a.review_stage,
+    a.decision,
+    sr.recommendation
+FROM applications a
+JOIN users u ON u.id = a.user_id
+JOIN programs p ON p.id = a.program_id
+LEFT JOIN LATERAL (
+    SELECT recommendation
+    FROM scoring_runs
+    WHERE application_id = a.id
+    ORDER BY created_at DESC
+    LIMIT 1
+) sr ON TRUE
+WHERE 1=1
+`
+
+	args := []any{}
+	i := 1
+
+	if programCode != "" {
+		query += fmt.Sprintf(" AND p.code = $%d", i)
+		args = append(args, programCode)
+		i++
+	}
+
+	if reviewStage != "" {
+		query += fmt.Sprintf(" AND a.review_stage = $%d", i)
+		args = append(args, reviewStage)
+		i++
+	}
+
+	if decision != "" {
+		query += fmt.Sprintf(" AND a.decision = $%d", i)
+		args = append(args, decision)
+		i++
+	}
+
+	if search != "" {
+		query += fmt.Sprintf(`
+		AND (
+			LOWER(u.first_name || ' ' || u.last_name) LIKE LOWER($%d)
+			OR LOWER(u.email) LIKE LOWER($%d)
+		)
+		`, i, i)
+
+		args = append(args, "%"+search+"%")
+		i++
+	}
+
+	query += " ORDER BY a.created_at DESC"
+
+	if err := r.db.TrackedSelect(&items, query, args...); err != nil {
+		return nil, fmt.Errorf("failed to list candidates: %w", err)
+	}
+
+	return items, nil
+}
+
+
+=======
 func (r *Repository) List(programCode string, reviewStage string, decision string, search string) ([]ListItem, error) {
 	var items []ListItem
 	search = strings.TrimSpace(search)
@@ -33,6 +103,7 @@ func (r *Repository) List(programCode string, reviewStage string, decision strin
 	return items, nil
 }
 
+>>>>>>> 6b0b155e42d452c85448ede2ed708fcf55c63c87
 func (r *Repository) GetDetail(applicationID uuid.UUID) (*Detail, error) {
 	var row detailRow
 	if err := r.db.TrackedGet(&row, r.db.Rebind(getCandidateDetailQuery), applicationID); err != nil {

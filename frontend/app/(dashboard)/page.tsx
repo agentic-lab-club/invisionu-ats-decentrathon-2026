@@ -1,6 +1,10 @@
-import { Suspense } from 'react';
+'use client';
+
+import { Suspense, useState } from 'react';
+import { Users, Play } from 'lucide-react';
 import CandidatesTable from '@/components/candidates/CandidatesTable';
-import { Users } from 'lucide-react';
+import CandidateFilters from '@/components/candidates/CandidateFilters';
+import { OnboardingTour, useOnboarding } from '@/components/tours/Onboardingtour';
 
 function TableSkeleton() {
   return (
@@ -9,11 +13,13 @@ function TableSkeleton() {
         <div className="h-3 w-24 bg-gray-100 rounded-full animate-pulse" />
       </div>
       <div className="divide-y divide-gray-50">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="px-6 py-4 flex items-center gap-6">
-            <div className="h-3 w-32 bg-gray-100 rounded-full animate-pulse" />
-            <div className="h-3 w-24 bg-gray-100 rounded-full animate-pulse" />
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="px-6 py-4 flex items-center gap-5">
+            <div className="w-7 h-7 bg-gray-100 rounded-full animate-pulse flex-shrink-0" />
+            <div className="h-3 w-36 bg-gray-100 rounded-full animate-pulse" />
             <div className="h-3 w-20 bg-gray-100 rounded-full animate-pulse" />
+            <div className="h-3 w-16 bg-gray-100 rounded-full animate-pulse ml-auto" />
+            <div className="h-5 w-20 bg-gray-100 rounded-lg animate-pulse" />
           </div>
         ))}
       </div>
@@ -22,21 +28,45 @@ function TableSkeleton() {
 }
 
 export default function CandidatesPage() {
+  const { showTour, handleComplete, restartTour } = useOnboarding();
+  const [activePreset, setActivePreset] = useState<string | null>(null);
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="w-8 h-8 rounded-lg bg-[#b5e220]/15 flex items-center justify-center">
-          <Users className="w-4 h-4 text-[#8aaa18]" />
+    <>
+      {showTour && <OnboardingTour onComplete={handleComplete} />}
+
+      <div className="w-[100%] mx-auto py-2 space-y-6">
+        <div className="flex items-center justify-between" data-tour="header">
+          <div>
+            <p className="text-[11px] uppercase tracking-widest text-gray-400 font-semibold mb-1">
+              inVision University
+            </p>
+            <h1 className="text-xl font-semibold text-gray-900 flex items-center gap-2.5">
+              <div className="w-7 h-7 bg-[#b5e220]/20 rounded-lg flex items-center justify-center">
+                <Users className="w-3.5 h-3.5 text-[#4d7c0f]" />
+              </div>
+              Candidates
+            </h1>
+          </div>
+          <button
+            onClick={restartTour}
+            className="flex items-center gap-2 px-3.5 py-2 text-xs font-medium text-gray-500 border border-gray-200 rounded-lg hover:border-gray-300 hover:text-gray-700 transition-colors"
+          >
+            <Play className="w-3 h-3" />
+            Replay tour
+          </button>
         </div>
-        <div>
-          <p className="text-[11px] uppercase tracking-widest text-gray-400 font-semibold">inVision U</p>
-          <h1 className="text-xl font-semibold text-gray-900 leading-tight">Candidates</h1>
+
+        <div data-tour="filters">
+          <CandidateFilters onSelectPreset={setActivePreset} activePreset={activePreset} />
+        </div>
+
+        <div data-tour="table">
+          <Suspense fallback={<TableSkeleton />}>
+            <CandidatesTable preset={activePreset} />
+          </Suspense>
         </div>
       </div>
-
-      <Suspense fallback={<TableSkeleton />}>
-        <CandidatesTable />
-      </Suspense>
-    </div>
+    </>
   );
 }

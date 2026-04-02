@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+// Candidates
+=======
+>>>>>>> 6b0b155e42d452c85448ede2ed708fcf55c63c87
 package candidates
 
 import (
@@ -20,6 +24,20 @@ type ListResponse struct {
 }
 
 type Detail struct {
+<<<<<<< HEAD
+    ApplicationID   uuid.UUID      `json:"application_id"`
+    Email           string         `json:"email"`
+    FirstName       *string        `json:"first_name,omitempty"`
+    LastName        *string        `json:"last_name,omitempty"`
+    PhoneNumber     *string        `json:"phone_number,omitempty"`
+    ProgramName     string         `json:"program_name"`
+    ReviewStage     string         `json:"review_stage"`
+    Decision        string         `json:"decision"`
+    VideoTranscript *string        `json:"video_transcript,omitempty"`
+    ScreeningError  *string        `json:"screening_error,omitempty"`
+    Files           []DetailFile   `json:"files"`
+    LatestScoringRun *ScoringResult `json:"latest_scoring_run,omitempty"`
+=======
 	ApplicationID    uuid.UUID      `json:"application_id"`
 	Email            string         `json:"email"`
 	FirstName        *string        `json:"first_name,omitempty"`
@@ -32,6 +50,7 @@ type Detail struct {
 	ScreeningError   *string        `json:"screening_error,omitempty"`
 	Files            []DetailFile   `json:"files"`
 	LatestScoringRun *ScoringResult `json:"latest_scoring_run,omitempty"`
+>>>>>>> 6b0b155e42d452c85448ede2ed708fcf55c63c87
 }
 
 type DetailFile struct {
@@ -43,11 +62,19 @@ type DetailFile struct {
 }
 
 type ScoringResult struct {
+<<<<<<< HEAD
+    ID             uuid.UUID        `db:"id"             json:"id"`
+    ModelName      string           `db:"model_name"     json:"model_name"`
+    Recommendation *string          `db:"recommendation" json:"recommendation"`
+    ResultJSON     json.RawMessage  `db:"result_json"    json:"result_json"` // []byte → json.RawMessage
+    CreatedAt      time.Time        `db:"created_at"     json:"created_at"`
+=======
 	ID             uuid.UUID `db:"id" json:"id"`
 	ModelName      string    `db:"model_name" json:"model_name"`
 	Recommendation string    `db:"recommendation" json:"recommendation"`
 	ResultJSON     []byte    `db:"result_json" json:"result_json"`
 	CreatedAt      time.Time `db:"created_at" json:"created_at"`
+>>>>>>> 6b0b155e42d452c85448ede2ed708fcf55c63c87
 }
 
 type UpdateStageRequest struct {

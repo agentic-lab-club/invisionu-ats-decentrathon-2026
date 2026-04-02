@@ -3,3 +3,7 @@ AGENTS.md
 .db
 .env
 .idea
+/mlflow_outputs
+/mlruns
+/mlartifacts
+*.db
