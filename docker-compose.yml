@@ -8,14 +8,20 @@ volumes:
 services:
   frontend:
     build:
-      context: .
-      dockerfile: /frontend/Dockerfile
+      context: ./frontend
+      dockerfile: Dockerfile
     container_name: invisionu_frontend
     restart: unless-stopped
     ports:
       - "3000:3000"
+    env_file:
+      - .env
     environment:
       NODE_ENV: production
+      NEXT_PUBLIC_API_URL: http://localhost:8080
+    depends_on:
+      backend:
+        condition: service_healthy
     networks:
       - invisionu-ats-network
 
@@ -41,19 +47,29 @@ services:
     networks:
       - invisionu-ats-network
 
-  golang:
+  backend:
     build:
-      context: .
-      dockerfile: /backend/Dockerfile
+      context: ./backend
+      dockerfile: Dockerfile
+      target: runner
     container_name: invisionu_backend
     env_file:
       - .env
     ports:
       - "8080:8080"
     restart: unless-stopped
-    command: ["-config=local"]
+    command: ["-config=prod"]
     volumes:
-      - ./config:/app/config:ro
+      - ./backend/config:/app/config:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/health >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
     networks:
       - invisionu-ats-network
 
