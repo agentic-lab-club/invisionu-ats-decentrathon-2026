@@ -14,5 +14,8 @@ var getCandidateFilesQuery string
 //go:embed queries/get_latest_scoring_run.sql
 var getLatestScoringRunQuery string
 
+//go:embed queries/get_latest_scoring_run_by_model.sql
+var getLatestScoringRunByModelQuery string
+
 //go:embed queries/update_candidate_stage.sql
 var updateCandidateStageQuery string

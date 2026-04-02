@@ -1,0 +1,140 @@
+{
+    "workflow_status": "success",
+    "stt_length": 2079,
+    "candidate_breakdown": {
+        "q1_text": "Hello my name is Aida and I want to apply to inVision U because I think this program can help me grow and understand better what I want for future. I am interested because I want not only study in university but also join something where I can meet active students and learn practical things.",
+        "q2_text": "About program, I think I am more interested in leadership and community type direction because I like when people do something together and not only for themselves. I cannot say I have big experience in this, but I want to improve this side of me because sometimes I have ideas but I am not always confident to speak first.",
+        "q3_text": "One challenge I had was in my first semester when I had many subjects and also pressure from adapting to university. I felt stressed and sometimes I wanted to stop trying too much. What helped me was making small plan for my week and also talking with my friend who said I should continue step by step. It did not solve everything fast, but it helped me become more organized.",
+        "q4_text": "My long term goal is to become a person who can work on meaningful projects and maybe help improve education or student opportunities in my country. I know this is still broad, but I want my future work to have some value, not only salary. This program can help me because I can learn from people, get skills, and maybe understand how to turn ideas into action. What motivates me is when I feel that what I do has meaning and can help someone.",
+        "q5_text": "For me leadership is not only giving commands. I think leadership is also responsibility and making people feel included. One time in class project our team was not very active and everyone waited for each other. I suggested that we split tasks clearly and I also made a simple document so everyone knows what to do. It was not something huge, but after that the work became easier.",
+        "q6_text": "Yes, my family supports me. Sometimes they do not fully understand all programs, but they support my wish to try. My biggest source of encouragement is probably my older sister because she always tells me that I should not wait until I feel fully ready."
+    },
+    "llm_evaluations": {
+        "q1": {
+            "question_id": "q1",
+            "scores": [
+                {
+                    "metric_name": "motivation",
+                    "score": 3,
+                    "quote": "I think this program can help me grow and understand better what I want for future",
+                    "reason": "The applicant clearly explains a personal need for growth and a desire to understand their future goals, showing authentic motivation"
+                },
+                {
+                    "metric_name": "planning",
+                    "score": 2,
+                    "quote": "I want not only study in university but also join something where I can meet active students and learn practical things",
+                    "reason": "The applicant shows a thought-out reason for choosing the program, implying a desire for direction and future development, but lacks a detailed explanation"
+                }
+            ]
+        },
+        "q2": {
+            "question_id": "q2",
+            "scores": [
+                {
+                    "metric_name": "motivation",
+                    "score": 3,
+                    "quote": "I like when people do something together and not only for themselves",
+                    "reason": "The applicant shows sincere interest in a specific direction (leadership and community) and expresses a meaningful reason for choosing it, related to their values and personal growth."
+                },
+                {
+                    "metric_name": "planning",
+                    "score": 2,
+                    "quote": "I want to improve this side of me because sometimes I have ideas but I am not always confident to speak first",
+                    "reason": "The applicant identifies a desired area of improvement (leadership and community) and explains why it fits their path (personal growth and confidence), but lacks a clear, specific plan or future-oriented decision-making."
+                }
+            ]
+        },
+        "q3": {
+            "question_id": "q3",
+            "scores": [
+                {
+                    "metric_name": "resilience",
+                    "score": 3,
+                    "quote": "I felt stressed and sometimes I wanted to stop trying too much. What helped me was making small plan for my week and also talking with my friend who said I should continue step by step.",
+                    "reason": "The applicant describes a real challenge, shows actions taken to deal with it, and explains what helped them move through the difficulty, demonstrating growth and adaptation."
+                },
+                {
+                    "metric_name": "leadership",
+                    "score": 1,
+                    "quote": "",
+                    "reason": "There is no evidence of leadership, as the applicant does not describe taking initiative, responsibility, or influencing others during the challenge."
+                },
+                {
+                    "metric_name": "values",
+                    "score": 2,
+                    "quote": "talking with my friend who said I should continue step by step",
+                    "reason": "The applicant shows a value of seeking help and support from others, demonstrating a sense of responsibility and humility, but it is a relatively modest example."
+                }
+            ]
+        },
+        "q4": {
+            "question_id": "q4",
+            "scores": [
+                {
+                    "metric_name": "planning",
+                    "score": 2,
+                    "quote": "My long term goal is to become a person who can work on meaningful projects and maybe help improve education or student opportunities in my country.",
+                    "reason": "The applicant states a broad but coherent long-term direction and explains how the program can support these goals."
+                },
+                {
+                    "metric_name": "motivation",
+                    "score": 3,
+                    "quote": "What motivates me is when I feel that what I do has meaning and can help someone.",
+                    "reason": "The applicant explains authentic internal motivation tied to the desire to help others and create meaningful work."
+                }
+            ]
+        },
+        "q5": {
+            "question_id": "q5",
+            "scores": [
+                {
+                    "metric_name": "leadership",
+                    "score": 3,
+                    "quote": "I suggested that we split tasks clearly and I also made a simple document so everyone knows what to do.",
+                    "reason": "The applicant provides a concrete example of showing leadership by taking initiative, coordinating tasks, and supporting the team, which had a positive effect on the project."
+                },
+                {
+                    "metric_name": "values",
+                    "score": 3,
+                    "quote": "I think leadership is also responsibility and making people feel included",
+                    "reason": "The applicant's definition of leadership reflects values of responsibility and inclusion, and the example demonstrates these values in action by making the work easier for the team."
+                }
+            ]
+        },
+        "q6": {
+            "question_id": "q6",
+            "scores": [
+                {
+                    "metric_name": "social_support",
+                    "score": 3,
+                    "quote": "Yes, my family supports me. ... My biggest source of encouragement is probably my older sister",
+                    "reason": "The applicant clearly identifies family and specifically the older sister as sources of support, explaining how the sister's encouragement matters."
+                },
+                {
+                    "metric_name": "resilience",
+                    "score": 2,
+                    "quote": "Sometimes they do not fully understand all programs, but they support my wish to try",
+                    "reason": "The applicant shows some resilience by indicating they can move forward despite their family not fully understanding the programs."
+                },
+                {
+                    "metric_name": "motivation",
+                    "score": 3,
+                    "quote": "My biggest source of encouragement is probably my older sister because she always tells me that I should not wait until I feel fully ready",
+                    "reason": "The support from the sister connects to the applicant's drive, as it encourages them to take action without waiting for full readiness."
+                }
+            ]
+        }
+    },
+    "aggregated_metrics": {
+        "Motivation": 3.0,
+        "Planning": 2.0,
+        "Resilience": 2.8,
+        "Leadership": 2.4,
+        "Values": 2.6,
+        "Social_Support": 3.0
+    },
+    "global_score": {
+        "LeadershipIndex": 2.51,
+        "AdmissionsPotential": 2.57
+    }
+}

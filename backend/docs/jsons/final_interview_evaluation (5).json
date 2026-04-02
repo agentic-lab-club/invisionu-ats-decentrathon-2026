@@ -1,0 +1,140 @@
+{
+    "workflow_status": "success",
+    "stt_length": 2139,
+    "candidate_breakdown": {
+        "q1_text": "Hi my name is Nursultan and I am applying to inVision U because I want to challenge myself and become more active. I often feel that I have potential but I do not always use opportunities in the right way, so I want to join something that can push me and also show me how to work with other motivated students.",
+        "q2_text": "The program I am interested in is maybe entrepreneurship or innovation related one because I like idea of creating something useful. I am not saying I already know how to build projects very well, but I want to learn how people take idea and make it more real. This is interesting for me because I do not want only theory, I want something practical too.",
+        "q3_text": "A challenge I overcame was when I joined a university event team and at first I felt very uncomfortable because many people already knew each other and I was more quiet. I was afraid to say something stupid. What helped me was that I started with small tasks, like checking lists and helping with communication, and after some time I felt more confident. It was important for me because I understood that even if I am not the loudest person, I still can contribute.",
+        "q4_text": "My long term goal is to become a professional who can manage projects or maybe work in business development. I still do not know exact job title, but I know I want to be in a role where I solve problems and communicate with people. This program can help me by giving experience, network, and maybe better understanding of what kind of work fits me. What motivates me is progress, when I can see that I am better than before.",
+        "q5_text": "Leadership for me means helping a group move forward, especially when people are confused or passive. I had one example during a group assignment where two members did not understand what topic we should present. I said we should first agree on one structure, then split the parts, and I stayed after class to make sure everyone understood. I was not the official leader, but I think in that moment I helped the team work better.",
+        "q6_text": "My family supports me, especially my mother. She always says that if I have a chance to develop myself, I should take it seriously and not be lazy."
+    },
+    "llm_evaluations": {
+        "q1": {
+            "question_id": "q1",
+            "scores": [
+                {
+                    "metric_name": "motivation",
+                    "score": 3,
+                    "quote": "I want to challenge myself and become more active",
+                    "reason": "The applicant clearly explains a personal need for challenge and growth, showing authentic motivation"
+                },
+                {
+                    "metric_name": "planning",
+                    "score": 2,
+                    "quote": "join something that can push me and also show me how to work with other motivated students",
+                    "reason": "The applicant implies a thought-out reason for choosing inVision U, linking it to their current development need, but lacks a detailed explanation of future direction"
+                }
+            ]
+        },
+        "q2": {
+            "question_id": "q2",
+            "scores": [
+                {
+                    "metric_name": "motivation",
+                    "score": 3,
+                    "quote": "I like idea of creating something useful",
+                    "reason": "The applicant shows sincere interest in the program through a specific aspect (creating something useful) and expresses a desire for practical application."
+                },
+                {
+                    "metric_name": "planning",
+                    "score": 2,
+                    "quote": "maybe entrepreneurship or innovation related one",
+                    "reason": "The applicant identifies a desired program area (entrepreneurship or innovation) and explains why it fits their interests (creating something useful, preferring practical application over just theory), but the choice and explanation are not highly detailed or specific."
+                }
+            ]
+        },
+        "q3": {
+            "question_id": "q3",
+            "scores": [
+                {
+                    "metric_name": "resilience",
+                    "score": 3,
+                    "quote": "I started with small tasks, like checking lists and helping with communication, and after some time I felt more confident",
+                    "reason": "The applicant describes a real challenge, shows actions taken to deal with it, and explains what helped them move through the difficulty, demonstrating growth and adaptation."
+                },
+                {
+                    "metric_name": "leadership",
+                    "score": 1,
+                    "quote": "",
+                    "reason": "There is no clear evidence of leadership, as the applicant does not describe taking initiative, coordinating tasks, or influencing others in a significant way."
+                },
+                {
+                    "metric_name": "values",
+                    "score": 2,
+                    "quote": "I understood that even if I am not the loudest person, I still can contribute",
+                    "reason": "The applicant demonstrates a value of inclusivity and responsibility by recognizing their ability to contribute despite being quiet, but it is a relatively modest example."
+                }
+            ]
+        },
+        "q4": {
+            "question_id": "q4",
+            "scores": [
+                {
+                    "metric_name": "planning",
+                    "score": 3,
+                    "quote": "This program can help me by giving experience, network, and maybe better understanding of what kind of work fits me",
+                    "reason": "The applicant states a broad but coherent long-term direction and explains how the program supports those goals"
+                },
+                {
+                    "metric_name": "motivation",
+                    "score": 3,
+                    "quote": "What motivates me is progress, when I can see that I am better than before",
+                    "reason": "The applicant explains a personal and authentic motivation tied to self-improvement"
+                }
+            ]
+        },
+        "q5": {
+            "question_id": "q5",
+            "scores": [
+                {
+                    "metric_name": "leadership",
+                    "score": 3,
+                    "quote": "I said we should first agree on one structure, then split the parts, and I stayed after class to make sure everyone understood.",
+                    "reason": "The applicant provides a concrete example of showing leadership by organizing the team, clarifying tasks, and taking initiative to ensure everyone understood the assignment."
+                },
+                {
+                    "metric_name": "values",
+                    "score": 3,
+                    "quote": "helping a group move forward, especially when people are confused or passive",
+                    "reason": "The applicant demonstrates values of responsibility, service, and empathy by helping the team move forward and ensuring everyone understood the assignment."
+                }
+            ]
+        },
+        "q6": {
+            "question_id": "q6",
+            "scores": [
+                {
+                    "metric_name": "social_support",
+                    "score": 3,
+                    "quote": "My family supports me, especially my mother.",
+                    "reason": "The applicant clearly identifies a source of support (mother and family) and explains how that support matters (encouragement to take development opportunities seriously)."
+                },
+                {
+                    "metric_name": "resilience",
+                    "score": 1,
+                    "quote": "",
+                    "reason": "There is very weak evidence of resilience as the applicant does not discuss overcoming challenges or continuing with limited support."
+                },
+                {
+                    "metric_name": "motivation",
+                    "score": 2,
+                    "quote": "She always says that if I have a chance to develop myself, I should take it seriously and not be lazy.",
+                    "reason": "The support described connects to the applicant's drive (to develop themselves), but the link to persistence or continuing effort is partial and surface-level."
+                }
+            ]
+        }
+    },
+    "aggregated_metrics": {
+        "Motivation": 2.9,
+        "Planning": 2.5,
+        "Resilience": 2.6,
+        "Leadership": 2.4,
+        "Values": 2.6,
+        "Social_Support": 3.0
+    },
+    "global_score": {
+        "LeadershipIndex": 2.55,
+        "AdmissionsPotential": 2.61
+    }
+}

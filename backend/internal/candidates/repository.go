@@ -84,7 +84,6 @@ WHERE 1=1
 	return items, nil
 }
 
-
 func (r *Repository) GetDetail(applicationID uuid.UUID) (*Detail, error) {
 	var row detailRow
 	if err := r.db.TrackedGet(&row, r.db.Rebind(getCandidateDetailQuery), applicationID); err != nil {
@@ -99,27 +98,36 @@ func (r *Repository) GetDetail(applicationID uuid.UUID) (*Detail, error) {
 		return nil, fmt.Errorf("failed to get candidate files: %w", err)
 	}
 
-	var scoring ScoringResult
-	var latest *ScoringResult
-	if err := r.db.TrackedGet(&scoring, r.db.Rebind(getLatestScoringRunQuery), applicationID); err == nil {
-		latest = &scoring
-	} else if err != sql.ErrNoRows {
+	latest, err := r.getLatestScoringRun(applicationID)
+	if err != nil {
 		return nil, fmt.Errorf("failed to get latest scoring run: %w", err)
 	}
 
+	personalityRun, err := r.getLatestScoringRunByModel(applicationID, "personality_test")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get latest personality scoring run: %w", err)
+	}
+
+	llmRun, err := r.getLatestScoringRunByModel(applicationID, "llmscoring")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get latest llm scoring run: %w", err)
+	}
+
 	return &Detail{
-		ApplicationID:    row.ApplicationID,
-		Email:            row.Email,
-		FirstName:        row.FirstName,
-		LastName:         row.LastName,
-		PhoneNumber:      row.PhoneNumber,
-		ProgramName:      row.ProgramName,
-		ReviewStage:      row.ReviewStage,
-		Decision:         row.Decision,
-		VideoTranscript:  row.VideoTranscript,
-		ScreeningError:   row.ScreeningError,
-		Files:            files,
-		LatestScoringRun: latest,
+		ApplicationID:               row.ApplicationID,
+		Email:                       row.Email,
+		FirstName:                   row.FirstName,
+		LastName:                    row.LastName,
+		PhoneNumber:                 row.PhoneNumber,
+		ProgramName:                 row.ProgramName,
+		ReviewStage:                 row.ReviewStage,
+		Decision:                    row.Decision,
+		VideoTranscript:             row.VideoTranscript,
+		ScreeningError:              row.ScreeningError,
+		Files:                       files,
+		LatestScoringRun:            latest,
+		LatestPersonalityScoringRun: personalityRun,
+		LatestLLMScoringRun:         llmRun,
 	}, nil
 }
 
@@ -137,4 +145,26 @@ func emptyToNil(value string) any {
 		return nil
 	}
 	return value
+}
+
+func (r *Repository) getLatestScoringRun(applicationID uuid.UUID) (*ScoringResult, error) {
+	var scoring ScoringResult
+	if err := r.db.TrackedGet(&scoring, r.db.Rebind(getLatestScoringRunQuery), applicationID); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &scoring, nil
+}
+
+func (r *Repository) getLatestScoringRunByModel(applicationID uuid.UUID, modelName string) (*ScoringResult, error) {
+	var scoring ScoringResult
+	if err := r.db.TrackedGet(&scoring, r.db.Rebind(getLatestScoringRunByModelQuery), applicationID, modelName); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &scoring, nil
 }

@@ -22,18 +22,20 @@ type ListResponse struct {
 }
 
 type Detail struct {
-	ApplicationID    uuid.UUID      `json:"application_id"`
-	Email            string         `json:"email"`
-	FirstName        *string        `json:"first_name,omitempty"`
-	LastName         *string        `json:"last_name,omitempty"`
-	PhoneNumber      *string        `json:"phone_number,omitempty"`
-	ProgramName      string         `json:"program_name"`
-	ReviewStage      string         `json:"review_stage"`
-	Decision         string         `json:"decision"`
-	VideoTranscript  *string        `json:"video_transcript,omitempty"`
-	ScreeningError   *string        `json:"screening_error,omitempty"`
-	Files            []DetailFile   `json:"files"`
-	LatestScoringRun *ScoringResult `json:"latest_scoring_run,omitempty"`
+	ApplicationID               uuid.UUID      `json:"application_id"`
+	Email                       string         `json:"email"`
+	FirstName                   *string        `json:"first_name,omitempty"`
+	LastName                    *string        `json:"last_name,omitempty"`
+	PhoneNumber                 *string        `json:"phone_number,omitempty"`
+	ProgramName                 string         `json:"program_name"`
+	ReviewStage                 string         `json:"review_stage"`
+	Decision                    string         `json:"decision"`
+	VideoTranscript             *string        `json:"video_transcript,omitempty"`
+	ScreeningError              *string        `json:"screening_error,omitempty"`
+	Files                       []DetailFile   `json:"files"`
+	LatestScoringRun            *ScoringResult `json:"latest_scoring_run,omitempty"`
+	LatestPersonalityScoringRun *ScoringResult `json:"latest_personality_scoring_run,omitempty"`
+	LatestLLMScoringRun         *ScoringResult `json:"latest_llm_scoring_run,omitempty"`
 }
 
 type DetailFile struct {

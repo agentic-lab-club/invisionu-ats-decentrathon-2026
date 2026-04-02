@@ -7,6 +7,7 @@ Own idempotent seeding of backend reference data required for startup.
 Current seeded domains:
 - `programs`
 - current `personality test`
+- 6 demo applicants with completed applications and scoring artifacts
 
 ## Responsibilities
 
@@ -19,7 +20,6 @@ Current seeded domains:
 ## Out Of Scope
 
 - Full data migration management.
-- User/account seeding.
 - Asset/object storage seeding.
 - Standalone CLI command in the current codebase.
 
@@ -44,6 +44,18 @@ Question fields:
 - `order`
 - `text`
 - `options`
+
+### Demo applicant seed documents
+
+Source inputs:
+- `docs/jsons/final_interview_evaluation*.json`
+
+Seeded records per applicant:
+- `users`
+- `applications`
+- `application_files`
+- `application_test_answers`
+- `scoring_runs` for both `personality_test` and `llmscoring`
 
 ## Endpoint Overview
 
@@ -76,6 +88,8 @@ Behavior:
 5. Seeded personality test is inserted or updated.
 6. Questions are inserted or updated by `(test_id, question_order)`.
 7. Options are inserted or updated by `(question_id, option_order)`.
+8. Demo applicants are upserted by deterministic ids.
+9. Each demo applicant gets a completed application with attached files, personality answers, transcript, and two scoring runs.
 
 ## Validation Rules
 
@@ -83,6 +97,7 @@ Behavior:
 - Program uniqueness is driven by DB conflict on `code`.
 - Personality question uniqueness is driven by DB conflict on `(test_id, question_order)`.
 - Personality option uniqueness is driven by DB conflict on `(question_id, option_order)`.
+- Demo applicant rows are idempotent through fixed UUIDs and conflict updates.
 
 Unknown:
 - no semantic validation for duplicate option texts or skipped question orders inside JSON beyond what DB constraints enforce
@@ -103,11 +118,20 @@ Unknown:
 Important limitation:
 - old questions/options that no longer exist in the embedded JSON are not explicitly deleted or deactivated by this module
 
+### Demo applicant lifecycle under seeder
+
+- demo applicants are kept in sync by fixed UUIDs
+- applications are seeded as `review_stage = application_review`
+- applications are seeded as `decision = pending`
+- screening data is seeded as `screening_status = completed`
+
 ## Error Handling
 
 Representative failures:
 - `failed to parse embedded programs seed`
 - `failed to parse embedded personality test seed`
+- `failed to read applicant scoring seed <file>`
+- `failed to parse applicant scoring seed <file>`
 - `failed to seed program <code>`
 - `failed to begin seed transaction`
 - `failed to deactivate old personality tests`
@@ -115,12 +139,16 @@ Representative failures:
 - `failed to upsert question <n>`
 - `failed to upsert option <n> for question <n>`
 - `failed to commit seed transaction`
+- `failed to begin mock applicant seed transaction`
+- `failed to upsert mock applicant user <email>`
+- `failed to upsert mock application <id>`
 
 ## Security Notes
 
 - Seed data is compiled into the binary via `go:embed`.
 - Module assumes trusted repository contents.
 - There is no auth boundary because this is startup-only code.
+- Demo applicant scoring JSON is loaded from repository files under `docs/jsons` at startup. Runtime image already includes `docs/`.
 
 ## Frontend Integration Notes
 
@@ -132,12 +160,14 @@ Representative failures:
 - No standalone manual reseed command in current code.
 - No cleanup for removed questions/options.
 - Startup fails hard if seeding fails.
+- Demo applicants currently use one shared precomputed password hash; the module does not issue auth codes or refresh sessions.
 
 ## Related Files / Modules
 
 - `internal/seeder/seeder.go`
 - `internal/seeder/data/programs.json`
 - `internal/seeder/data/personality-test.json`
+- `docs/jsons/final_interview_evaluation*.json`
 - `cmd/server/main.go`
 - `internal/programs`
 - `internal/personalitytest`

@@ -1,6 +1,50 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 
+function buildMockStatistics() {
+  return {
+    source: 'mock',
+    statusCounts: [
+      { status: 'new', count: 5 },
+      { status: 'review', count: 6 },
+      { status: 'interview', count: 3 },
+      { status: 'recommended', count: 2 },
+      { status: 'rejected', count: 1 },
+    ],
+    scoreDistribution: [
+      { score_range: '40-49', count: 1 },
+      { score_range: '50-59', count: 2 },
+      { score_range: '60-69', count: 4 },
+      { score_range: '70-79', count: 5 },
+      { score_range: '80-89', count: 3 },
+      { score_range: '90-100', count: 2 },
+    ],
+    categoryAverages: {
+      motivation_avg: 74,
+      leadership_avg: 69,
+      structure_avg: 72,
+    },
+    topKeywords: [
+      { word: 'leadership', frequency: 14 },
+      { word: 'motivation', frequency: 12 },
+      { word: 'innovation', frequency: 10 },
+      { word: 'impact', frequency: 9 },
+      { word: 'initiative', frequency: 8 },
+      { word: 'projects', frequency: 8 },
+      { word: 'community', frequency: 7 },
+      { word: 'growth', frequency: 6 },
+      { word: 'mission', frequency: 6 },
+      { word: 'teamwork', frequency: 5 },
+    ],
+    ieltsDistribution: [
+      { ielts_range: '5-5.9', count: 2 },
+      { ielts_range: '6-6.9', count: 5 },
+      { ielts_range: '7-7.9', count: 6 },
+      { ielts_range: '8-9', count: 2 },
+    ],
+  };
+}
+
 export async function GET() {
   try {
     const statusCounts = await query(`
@@ -78,15 +122,24 @@ export async function GET() {
       LIMIT 10
     `);
 
-    return NextResponse.json({
+    const payload = {
+      source: 'database',
       statusCounts: statusCounts.rows,
       scoreDistribution: scoreDistribution.rows,
       categoryAverages: categoryAverages.rows[0] || { motivation_avg: 0, leadership_avg: 0, structure_avg: 0 },
       topKeywords: topKeywords.rows,
-      ieltsDistribution: ieltsDistribution.rows, // добавили
-    });
+      ieltsDistribution: ieltsDistribution.rows,
+    };
+
+    const isEmpty =
+      payload.statusCounts.length === 0 &&
+      payload.scoreDistribution.length === 0 &&
+      payload.ieltsDistribution.length === 0 &&
+      payload.topKeywords.length === 0;
+
+    return NextResponse.json(isEmpty ? buildMockStatistics() : payload);
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: 'Failed to fetch statistics' }, { status: 500 });
+    return NextResponse.json(buildMockStatistics());
   }
 }

@@ -15,6 +15,7 @@ interface Candidate {
   full_name: string;
   program_name: string;
   overall_score?: number;
+  is_mock_potential?: boolean;
   backendReviewStage: string;   // original backend field: 'initial_screening', 'application_review', 'decision'
   backendDecision?: string;     // original backend field: 'pending', 'accepted', 'rejected'
   uiStatus: string;             // mapped UI status: 'new', 'review', 'recommended', 'rejected'
@@ -48,6 +49,26 @@ function avatarColor(name: string) {
   let hash = 0;
   for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
+
+function hashString(value: string) {
+  let hash = 0;
+  for (let i = 0; i < value.length; i += 1) {
+    hash = (hash * 31 + value.charCodeAt(i)) >>> 0;
+  }
+  return hash;
+}
+
+function buildMockPotential(applicationId: string) {
+  return 45 + (hashString(applicationId) % 51);
+}
+
+function buildMockIELTS(applicationId: string) {
+  const base = hashString(`ielts:${applicationId}`);
+  const minBand = 5.0;
+  const maxBand = 8.5;
+  const steps = Math.round((maxBand - minBand) / 0.5);
+  return Number((minBand + (base % (steps + 1)) * 0.5).toFixed(1));
 }
 
 function ScoreBar({ score }: { score: number }) {
@@ -142,12 +163,17 @@ export default function CandidatesTable({ preset }: CandidatesTableProps) {
             application_id: item.application_id,
             full_name: item.full_name,
             program_name: item.program_name,
-            overall_score: item.overall_score ?? 0,
+            overall_score: item.overall_score && item.overall_score > 0
+              ? item.overall_score
+              : buildMockPotential(item.application_id),
+            is_mock_potential: !(item.overall_score && item.overall_score > 0),
             backendReviewStage,
             backendDecision,
             uiStatus,
             recommendation: item.recommendation,
-            ielts_score: item.ielts_score,
+            ielts_score: item.ielts_score != null
+              ? item.ielts_score
+              : buildMockIELTS(item.application_id),
           };
         });
         setCandidates(mapped);
@@ -285,13 +311,12 @@ export default function CandidatesTable({ preset }: CandidatesTableProps) {
               </th>
               <th className="px-6 py-3 text-left"><span className="text-[10px] uppercase tracking-widest text-gray-400 font-semibold">IELTS</span></th>
               <th className="px-6 py-3 text-left"><span className="text-[10px] uppercase tracking-widest text-gray-400 font-semibold">Status</span></th>
-              <th className="px-6 py-3 text-left"><span className="text-[10px] uppercase tracking-widest text-gray-400 font-semibold">Key factors</span></th>
               <th className="px-6 py-3" />
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
             {sorted.length === 0 ? (
-              <tr><td colSpan={7} className="px-6 py-16 text-center"><div className="flex flex-col items-center gap-2"><UserCircle2 className="w-8 h-8 text-gray-200" /><p className="text-sm text-gray-400">No candidates match this filter</p><button onClick={() => setFilterStatus('all')} className="text-xs text-[#8aaa18] hover:underline mt-1">Clear filter</button></div></td></tr>
+              <tr><td colSpan={6} className="px-6 py-16 text-center"><div className="flex flex-col items-center gap-2"><UserCircle2 className="w-8 h-8 text-gray-200" /><p className="text-sm text-gray-400">No candidates match this filter</p><button onClick={() => setFilterStatus('all')} className="text-xs text-[#8aaa18] hover:underline mt-1">Clear filter</button></div></td></tr>
             ) : (
               sorted.map(candidate => (
                 <tr key={candidate.application_id} className="hover:bg-gray-50/70 transition-colors group">
@@ -306,7 +331,6 @@ export default function CandidatesTable({ preset }: CandidatesTableProps) {
                   <td className="px-6 py-3.5 whitespace-nowrap">
                     <StatusBadge reviewStage={candidate.backendReviewStage} decision={candidate.backendDecision} />
                   </td>
-                  <td className="px-6 py-3.5 max-w-xs"><p className="text-xs text-gray-400 line-clamp-2 leading-relaxed">{candidate.recommendation ?? '—'}</p></td>
                   <td className="px-6 py-3.5 whitespace-nowrap text-right">
                     <Link href={`/candidate/${candidate.application_id}`} className="inline-flex items-center gap-1 text-xs font-medium text-gray-300 hover:text-[#8aaa18] transition-colors group-hover:text-gray-500">
                       Details

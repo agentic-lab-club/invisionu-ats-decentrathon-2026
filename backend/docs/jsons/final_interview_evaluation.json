@@ -1,0 +1,140 @@
+{
+    "workflow_status": "success",
+    "stt_length": 2157,
+    "candidate_breakdown": {
+        "q1_text": "Hello, my name is Amir, and I am applying to inVision U because I believe it could be a valuable opportunity for my personal and professional development.",
+        "q2_text": "As for the program itself, I am especially interested in entrepreneurship or technology-related tracks, because those fields are clearly important in today’s world. Business and technology influence almost everything now, and I feel that becoming more familiar with them would be useful for building a successful future. At this stage, I would not say that I have a fully defined plan, but I do want to improve myself and move toward better opportunities.",
+        "q3_text": "One challenge I have faced was my first year at university. It was a difficult period because many things were unfamiliar to me, and I often felt confused, especially because my English was not strong enough to fully understand everything around me. What helped me most was simply time, patience, and some support from friends. Gradually, things became easier, and I continued.",
+        "q4_text": "My long-term goal is to become a successful person, possibly by building a good career in an international company or maybe even creating my own business one day. I think this program could help me by giving me useful skills and the chance to meet ambitious, intelligent people. What motivates me most is the desire to build a better future for myself and make my family proud.",
+        "q5_text": "For me, leadership means being able to take responsibility and guide others when needed. One example I can mention is a class project where nobody wanted to do the presentation, so I volunteered to present it. It was not a very big situation, but I was willing to step forward when necessary, and I think that also says something about leadership.",
+        "q6_text": "My family supports my decision. They usually tell me that if I believe something is good for my future, I should try it. My biggest source of encouragement is my mother, because she always reminds me to stay disciplined and continue studying seriously."
+    },
+    "llm_evaluations": {
+        "q1": {
+            "question_id": "q1",
+            "scores": [
+                {
+                    "metric_name": "motivation",
+                    "score": 2,
+                    "quote": "I believe it could be a valuable opportunity for my personal and professional development",
+                    "reason": "The response provides a general reason for applying, but it's somewhat generic and lacks personal or specific details about why inVision U is a good fit."
+                },
+                {
+                    "metric_name": "planning",
+                    "score": 1,
+                    "quote": "valuable opportunity for my personal and professional development",
+                    "reason": "The answer implies some thought about future development, but it's very vague and doesn't show a clear direction or intention."
+                }
+            ]
+        },
+        "q2": {
+            "question_id": "q2",
+            "scores": [
+                {
+                    "metric_name": "motivation",
+                    "score": 2,
+                    "quote": "I feel that becoming more familiar with them would be useful for building a successful future",
+                    "reason": "The applicant shows interest in entrepreneurship and technology, and provides a general reason for choosing these fields, but the motivation is not deeply personal or uniquely explained."
+                },
+                {
+                    "metric_name": "planning",
+                    "score": 2,
+                    "quote": "I do want to improve myself and move toward better opportunities",
+                    "reason": "The applicant identifies areas of interest and expresses a desire for self-improvement and advancement, but lacks a clear, specific plan or direct connection between the chosen program and future goals."
+                }
+            ]
+        },
+        "q3": {
+            "question_id": "q3",
+            "scores": [
+                {
+                    "metric_name": "resilience",
+                    "score": 3,
+                    "quote": "What helped me most was simply time, patience, and some support from friends. Gradually, things became easier, and I continued.",
+                    "reason": "The applicant describes a real challenge, explains actions taken to deal with it, and shows evidence of growth and persistence."
+                },
+                {
+                    "metric_name": "leadership",
+                    "score": 0,
+                    "quote": "",
+                    "reason": "There is no evidence of leadership, initiative, or influence on people or outcomes in the response."
+                },
+                {
+                    "metric_name": "values",
+                    "score": 2,
+                    "quote": "some support from friends",
+                    "reason": "The applicant mentions seeking support from friends, which reflects a value of responsibility and willingness to ask for help, but it is a partial and surface-level evidence."
+                }
+            ]
+        },
+        "q4": {
+            "question_id": "q4",
+            "scores": [
+                {
+                    "metric_name": "planning",
+                    "score": 2,
+                    "quote": "My long-term goal is to become a successful person, possibly by building a good career in an international company or maybe even creating my own business one day.",
+                    "reason": "The applicant states a broad but somewhat coherent long-term direction and explains how the program could support these goals."
+                },
+                {
+                    "metric_name": "motivation",
+                    "score": 3,
+                    "quote": "What motivates me most is the desire to build a better future for myself and make my family proud.",
+                    "reason": "The applicant provides authentic motivation tied to personal purpose and family, showing a clear drive."
+                }
+            ]
+        },
+        "q5": {
+            "question_id": "q5",
+            "scores": [
+                {
+                    "metric_name": "leadership",
+                    "score": 3,
+                    "quote": "I volunteered to present it",
+                    "reason": "The applicant provides a concrete example of taking responsibility and guiding others by volunteering for a task others avoided."
+                },
+                {
+                    "metric_name": "values",
+                    "score": 2,
+                    "quote": "I was willing to step forward when necessary",
+                    "reason": "The example shows a sense of responsibility and willingness to help, but it's a relatively simple situation and doesn't demonstrate a wide range of values like empathy or fairness."
+                }
+            ]
+        },
+        "q6": {
+            "question_id": "q6",
+            "scores": [
+                {
+                    "metric_name": "social_support",
+                    "score": 3,
+                    "quote": "My family supports my decision. They usually tell me that if I believe something is good for my future, I should try it. My biggest source of encouragement is my mother, because she always reminds me to stay disciplined and continue studying seriously.",
+                    "reason": "The applicant clearly identifies a source of support (family and mother) and explains how that support matters (encouragement to stay disciplined and continue studying)."
+                },
+                {
+                    "metric_name": "resilience",
+                    "score": 2,
+                    "quote": "My family supports my decision. They usually tell me that if I believe something is good for my future, I should try it.",
+                    "reason": "The answer implies resilience by showing the applicant has the autonomy to make decisions and try new things with their family's support, but it does not provide strong evidence of coping with challenges."
+                },
+                {
+                    "metric_name": "motivation",
+                    "score": 3,
+                    "quote": "My biggest source of encouragement is my mother, because she always reminds me to stay disciplined and continue studying seriously.",
+                    "reason": "The support described connects to the applicant's drive or persistence (staying disciplined and continuing to study seriously) due to the mother's encouragement."
+                }
+            ]
+        }
+    },
+    "aggregated_metrics": {
+        "Motivation": 2.45,
+        "Planning": 1.85,
+        "Resilience": 2.8,
+        "Leadership": 2.1,
+        "Values": 2.0,
+        "Social_Support": 3.0
+    },
+    "global_score": {
+        "LeadershipIndex": 2.23,
+        "AdmissionsPotential": 2.29
+    }
+}

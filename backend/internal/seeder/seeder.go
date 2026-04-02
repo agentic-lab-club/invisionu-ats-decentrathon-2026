@@ -54,6 +54,9 @@ func SeedDefaults(db *sqlx.DB) error {
 	if err := seedPersonalityTest(db, docs.personality); err != nil {
 		return err
 	}
+	if err := seedMockApplicants(db); err != nil {
+		return err
+	}
 
 	return nil
 }
