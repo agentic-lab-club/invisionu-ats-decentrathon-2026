@@ -15,12 +15,4 @@ LEFT JOIN LATERAL (
     ORDER BY created_at DESC
     LIMIT 1
 ) sr ON TRUE
-WHERE (? IS NULL OR p.code = ?)
-  AND (? IS NULL OR a.review_stage = ?)
-  AND (? IS NULL OR a.decision = ?)
-  AND (
-      ? IS NULL
-      OR LOWER(COALESCE(u.first_name, '') || ' ' || COALESCE(u.last_name, '')) LIKE ?
-      OR LOWER(u.email) LIKE ?
-  )
-ORDER BY a.created_at DESC;
+WHERE 1=1

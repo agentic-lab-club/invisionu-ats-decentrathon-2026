@@ -1,6 +1,8 @@
+// Candidates
 package candidates
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -43,11 +45,11 @@ type DetailFile struct {
 }
 
 type ScoringResult struct {
-	ID             uuid.UUID `db:"id" json:"id"`
-	ModelName      string    `db:"model_name" json:"model_name"`
-	Recommendation string    `db:"recommendation" json:"recommendation"`
-	ResultJSON     []byte    `db:"result_json" json:"result_json"`
-	CreatedAt      time.Time `db:"created_at" json:"created_at"`
+	ID             uuid.UUID       `db:"id"             json:"id"`
+	ModelName      string          `db:"model_name"     json:"model_name"`
+	Recommendation *string         `db:"recommendation" json:"recommendation"`
+	ResultJSON     json.RawMessage `db:"result_json"    json:"result_json"`
+	CreatedAt      time.Time       `db:"created_at"     json:"created_at"`
 }
 
 type UpdateStageRequest struct {

@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { getAccessToken } from '@/lib/auth';
 
 interface HumanInLoopProps {
   candidateId: string;
   initialStatus?: string;
-  onStatusUpdate?: (newStatus: string) => void;
+  onStatusUpdate?: (newStatus: string) => void; // принимает новый статус
 }
 
 export default function HumanInLoop({ candidateId, initialStatus = 'new', onStatusUpdate }: HumanInLoopProps) {
@@ -19,10 +20,35 @@ export default function HumanInLoop({ candidateId, initialStatus = 'new', onStat
   const handleStatusChange = async (newStatus: string) => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/candidates/${candidateId}/status`, {
+      let payload: any = {};
+      if (newStatus === 'new') {
+        payload = { review_stage: 'initial_screening' };
+      } else if (newStatus === 'review') {
+        payload = { review_stage: 'application_review' };
+      } else if (newStatus === 'recommended') {
+        payload = { review_stage: 'decision', decision: 'accepted' };
+      } else if (newStatus === 'rejected') {
+        payload = { review_stage: 'decision', decision: 'rejected' };
+      } else {
+        console.warn(`Unsupported status: ${newStatus}`);
+        setLoading(false);
+        return;
+      }
+
+      const token = getAccessToken();
+      if (!token) {
+        console.error('No access token found');
+        setLoading(false);
+        return;
+      }
+
+      const response = await fetch(`/api/backend/candidates/${candidateId}/stage`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus }),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
       });
       if (!response.ok) throw new Error('Failed to update');
       setStatus(newStatus);
@@ -37,7 +63,6 @@ export default function HumanInLoop({ candidateId, initialStatus = 'new', onStat
   const statuses = [
     { value: 'new', label: 'New', color: 'bg-blue-100 text-blue-800' },
     { value: 'review', label: 'In Review', color: 'bg-yellow-100 text-yellow-800' },
-    { value: 'interview', label: 'Interview', color: 'bg-purple-100 text-purple-800' },
     { value: 'recommended', label: 'Recommended', color: 'bg-green-100 text-green-800' },
     { value: 'rejected', label: 'Rejected', color: 'bg-red-100 text-red-800' },
   ];

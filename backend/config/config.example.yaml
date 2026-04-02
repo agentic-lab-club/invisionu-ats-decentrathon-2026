@@ -53,8 +53,19 @@ email:
   smtp_user: "smtp-user"
   smtp_pass: "smtp-pass"
 
-llm:
+llm: # TODO: (refactor) this should be llmscoring
   enabled: false
+
+llm_assessment:
+  provider: "openai"
+  base_url: "https://api.openai.com/v1"
+  api_key: ""
+  question_model: "gpt-4o-mini"
+  evaluation_model: "gpt-4o-mini"
+  request_timeout_seconds: 30
+
+assessment:
+  timeout_minutes: 15
 
 # =========================
 # Modules and Services on internal/

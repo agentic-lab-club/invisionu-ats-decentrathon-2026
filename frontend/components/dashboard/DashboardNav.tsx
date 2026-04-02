@@ -110,7 +110,7 @@ export default function DashboardNav({ children, activeTab }: DashboardNavProps)
           <div className="flex items-center gap-2">
             {user && (
               <Link
-                href={`/client/${user.id}`}
+                href={`/profile/${user.id}`}
                 className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 <div className="w-7 h-7 bg-[#b5e220]/20 rounded-full flex items-center justify-center flex-shrink-0">

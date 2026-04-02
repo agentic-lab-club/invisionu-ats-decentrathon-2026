@@ -1,84 +1,53 @@
 'use client';
 
-import { useState, useEffect, useRef, ChangeEvent } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  User, Phone, GraduationCap, ClipboardList, Heart,
-  Upload, CheckCircle2, Clock, ChevronRight, FileText,
-  Calendar, Globe, MapPin, Camera, Send, Hash,
-  IdCard, Video, BookOpen, Paperclip, Users, AlertCircle,
-  Loader2, Square, CheckSquare,
+  User, Phone, GraduationCap, ClipboardList,
+  Clock, ChevronRight, FileText,
+  Calendar, Video, BookOpen, Paperclip, IdCard,
+  Send, AlertCircle, Loader2,
 } from 'lucide-react';
+import { OnboardingTour, useOnboarding, TourReplayButton } from '@/components/tours/Onboardingtour';
+import { getAccessToken } from '@/lib/auth';
+import { FileUploader } from '@/components/FileUploader';
 
-// ================== Types ==================
-interface FileWithData {
-  name: string;
-  type: string;
-  data: string;
-}
-
-interface ParentInfo {
-  lastName: string;
-  firstName: string;
-  patronymic: string;
-  phone: string;
-}
-
+// ================== Types =================
 interface FormData {
-  lastName: string;
   firstName: string;
-  patronymic: string;
-  dateOfBirth: string;
-  gender: string;
-  citizenship: string;
-  iin: string;
-  identityDocType: string;
-  identityDocNo: string;
-  identityDocAuthority: string;
-  identityDocIssueDate: string;
-  passportFile: FileWithData | null;
-  country: string;
-  region: string;
-  city: string;
-  street: string;
-  house: string;
-  apartment: string;
-  mobilePhone: string;
-  instagram: string;
-  telegram: string;
-  whatsapp: string;
-  father: ParentInfo;
-  mother: ParentInfo;
-  guardian: ParentInfo;
-  videoLink: string;
-  englishExam: string;
-  certificateType: string;
-  portfolioFile: FileWithData | null;
-  englishResultFile: FileWithData | null;
-  certificateFile: FileWithData | null;
-  additionalDocs: FileWithData[];
-  testAnswers: string[];
-  hasSocialStatusCertificate: boolean;
-  socialStatusFile: FileWithData | null;
-  fatherIncomeFile: FileWithData | null;
-  motherIncomeFile: FileWithData | null;
-  guardianIncomeFile: FileWithData | null;
+  lastName: string;
+  phoneNumber: string;
+  programCode: string;
+  videoFileId: string;
+  portfolioFileId: string;
+  certificateFileId: string;
+  englishResultFileId: string;
   consentDataProcessing: boolean;
   consentAge: boolean;
-  essayText: string;
 }
 
-// ================== Shared input style ==================
-const inputClass =
-  'w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none focus:border-[#b5e220] focus:ring-2 focus:ring-[#b5e220]/20 transition-all duration-150 appearance-none';
+interface Option {
+  id: string;
+  key: string;      // a, b, c, d – может быть не обязателен, но мы его используем для отображения?
+  text: string;
+  order?: number;   // порядок, если есть
+}
 
+
+interface Question {
+  id: string;
+  order: number;
+  text: string;
+  options: Option[];
+}
+
+
+// ================== Shared input style ==================
 const inputWithIconClass =
   'w-full bg-white border border-gray-200 rounded-lg pl-9 pr-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none focus:border-[#b5e220] focus:ring-2 focus:ring-[#b5e220]/20 transition-all duration-150 appearance-none';
 
-// ================== Icon Input wrapper ==================
 function IconInput({
-  icon: Icon,
-  ...props
+  icon: Icon, ...props
 }: { icon: React.ElementType } & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <div className="relative">
@@ -89,9 +58,7 @@ function IconInput({
 }
 
 function IconSelect({
-  icon: Icon,
-  children,
-  ...props
+  icon: Icon, children, ...props
 }: { icon: React.ElementType } & React.SelectHTMLAttributes<HTMLSelectElement> & { children: React.ReactNode }) {
   return (
     <div className="relative">
@@ -103,111 +70,21 @@ function IconSelect({
   );
 }
 
-// ================== File Upload ==================
-function FileUpload({
-  accept,
-  onFileChange,
-  existingFile,
-  hint,
-}: {
-  accept: string;
-  onFileChange: (file: FileWithData | null) => void;
-  existingFile: FileWithData | null;
-  hint?: string;
-}) {
-  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () =>
-      onFileChange({ name: file.name, type: file.type, data: reader.result as string });
-    reader.readAsDataURL(file);
-  };
-
-  return (
-    <label className="flex items-center gap-3 w-full border border-dashed border-gray-200 rounded-lg py-4 px-4 cursor-pointer hover:border-[#b5e220] hover:bg-[#b5e220]/5 transition-all duration-150 bg-white group">
-      <input type="file" accept={accept} onChange={handleChange} className="hidden" />
-      <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${existingFile ? 'bg-emerald-50' : 'bg-gray-50 group-hover:bg-[#b5e220]/10'}`}>
-        {existingFile
-          ? <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-          : <Upload className="w-4 h-4 text-gray-300 group-hover:text-[#8aaa18]" />
-        }
-      </div>
-      <div className="min-w-0">
-        <p className="text-sm truncate">
-          {existingFile
-            ? <span className="text-emerald-600 font-medium">{existingFile.name}</span>
-            : <span className="text-gray-400">Click to upload or drag and drop</span>
-          }
-        </p>
-        {hint && <p className="text-xs text-gray-300 mt-0.5">{hint}</p>}
-      </div>
-    </label>
-  );
-}
-
-function MultiFileUpload({
-  accept,
-  onFilesChange,
-  existingFiles,
-  hint,
-}: {
-  accept: string;
-  onFilesChange: (files: FileWithData[]) => void;
-  existingFiles: FileWithData[];
-  hint?: string;
-}) {
-  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    const newFiles: FileWithData[] = [];
-    let pending = files.length;
-    if (!pending) return;
-    files.forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        newFiles.push({ name: file.name, type: file.type, data: reader.result as string });
-        if (--pending === 0) onFilesChange([...existingFiles, ...newFiles]);
-      };
-      reader.readAsDataURL(file);
-    });
-  };
-
-  return (
-    <label className="flex items-center gap-3 w-full border border-dashed border-gray-200 rounded-lg py-4 px-4 cursor-pointer hover:border-[#b5e220] hover:bg-[#b5e220]/5 transition-all duration-150 bg-white group">
-      <input type="file" multiple accept={accept} onChange={handleChange} className="hidden" />
-      <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${existingFiles.length > 0 ? 'bg-emerald-50' : 'bg-gray-50 group-hover:bg-[#b5e220]/10'}`}>
-        {existingFiles.length > 0
-          ? <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-          : <Paperclip className="w-4 h-4 text-gray-300 group-hover:text-[#8aaa18]" />
-        }
-      </div>
-      <div>
-        <p className="text-sm">
-          {existingFiles.length > 0
-            ? <span className="text-emerald-600 font-medium">{existingFiles.length} file(s) selected</span>
-            : <span className="text-gray-400">Click to upload or drag and drop</span>
-          }
-        </p>
-        {hint && <p className="text-xs text-gray-300 mt-0.5">{hint}</p>}
-      </div>
-    </label>
-  );
-}
-
 // ================== Field wrapper ==================
 function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-1.5">
       <label className="text-[11px] uppercase tracking-widest text-gray-400 font-semibold">
-        {label}
-        {required && <span className="text-gray-300 ml-1">*</span>}
+        {label}{required && <span className="text-gray-300 ml-1">*</span>}
       </label>
       {children}
     </div>
   );
 }
 
-function SectionDivider({ icon: Icon, title, subtitle, optional }: { icon?: React.ElementType; title: string; subtitle?: string; optional?: boolean }) {
+function SectionDivider({ icon: Icon, title, subtitle, optional }: {
+  icon?: React.ElementType; title: string; subtitle?: string; optional?: boolean;
+}) {
   return (
     <div className="pt-4 border-t border-gray-100">
       <div className="flex items-center gap-2 mb-1">
@@ -217,417 +94,166 @@ function SectionDivider({ icon: Icon, title, subtitle, optional }: { icon?: Reac
           {optional && <span className="ml-2 normal-case tracking-normal text-gray-300 text-[11px]">(optional)</span>}
         </p>
       </div>
-      {subtitle && <p className="text-xs text-gray-400 mt-1 mb-4">{subtitle}</p>}
-      {!subtitle && <div className="mb-4" />}
+      {subtitle
+        ? <p className="text-xs text-gray-400 mt-1 mb-4">{subtitle}</p>
+        : <div className="mb-4" />
+      }
     </div>
   );
 }
 
 // ================== Consent Block ==================
 function ConsentBlock({
-  consentDataProcessing,
-  consentAge,
-  onConsentDataProcessing,
-  onConsentAge,
+  consentDataProcessing, consentAge, onConsentDataProcessing, onConsentAge,
 }: {
-  consentDataProcessing: boolean;
-  consentAge: boolean;
-  onConsentDataProcessing: (v: boolean) => void;
-  onConsentAge: (v: boolean) => void;
+  consentDataProcessing: boolean; consentAge: boolean;
+  onConsentDataProcessing: (v: boolean) => void; onConsentAge: (v: boolean) => void;
 }) {
+  const items = [
+    {
+      checked: consentDataProcessing, toggle: onConsentDataProcessing,
+      text: (<>By submitting this form, you agree to the processing of your personal data in accordance with our{' '}
+        <span className="text-[#8aaa18] underline underline-offset-2">Privacy Policy</span>
+        <span className="text-gray-300 ml-1">*</span></>),
+    },
+    {
+      checked: consentAge, toggle: onConsentAge,
+      text: (<>If the participant is under the age of 18, this questionnaire must be completed by their parent or legal guardian.
+        By proceeding, you confirm that you are either (a) the participant aged 18 or older, or (b) the parent or legal guardian completing this form on behalf of a minor.
+        <span className="text-gray-300 ml-1">*</span></>),
+    },
+  ];
+
   return (
     <div className="pt-4 border-t border-gray-100 space-y-3 mt-2">
-      <button
-        type="button"
-        onClick={() => onConsentDataProcessing(!consentDataProcessing)}
-        className={`flex items-start gap-3 w-full text-left rounded-xl border px-4 py-3.5 transition-all ${
-          consentDataProcessing ? 'border-[#b5e220] bg-[#b5e220]/5' : 'border-gray-200 bg-white hover:border-gray-300'
-        }`}
-      >
-        <div className={`mt-0.5 w-4 h-4 rounded border-2 flex-shrink-0 flex items-center justify-center transition-colors ${
-          consentDataProcessing ? 'border-[#8aaa18] bg-[#b5e220]' : 'border-gray-300 bg-white'
-        }`}>
-          {consentDataProcessing && (
-            <svg className="w-2.5 h-2.5 text-gray-800" fill="none" viewBox="0 0 10 10">
-              <path d="M1.5 5l2.5 2.5 4.5-4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          )}
-        </div>
-        <p className="text-sm text-gray-600 leading-relaxed">
-          By submitting this form, you agree to the processing of your personal data in accordance with our{' '}
-          <span className="text-[#8aaa18] underline underline-offset-2 cursor-pointer">Privacy Policy</span>
-          <span className="text-gray-300 ml-1">*</span>
-        </p>
-      </button>
-
-      <button
-        type="button"
-        onClick={() => onConsentAge(!consentAge)}
-        className={`flex items-start gap-3 w-full text-left rounded-xl border px-4 py-3.5 transition-all ${
-          consentAge ? 'border-[#b5e220] bg-[#b5e220]/5' : 'border-gray-200 bg-white hover:border-gray-300'
-        }`}
-      >
-        <div className={`mt-0.5 w-4 h-4 rounded border-2 flex-shrink-0 flex items-center justify-center transition-colors ${
-          consentAge ? 'border-[#8aaa18] bg-[#b5e220]' : 'border-gray-300 bg-white'
-        }`}>
-          {consentAge && (
-            <svg className="w-2.5 h-2.5 text-gray-800" fill="none" viewBox="0 0 10 10">
-              <path d="M1.5 5l2.5 2.5 4.5-4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          )}
-        </div>
-        <p className="text-sm text-gray-600 leading-relaxed">
-          If the participant is under the age of 18, this questionnaire must be completed by their parent or legal guardian. By proceeding, you confirm that you are either (a) the participant aged 18 or older, or (b) the parent or legal guardian completing this form on behalf of a minor.
-          <span className="text-gray-300 ml-1">*</span>
-        </p>
-      </button>
+      {items.map((item, i) => (
+        <button key={i} type="button" onClick={() => item.toggle(!item.checked)}
+          className={`flex items-start gap-3 w-full text-left rounded-xl border px-4 py-3.5 transition-all ${
+            item.checked ? 'border-[#b5e220] bg-[#b5e220]/5' : 'border-gray-200 bg-white hover:border-gray-300'
+          }`}
+        >
+          <div className={`mt-0.5 w-4 h-4 rounded border-2 flex-shrink-0 flex items-center justify-center transition-colors ${
+            item.checked ? 'border-[#8aaa18] bg-[#b5e220]' : 'border-gray-300 bg-white'
+          }`}>
+            {item.checked && (
+              <svg className="w-2.5 h-2.5 text-gray-800" fill="none" viewBox="0 0 10 10">
+                <path d="M1.5 5l2.5 2.5 4.5-4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            )}
+          </div>
+          <p className="text-sm text-gray-600 leading-relaxed">{item.text}</p>
+        </button>
+      ))}
     </div>
   );
-}
-
-// ================== Tab props ==================
-interface TabProps {
-  data: FormData;
-  updateField: (field: keyof FormData, value: any) => void;
-  updateFile: (field: keyof FormData, file: FileWithData | null) => void;
-  updateFiles: (field: 'additionalDocs', files: FileWithData[]) => void;
 }
 
 // ================== Tab: Personal ==================
-const PersonalInfoTab = ({ data, updateField, updateFile }: TabProps) => {
-  const updateParent = (parent: 'father' | 'mother' | 'guardian', key: keyof ParentInfo, value: string) => {
-    updateField(parent, { ...data[parent], [key]: value });
-  };
+interface TabProps { data: FormData; updateField: (field: keyof FormData, value: any) => void; }
 
-  return (
-    <div className="space-y-5">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Field label="Last name" required>
-          <IconInput icon={User} type="text" value={data.lastName} onChange={(e) => updateField('lastName', e.target.value)} placeholder="Иванов" />
-        </Field>
-        <Field label="First name" required>
-          <IconInput icon={User} type="text" value={data.firstName} onChange={(e) => updateField('firstName', e.target.value)} placeholder="Иван" />
-        </Field>
-        <Field label="Patronymic">
-          <IconInput icon={User} type="text" value={data.patronymic} onChange={(e) => updateField('patronymic', e.target.value)} placeholder="Иванович" />
-        </Field>
-        <Field label="Date of birth" required>
-          <IconInput icon={Calendar} type="date" value={data.dateOfBirth} onChange={(e) => updateField('dateOfBirth', e.target.value)} />
-        </Field>
-      </div>
-
-      <Field label="Gender" required>
-        <div className="flex gap-4 py-1">
-          {[{ value: 'male', label: 'Male' }, { value: 'female', label: 'Female' }].map((opt) => (
-            <label
-              key={opt.value}
-              className={`flex items-center gap-2.5 px-4 py-2.5 rounded-lg border cursor-pointer transition-all text-sm ${
-                data.gender === opt.value
-                  ? 'border-[#b5e220] bg-[#b5e220]/10 text-gray-800 font-medium'
-                  : 'border-gray-200 text-gray-500 hover:border-gray-300'
-              }`}
-            >
-              <input
-                type="radio"
-                name="gender"
-                value={opt.value}
-                checked={data.gender === opt.value}
-                onChange={() => updateField('gender', opt.value)}
-                className="hidden"
-              />
-              <span className={`w-3.5 h-3.5 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${data.gender === opt.value ? 'border-[#8aaa18]' : 'border-gray-300'}`}>
-                {data.gender === opt.value && <span className="w-1.5 h-1.5 rounded-full bg-[#8aaa18]" />}
-              </span>
-              {opt.label}
-            </label>
-          ))}
-        </div>
-      </Field>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Field label="Citizenship" required>
-          <IconSelect icon={Globe} value={data.citizenship} onChange={(e) => updateField('citizenship', e.target.value)}>
-            <option value="Kazakhstan">Kazakhstan</option>
-            <option value="other">Other</option>
-          </IconSelect>
-        </Field>
-        <Field label="IIN" required>
-          <IconInput icon={Hash} type="text" value={data.iin} onChange={(e) => updateField('iin', e.target.value)} placeholder="000000000000" maxLength={12} />
-        </Field>
-        <Field label="Document type" required>
-          <IconSelect icon={IdCard} value={data.identityDocType} onChange={(e) => updateField('identityDocType', e.target.value)}>
-            <option value="">Select</option>
-            <option value="passport">Passport</option>
-            <option value="id_card">ID card</option>
-          </IconSelect>
-        </Field>
-        <Field label="Document number" required>
-          <IconInput icon={Hash} type="text" value={data.identityDocNo} onChange={(e) => updateField('identityDocNo', e.target.value)} />
-        </Field>
-        <Field label="Issuing authority" required>
-          <IconInput icon={FileText} type="text" value={data.identityDocAuthority} onChange={(e) => updateField('identityDocAuthority', e.target.value)} />
-        </Field>
-        <Field label="Issue date" required>
-          <IconInput icon={Calendar} type="date" value={data.identityDocIssueDate} onChange={(e) => updateField('identityDocIssueDate', e.target.value)} />
-        </Field>
-      </div>
-
-      <SectionDivider icon={IdCard} title="Passport copy *" />
-      <FileUpload
-        accept="image/jpeg,image/jpg,image/png,image/heic"
-        onFileChange={(file) => updateFile('passportFile', file)}
-        existingFile={data.passportFile}
-        hint="JPG, PNG, HEIC — up to 10 MB"
-      />
-
-      {/* Parent Details */}
-      <SectionDivider
-        icon={Users}
-        title="Parent details"
-        subtitle="Please fill in your parents' personal details exactly as they appear on their government-issued ID"
-      />
-
-      {(
-        [
-          { key: 'father', label: 'Father' },
-          { key: 'mother', label: 'Mother' },
-          { key: 'guardian', label: 'Guardian' },
-        ] as const
-      ).map(({ key, label }) => (
-        <div key={key} className="rounded-xl border border-gray-100 p-4 space-y-3">
-          <p className="text-[11px] uppercase tracking-widest text-gray-400 font-semibold">{label}</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Field label="Last name">
-              <IconInput
-                icon={User}
-                type="text"
-                value={data[key].lastName}
-                onChange={(e) => updateParent(key, 'lastName', e.target.value)}
-                placeholder="Last name"
-              />
-            </Field>
-            <Field label="First name">
-              <IconInput
-                icon={User}
-                type="text"
-                value={data[key].firstName}
-                onChange={(e) => updateParent(key, 'firstName', e.target.value)}
-                placeholder="First name"
-              />
-            </Field>
-            <Field label="Patronymic">
-              <IconInput
-                icon={User}
-                type="text"
-                value={data[key].patronymic}
-                onChange={(e) => updateParent(key, 'patronymic', e.target.value)}
-                placeholder="Patronymic"
-              />
-            </Field>
-            <Field label="Mobile phone number">
-              <IconInput
-                icon={Phone}
-                type="tel"
-                value={data[key].phone}
-                onChange={(e) => updateParent(key, 'phone', e.target.value)}
-                placeholder="+7 (___) ___-__-__"
-              />
-            </Field>
-          </div>
-        </div>
-      ))}
-
-      <ConsentBlock
-        consentDataProcessing={data.consentDataProcessing}
-        consentAge={data.consentAge}
-        onConsentDataProcessing={(v) => updateField('consentDataProcessing', v)}
-        onConsentAge={(v) => updateField('consentAge', v)}
-      />
-    </div>
-  );
-};
-
-// ================== Tab: Contact ==================
-const ContactInfoTab = ({ data, updateField }: TabProps) => (
+const PersonalInfoTab = ({ data, updateField }: TabProps) => (
   <div className="space-y-5">
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      <Field label="Country" required>
-        <IconInput icon={Globe} type="text" value={data.country} onChange={(e) => updateField('country', e.target.value)} />
+      <Field label="First name" required>
+        <IconInput icon={User} type="text" value={data.firstName}
+          onChange={e => updateField('firstName', e.target.value)} placeholder="Ivan" />
       </Field>
-      <Field label="Region" required>
-        <IconInput icon={MapPin} type="text" value={data.region} onChange={(e) => updateField('region', e.target.value)} />
+      <Field label="Last name" required>
+        <IconInput icon={User} type="text" value={data.lastName}
+          onChange={e => updateField('lastName', e.target.value)} placeholder="Ivanov" />
       </Field>
-      <Field label="City" required>
-        <IconInput icon={MapPin} type="text" value={data.city} onChange={(e) => updateField('city', e.target.value)} />
+      <Field label="Phone number" required>
+        <IconInput icon={Phone} type="tel" value={data.phoneNumber}
+          onChange={e => updateField('phoneNumber', e.target.value)} placeholder="+7 (___) ___-__-__" />
       </Field>
-      <Field label="Street" required>
-        <IconInput icon={MapPin} type="text" value={data.street} onChange={(e) => updateField('street', e.target.value)} />
-      </Field>
-      <Field label="House" required>
-        <IconInput icon={MapPin} type="text" value={data.house} onChange={(e) => updateField('house', e.target.value)} />
-      </Field>
-      <Field label="Apartment">
-        <IconInput icon={MapPin} type="text" value={data.apartment} onChange={(e) => updateField('apartment', e.target.value)} />
-      </Field>
+<Field label="Program" required>
+  <IconSelect icon={GraduationCap} value={data.programCode}
+    onChange={e => updateField('programCode', e.target.value)}>
+    <option value="undergrad_society">Society (Sociology: Leadership and Innovation)</option>
+    <option value="undergrad_art_media">Art + Media (Digital Media and Marketing)</option>
+    <option value="undergrad_tech">Tech (Innovative IT Product Design and Development)</option>
+    <option value="undergrad_policy_reform">Policy Reform (Public Policy and Development)</option>
+    <option value="undergrad_engineering">Engineering (Creative Engineering)</option>
+    <option value="foundation_year">Foundation Year</option>
+  </IconSelect>
+</Field>
     </div>
 
-    <Field label="Mobile phone" required>
-      <IconInput icon={Phone} type="tel" value={data.mobilePhone} onChange={(e) => updateField('mobilePhone', e.target.value)} placeholder="+7 (___) ___-__-__" />
-    </Field>
+    <div className="space-y-2">
+      <FileUploader
+        fileType="video_presentation"
+        label="Video presentation"
+        onFileIdReceived={(id) => updateField('videoFileId', id)}
+        existingFileId={data.videoFileId}
+        accept="video/*"
+        hint="MP4, AVI, or MOV — up to 100 MB"
+      />
+    </div>
 
-    <SectionDivider icon={Users} title="Social media" />
+    <SectionDivider icon={FileText} title="Supporting documents" optional
+      subtitle="Upload your portfolio, certificate, and English results." />
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-      <Field label="Instagram">
-        <IconInput icon={Camera} type="text" value={data.instagram} onChange={(e) => updateField('instagram', e.target.value)} placeholder="@username" />
-      </Field>
-      <Field label="Telegram">
-        <IconInput icon={Send} type="text" value={data.telegram} onChange={(e) => updateField('telegram', e.target.value)} placeholder="@username" />
-      </Field>
-      <Field label="WhatsApp">
-        <IconInput icon={Phone} type="tel" value={data.whatsapp} onChange={(e) => updateField('whatsapp', e.target.value)} placeholder="+7..." />
-      </Field>
-    </div>
-  </div>
-);
-
-// ================== Tab: Education ==================
-const EducationTab = ({ data, updateField, updateFile, updateFiles }: TabProps) => (
-  <div className="space-y-5">
-    {/* Personal Presentation */}
-    <div className="rounded-xl border border-gray-100 p-5 space-y-4">
-      <div>
-        <p className="text-[11px] uppercase tracking-widest text-gray-400 font-semibold mb-1">Personal Presentation</p>
-        <p className="text-xs text-gray-400">
-          Please submit the link to your video presentation. For more information on how to create your video, see the instructions.
-        </p>
-      </div>
-      <Field label="Link to your presentation" required>
-        <IconInput icon={Video} type="url" value={data.videoLink} onChange={(e) => updateField('videoLink', e.target.value)} placeholder="https://youtube.com/..." />
-      </Field>
-    </div>
-
-    {/* Portfolio */}
-    <div className="rounded-xl border border-gray-100 p-5 space-y-3">
-      <div>
-        <p className="text-[11px] uppercase tracking-widest text-gray-400 font-semibold mb-1">Portfolio</p>
-        <p className="text-xs text-gray-400">If you have a portfolio, you can upload it here.</p>
-      </div>
-      <Field label="Portfolio document">
-        <FileUpload
-          accept="application/pdf"
-          onFileChange={(file) => updateFile('portfolioFile', file)}
-          existingFile={data.portfolioFile}
-          hint="Formats allowed: PDF. File size must be less than 10 MB."
-        />
-      </Field>
-    </div>
-
-    {/* English proficiency */}
-    <div className="rounded-xl border border-gray-100 p-5 space-y-4">
-      <div>
-        <p className="text-[11px] uppercase tracking-widest text-gray-400 font-semibold mb-1">English proficiency results</p>
-        <p className="text-xs text-gray-400">Please submit the results of your English proficiency test.</p>
-      </div>
-      <Field label="Exam" required>
-        <IconInput icon={BookOpen} type="text" value={data.englishExam} onChange={(e) => updateField('englishExam', e.target.value)} placeholder="IELTS, TOEFL, Duolingo..." />
-      </Field>
-      <Field label="Copy of your results">
-        <FileUpload
-          accept="image/jpeg,image/jpg,image/png,image/heic,application/pdf"
-          onFileChange={(file) => updateFile('englishResultFile', file)}
-          existingFile={data.englishResultFile}
-          hint="Formats allowed: JPG, JPEG, PNG, HEIC, PDF. File size must be less than 10 MB."
-        />
-      </Field>
-    </div>
-
-    {/* Certificate */}
-    <div className="rounded-xl border border-gray-100 p-5 space-y-4">
-      <p className="text-[11px] uppercase tracking-widest text-gray-400 font-semibold">Certificate</p>
-      <Field label="Certificate type">
-        <IconInput icon={FileText} type="text" value={data.certificateType} onChange={(e) => updateField('certificateType', e.target.value)} placeholder="UNT, SAT, NIS..." />
-      </Field>
-      <Field label="Copy of your certificate">
-        <FileUpload
-          accept="image/jpeg,image/jpg,image/png,image/heic,application/pdf"
-          onFileChange={(file) => updateFile('certificateFile', file)}
-          existingFile={data.certificateFile}
-          hint="Formats allowed: JPG, JPEG, PNG, HEIC, PDF. File size must be less than 10 MB."
-        />
-      </Field>
-    </div>
-
-    {/* Additional documents */}
-    <div className="rounded-xl border border-gray-100 p-5 space-y-3">
-      <div>
-        <p className="text-[11px] uppercase tracking-widest text-gray-400 font-semibold mb-1">Additional documents</p>
-        <p className="text-xs text-gray-400">If you have any additional information about your educational background, you can upload it here.</p>
-      </div>
-      <Field label="Documents">
-        <MultiFileUpload
-          accept="application/pdf,image/jpeg,image/jpg,image/png,image/heic"
-          onFilesChange={(files) => updateFiles('additionalDocs', files)}
-          existingFiles={data.additionalDocs}
-          hint="Formats allowed: PDF, JPG, JPEG, PNG, HEIC. File size must be less than 10 MB."
-        />
-      </Field>
+      <FileUploader
+        fileType="portfolio"
+        label="Portfolio"
+        onFileIdReceived={(id) => updateField('portfolioFileId', id)}
+        existingFileId={data.portfolioFileId}
+        accept="application/pdf"
+        hint="PDF — up to 10 MB"
+      />
+      <FileUploader
+        fileType="certificate"
+        label="Certificate"
+        onFileIdReceived={(id) => updateField('certificateFileId', id)}
+        existingFileId={data.certificateFileId}
+        accept="application/pdf,image/*"
+        hint="UNT / SAT / NIS"
+      />
+      <FileUploader
+        fileType="english_result"
+        label="English results"
+        onFileIdReceived={(id) => updateField('englishResultFileId', id)}
+        existingFileId={data.englishResultFileId}
+        accept="application/pdf,image/*"
+        hint="IELTS / TOEFL / Duolingo"
+      />
     </div>
 
     <ConsentBlock
       consentDataProcessing={data.consentDataProcessing}
       consentAge={data.consentAge}
-      onConsentDataProcessing={(v) => updateField('consentDataProcessing', v)}
-      onConsentAge={(v) => updateField('consentAge', v)}
+      onConsentDataProcessing={v => updateField('consentDataProcessing', v)}
+      onConsentAge={v => updateField('consentAge', v)}
     />
   </div>
 );
 
 // ================== Tab: Internal Test ==================
-const BASE_QUESTIONS = [
-  'I prefer working on well-defined problems rather than ambiguous ones.',
-  'When facing a setback, I quickly look for alternative approaches.',
-  'I find it energizing to lead a group toward a shared goal.',
-  'I tend to think in systems and enjoy seeing how parts connect.',
-  'I am comfortable presenting my ideas to people I have just met.',
-  "I enjoy iterating on a solution many times before I'm satisfied.",
-  'I prefer depth in one area over breadth across many subjects.',
-  'I often notice inefficiencies in processes and want to fix them.',
-  'Working under tight deadlines brings out the best in me.',
-  'I seek feedback early, even when my work is incomplete.',
-];
-const ALL_QUESTIONS = Array(4).fill(BASE_QUESTIONS).flat() as string[];
-const TEST_OPTIONS = [
-  { value: 'a', label: 'Strongly agree' },
-  { value: 'b', label: 'Agree' },
-  { value: 'c', label: 'Disagree' },
-  { value: 'd', label: 'Strongly disagree' },
-];
-
-const InternalTestTab = ({ data, updateField }: TabProps) => {
-  const answered = data.testAnswers.filter(Boolean).length;
-  const total = ALL_QUESTIONS.length;
+const InternalTestTab = ({
+  questions,
+  selectedOptionIds,
+  onAnswer,
+}: {
+  questions: Question[];
+  selectedOptionIds: string[];
+  onAnswer: (questionIndex: number, optionId: string) => void;
+}) => {
+  const answered = selectedOptionIds.filter(id => id !== '').length;
+  const total = questions.length;
   const pct = Math.round((answered / total) * 100);
 
-  const handleAnswer = (index: number, value: string) => {
-    const next = [...data.testAnswers];
-    next[index] = value;
-    updateField('testAnswers', next);
-  };
+  if (questions.length === 0) {
+    return <div className="text-center py-8 text-gray-400">No personality test available.</div>;
+  }
 
   return (
     <div>
-      {/* Progress bar */}
       <div className="flex items-center justify-between mb-2">
-        <p className="text-sm text-gray-400">
-          {answered} of {total} answered
-        </p>
+        <p className="text-sm text-gray-400">{answered} of {total} answered</p>
         <p className="text-sm font-medium text-gray-600">{pct}%</p>
       </div>
       <div className="w-full h-1 bg-gray-100 rounded-full mb-6 overflow-hidden">
-        <div
-          className="h-full bg-[#b5e220] rounded-full transition-all duration-300"
-          style={{ width: `${pct}%` }}
-        />
+        <div className="h-full bg-[#b5e220] rounded-full transition-all duration-300" style={{ width: `${pct}%` }} />
       </div>
 
       <div className="rounded-lg border border-gray-100 overflow-hidden mb-4">
@@ -641,22 +267,22 @@ const InternalTestTab = ({ data, updateField }: TabProps) => {
       </div>
 
       <div className="divide-y divide-gray-100">
-        {ALL_QUESTIONS.map((question, idx) => (
-          <div key={idx} className="py-5">
+        {questions.map((q, idx) => (
+          <div key={q.id} className="py-5">
             <div className="flex gap-3 mb-3">
               <span className={`flex-shrink-0 w-6 h-6 rounded-full text-xs font-semibold flex items-center justify-center mt-0.5 transition-colors ${
-                data.testAnswers[idx] ? 'bg-[#b5e220] text-gray-800' : 'bg-gray-100 text-gray-400'
+                selectedOptionIds[idx] ? 'bg-[#b5e220] text-gray-800' : 'bg-gray-100 text-gray-400'
               }`}>
-                {idx + 1}
+                {q.order}
               </span>
-              <p className="text-sm text-gray-700 leading-relaxed">{question}</p>
+              <p className="text-sm text-gray-700 leading-relaxed">{q.text}</p>
             </div>
             <div className="grid grid-cols-2 gap-2 pl-9">
-              {TEST_OPTIONS.map((opt) => (
+              {q.options.map(opt => (
                 <label
-                  key={opt.value}
+                  key={opt.id}
                   className={`flex items-center gap-2.5 px-3 py-2 rounded-lg border cursor-pointer transition-all text-sm ${
-                    data.testAnswers[idx] === opt.value
+                    selectedOptionIds[idx] === opt.id
                       ? 'border-[#b5e220] bg-[#b5e220]/10 text-gray-800 font-medium'
                       : 'border-gray-100 text-gray-400 hover:border-gray-200 hover:text-gray-600'
                   }`}
@@ -664,17 +290,17 @@ const InternalTestTab = ({ data, updateField }: TabProps) => {
                   <input
                     type="radio"
                     name={`q${idx}`}
-                    value={opt.value}
-                    checked={data.testAnswers[idx] === opt.value}
-                    onChange={() => handleAnswer(idx, opt.value)}
+                    value={opt.id}
+                    checked={selectedOptionIds[idx] === opt.id}
+                    onChange={() => onAnswer(idx, opt.id)}
                     className="hidden"
                   />
                   <span className={`w-3 h-3 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${
-                    data.testAnswers[idx] === opt.value ? 'border-[#8aaa18]' : 'border-gray-300'
+                    selectedOptionIds[idx] === opt.id ? 'border-[#8aaa18]' : 'border-gray-300'
                   }`}>
-                    {data.testAnswers[idx] === opt.value && <span className="w-1.5 h-1.5 rounded-full bg-[#8aaa18]" />}
+                    {selectedOptionIds[idx] === opt.id && <span className="w-1.5 h-1.5 rounded-full bg-[#8aaa18]" />}
                   </span>
-                  {opt.label}
+                  {opt.text}
                 </label>
               ))}
             </div>
@@ -685,95 +311,10 @@ const InternalTestTab = ({ data, updateField }: TabProps) => {
   );
 };
 
-// ================== Tab: Social Status ==================
-const SocialStatusTab = ({ data, updateField, updateFile }: TabProps) => (
-  <div className="space-y-5">
-    {/* Toggle */}
-    <button
-      type="button"
-      onClick={() => updateField('hasSocialStatusCertificate', !data.hasSocialStatusCertificate)}
-      className={`flex items-center gap-3 w-full text-left rounded-xl border px-4 py-3.5 transition-all ${
-        data.hasSocialStatusCertificate
-          ? 'border-[#b5e220] bg-[#b5e220]/5'
-          : 'border-gray-200 bg-white hover:border-gray-300'
-      }`}
-    >
-      <div
-        className={`relative w-10 h-5 rounded-full flex-shrink-0 transition-colors duration-200 ${
-          data.hasSocialStatusCertificate ? 'bg-[#b5e220]' : 'bg-gray-200'
-        }`}
-      >
-        <span
-          className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200 ${
-            data.hasSocialStatusCertificate ? 'translate-x-5' : 'translate-x-0'
-          }`}
-        />
-      </div>
-      <div>
-        <p className="text-sm font-medium text-gray-800">Do you have a certificate of social status?</p>
-        <p className="text-xs text-gray-400 mt-0.5">Orphan, large family, disability, etc.</p>
-      </div>
-    </button>
-
-    {data.hasSocialStatusCertificate && (
-      <div className="rounded-xl border border-gray-100 p-5 space-y-3">
-        <p className="text-xs text-gray-400">You can submit it here.</p>
-        <Field label="Document">
-          <FileUpload
-            accept="application/pdf,image/jpeg,image/jpg,image/png,image/heic"
-            onFileChange={(file) => updateFile('socialStatusFile', file)}
-            existingFile={data.socialStatusFile}
-            hint="Formats allowed: PDF, JPG, JPEG, PNG, HEIC. File size must be less than 10 MB."
-          />
-        </Field>
-      </div>
-    )}
-
-    {/* Income section */}
-    <div className="pt-2">
-      <div className="flex items-center gap-2 mb-1">
-        <Users className="w-3.5 h-3.5 text-gray-300" />
-        <p className="text-[11px] uppercase tracking-widest text-gray-400 font-semibold">Additional information</p>
-      </div>
-      <p className="text-xs text-gray-400 mb-4">Parents' income <span className="text-gray-300">(optional)</span></p>
-
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {(
-          [
-            { label: 'Father', field: 'fatherIncomeFile', hint: "Certificate of father's income" },
-            { label: 'Mother', field: 'motherIncomeFile', hint: "Certificate of mother's income" },
-            { label: 'Guardian', field: 'guardianIncomeFile', hint: "Certificate of guardian's income" },
-          ] as const
-        ).map(({ label, field, hint }) => (
-          <div key={field} className="rounded-xl border border-gray-100 p-4 space-y-3">
-            <p className="text-[11px] uppercase tracking-widest text-gray-400 font-semibold">{label}</p>
-            <FileUpload
-              accept="application/pdf,image/jpeg,image/jpg,image/png,image/heic"
-              onFileChange={(file) => updateFile(field, file)}
-              existingFile={data[field]}
-              hint="JPG, JPEG, PNG, HEIC, PDF. Up to 10 MB."
-            />
-          </div>
-        ))}
-      </div>
-    </div>
-
-    <ConsentBlock
-      consentDataProcessing={data.consentDataProcessing}
-      consentAge={data.consentAge}
-      onConsentDataProcessing={(v) => updateField('consentDataProcessing', v)}
-      onConsentAge={(v) => updateField('consentAge', v)}
-    />
-  </div>
-);
-
 // ================== Tab definitions ==================
 const TABS = [
   { label: 'Personal',      icon: User },
-  { label: 'Contact',       icon: Phone },
-  { label: 'Education',     icon: GraduationCap },
   { label: 'Internal test', icon: ClipboardList },
-  { label: 'Social status', icon: Heart },
 ];
 
 // ================== Sidebar ==================
@@ -786,8 +327,8 @@ function ApplicationSidebar() {
       const diff = deadline.getTime() - Date.now();
       if (diff <= 0) { setTimeLeft({ days: 0, hours: 0, minutes: 0 }); return; }
       setTimeLeft({
-        days: Math.floor(diff / 86400000),
-        hours: Math.floor((diff % 86400000) / 3600000),
+        days:    Math.floor(diff / 86400000),
+        hours:   Math.floor((diff % 86400000) / 3600000),
         minutes: Math.floor((diff % 3600000) / 60000),
       });
     };
@@ -798,24 +339,23 @@ function ApplicationSidebar() {
 
   const stages = [
     { name: 'Application stage', active: true },
-    { name: 'Initial screening', active: false },
+    { name: 'Initial screening',  active: false },
     { name: 'Application review', active: false },
-    { name: 'Interview', active: false },
-    { name: 'Committee review', active: false },
-    { name: 'Decision', active: false },
+    { name: 'Interview',          active: false },
+    { name: 'Committee review',   active: false },
+    { name: 'Decision',           active: false },
   ];
 
   const documents = [
-    { label: 'Passport / ID', icon: IdCard },
-    { label: 'Video presentation', icon: Video },
+    { label: 'Passport / ID',               icon: IdCard },
+    { label: 'Video presentation',          icon: Video },
     { label: 'English proficiency results', icon: BookOpen },
-    { label: 'UNT / NIS certificate', icon: GraduationCap },
-    { label: 'Engineering portfolio', icon: Paperclip },
+    { label: 'UNT / NIS certificate',       icon: GraduationCap },
+    { label: 'Engineering portfolio',       icon: Paperclip },
   ];
 
   return (
     <div className="sticky top-24 space-y-6">
-      {/* Timer card */}
       <div className="bg-white rounded-xl border border-gray-100 p-5">
         <div className="flex items-center gap-2 mb-3">
           <Clock className="w-3.5 h-3.5 text-gray-300" />
@@ -832,7 +372,6 @@ function ApplicationSidebar() {
         </div>
       </div>
 
-      {/* Stages */}
       <div className="bg-white rounded-xl border border-gray-100 p-5">
         <p className="text-[11px] uppercase tracking-widest text-gray-400 font-semibold mb-4">Stages</p>
         <div className="relative">
@@ -841,11 +380,9 @@ function ApplicationSidebar() {
             {stages.map((stage, i) => (
               <div key={stage.name} className="flex items-center gap-3 relative">
                 <span className={`w-3.5 h-3.5 rounded-full flex-shrink-0 border-2 z-10 ${
-                  stage.active
-                    ? 'bg-[#b5e220] border-[#b5e220]'
-                    : i === 1
-                    ? 'bg-white border-gray-200'
-                    : 'bg-white border-gray-100'
+                  stage.active ? 'bg-[#b5e220] border-[#b5e220]'
+                  : i === 1    ? 'bg-white border-gray-200'
+                               : 'bg-white border-gray-100'
                 }`} />
                 <span className={`text-sm ${stage.active ? 'text-gray-900 font-medium' : 'text-gray-400'}`}>
                   {stage.name}
@@ -857,7 +394,6 @@ function ApplicationSidebar() {
         </div>
       </div>
 
-      {/* Documents */}
       <div className="bg-white rounded-xl border border-gray-100 p-5">
         <p className="text-[11px] uppercase tracking-widest text-gray-400 font-semibold mb-4">Required documents</p>
         <div className="space-y-2.5">
@@ -877,6 +413,7 @@ function ApplicationSidebar() {
 
 // ================== Main Page ==================
 export default function ApplyPage() {
+  const { showTour, handleComplete, restartTour } = useOnboarding();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -884,119 +421,210 @@ export default function ApplyPage() {
   const tabBarRef = useRef<HTMLDivElement>(null);
   const formPanelRef = useRef<HTMLDivElement>(null);
 
-  const [formData, setFormData] = useState<FormData>({
-    lastName: '', firstName: '', patronymic: '', dateOfBirth: '', gender: '', citizenship: 'Kazakhstan',
-    iin: '', identityDocType: '', identityDocNo: '', identityDocAuthority: '', identityDocIssueDate: '',
-    passportFile: null,
-    country: 'Kazakhstan', region: '', city: '', street: '', house: '', apartment: '',
-    mobilePhone: '', instagram: '', telegram: '', whatsapp: '',
-    father: { lastName: '', firstName: '', patronymic: '', phone: '' },
-    mother: { lastName: '', firstName: '', patronymic: '', phone: '' },
-    guardian: { lastName: '', firstName: '', patronymic: '', phone: '' },
-    videoLink: '', englishExam: '', certificateType: '',
-    portfolioFile: null, englishResultFile: null, certificateFile: null,
-    additionalDocs: [],
-    testAnswers: Array(40).fill(''),
-    hasSocialStatusCertificate: false, socialStatusFile: null,
-    fatherIncomeFile: null, motherIncomeFile: null, guardianIncomeFile: null,
-    consentDataProcessing: false, consentAge: false,
-    essayText: '',
-  });
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [selectedOptionIds, setSelectedOptionIds] = useState<string[]>([]);
+  const [loadingTest, setLoadingTest] = useState(true);
+  const [testError, setTestError] = useState<string | null>(null);
+
+const [formData, setFormData] = useState<FormData>({
+  firstName: '', lastName: '', phoneNumber: '',
+  programCode: 'undergrad_tech',   // раньше было 'Entrepreneurship' или 'Public Policy'
+  videoFileId: '', portfolioFileId: '', certificateFileId: '', englishResultFileId: '',
+  consentDataProcessing: false, consentAge: false,
+});
 
   const updateField = (field: keyof FormData, value: any) =>
-    setFormData((prev) => ({ ...prev, [field]: value }));
-  const updateFile = (field: keyof FormData, file: FileWithData | null) =>
-    setFormData((prev) => ({ ...prev, [field]: file }));
-  const updateFiles = (field: 'additionalDocs', files: FileWithData[]) =>
-    setFormData((prev) => ({ ...prev, [field]: files }));
+    setFormData(prev => ({ ...prev, [field]: value }));
 
   const handleTabChange = (idx: number) => {
     setActiveTab(idx);
-    // Scroll form panel to top on tab change
-    if (formPanelRef.current) {
-      formPanelRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    formPanelRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Fetch the active personality test from the backend
+useEffect(() => {
+  const fetchTest = async () => {
+    const token = getAccessToken();
+    if (!token) {
+      setLoadingTest(false);
+      return;
+    }
+
+    const endpoint = '/api/backend/tests/personality/current';
+
+    try {
+      const res = await fetch(endpoint, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        throw new Error(`Failed to load test: ${res.status}`);
+      }
+      const data = await res.json();
+      // ожидаем: { test_id, code, title, questions: [...] }
+if (data.questions && Array.isArray(data.questions)) {
+  setQuestions(data.questions);
+  setSelectedOptionIds(Array(data.questions.length).fill(''));
+} else if (data.test?.questions) {
+  // fallback если вложено
+  setQuestions(data.test.questions);
+  setSelectedOptionIds(Array(data.test.questions.length).fill(''));
+} else {
+  throw new Error('Invalid test data format');
+}
+
+    } catch (err: any) {
+      console.error('Failed to fetch personality test', err);
+      setTestError(err.message || 'Could not load personality test. Please refresh or contact support.');
+    } finally {
+      setLoadingTest(false);
+    }
+  };
+  fetchTest();
+}, []);
+
+
+
+  const handleAnswer = (questionIndex: number, optionId: string) => {
+    const next = [...selectedOptionIds];
+    next[questionIndex] = optionId;
+    setSelectedOptionIds(next);
+  };
+
+  const handleSubmit = async () => {
+    setLoading(true);
+    setError('');
+
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+
+    // Validation
+    if (!formData.firstName || !formData.lastName || !formData.phoneNumber) {
+      setError('Please fill in first name, last name, and phone number.');
+      setLoading(false);
+      return;
+    }
+    if (!formData.videoFileId) {
+      setError('Please upload a video presentation.');
+      setLoading(false);
+      return;
+    }
+    if (!formData.consentDataProcessing || !formData.consentAge) {
+      setError('Please accept both consent statements before submitting.');
+      setLoading(false);
+      return;
+    }
+    if (questions.length === 0) {
+      setError('Personality test not loaded. Please refresh and try again.');
+      setLoading(false);
+      return;
+    }
+    if (selectedOptionIds.some(id => id === '')) {
+      setError('Please answer all personality test questions.');
+      setLoading(false);
+      return;
+    }
+
+    // Build personality test answers
+    const personality_test_answers = questions.map((q, idx) => ({
+      question_id: q.id,
+      option_id: selectedOptionIds[idx],
+    }));
+
+const payload = {
+  first_name:   formData.firstName,
+  last_name:    formData.lastName,
+  phone_number: formData.phoneNumber,
+  program_code: formData.programCode,
+  video_file_id: formData.videoFileId,
+  // передаём только если заполнено
+  ...(formData.portfolioFileId     && { portfolio_file_id:      formData.portfolioFileId }),
+  ...(formData.certificateFileId   && { certificate_file_id:    formData.certificateFileId }),
+  ...(formData.englishResultFileId && { english_result_file_id: formData.englishResultFileId }),
+  personality_test_answers,
+};
+
+    const token = getAccessToken();
+    if (!token) {
+      setError('You are not logged in. Please sign in before submitting.');
+      setLoading(false);
+      router.push('/login');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/backend/applications', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+const data = await res.json();
+console.log('personality test response:', data);
+
+      if (res.status === 401) {
+        setError('Session expired. Please sign in again.');
+        router.push('/login');
+        return;
+      }
+
+      if (!res.ok) {
+        const msg = data?.error || data?.message || 'Submission error';
+        throw new Error(msg);
+      }
+
+      router.push(`/status/${data.application_id}`);
+    } catch (err: any) {
+      setError(err.message || 'Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
-const handleSubmit = async () => {
-  console.log('=== handleSubmit called ===');
-  console.log('formData', formData);
-  setLoading(true);
-  setError('');
+  const tabProps: TabProps = { data: formData, updateField };
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-  console.log('API_URL:', API_URL);  // теперь будет работать
-
-  // Валидация
-  if (
-    !formData.lastName || !formData.firstName || !formData.dateOfBirth || !formData.gender ||
-    !formData.iin || !formData.identityDocType || !formData.identityDocNo ||
-    !formData.identityDocAuthority || !formData.identityDocIssueDate || !formData.passportFile ||
-    !formData.mobilePhone || !formData.videoLink || !formData.englishExam ||
-    !formData.consentDataProcessing || !formData.consentAge
-  ) {
-    setError('Please fill in all required fields before submitting.');
-    setLoading(false);
-    return;
+  if (loadingTest) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-6 h-6 animate-spin text-[#b5e220]" />
+        <span className="ml-2 text-gray-500">Loading personality test...</span>
+      </div>
+    );
   }
 
-  // Подготовка payload: разворачиваем родителей и убираем вложенные объекты
-  const payload = {
-    ...formData,
-    fatherLastName: formData.father.lastName,
-    fatherFirstName: formData.father.firstName,
-    fatherPatronymic: formData.father.patronymic,
-    fatherPhone: formData.father.phone,
-    motherLastName: formData.mother.lastName,
-    motherFirstName: formData.mother.firstName,
-    motherPatronymic: formData.mother.patronymic,
-    motherPhone: formData.mother.phone,
-    guardianLastName: formData.guardian.lastName,
-    guardianFirstName: formData.guardian.firstName,
-    guardianPatronymic: formData.guardian.patronymic,
-    guardianPhone: formData.guardian.phone,
-    // удаляем вложенные объекты, чтобы не мешали десериализации в Go
-    father: undefined,
-    mother: undefined,
-    guardian: undefined,
-  };
-
-  try {
-    const res = await fetch(`${API_URL}/api/apply`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Submission error');
-    router.push(`/status/${data.candidateId}`);
-  } catch (err: any) {
-    setError(err.message);
-  } finally {
-    setLoading(false);
+    if (testError) {
+    return (
+      <div className="max-w-2xl mx-auto p-6 text-center">
+        <div className="bg-red-50 border border-red-100 rounded-xl p-4 text-red-600 text-sm">
+          {testError}
+        </div>
+        <button
+          onClick={() => window.location.reload()}
+          className="mt-4 px-4 py-2 text-sm font-medium text-gray-600 border border-gray-200 rounded-lg hover:border-gray-300"
+        >
+          Retry
+        </button>
+      </div>
+    );
   }
-};
 
-  const tabProps: TabProps = { data: formData, updateField, updateFile, updateFiles };
+
   return (
     <div className="w-[80%] mx-auto py-10">
-      {/* Page header */}
+      {showTour && <OnboardingTour onComplete={handleComplete} />}
+      <TourReplayButton onClick={restartTour} />
+
       <div className="flex items-center justify-between mb-8">
         <div>
-          <p className="text-[11px] uppercase tracking-widest text-gray-400 font-semibold mb-1">
-            inVision U
-          </p>
+          <p className="text-[11px] uppercase tracking-widest text-gray-400 font-semibold mb-1">inVision U</p>
           <h1 className="text-xl font-semibold text-gray-900">Application</h1>
         </div>
-
-        <button
-          type="button"
-          onClick={handleSubmit}
-          disabled={loading}
+        <button type="button" onClick={handleSubmit} disabled={loading}
           className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold bg-[#b5e220] text-gray-900 rounded-xl hover:bg-[#a3cc1a] disabled:opacity-50 transition-colors shadow-sm"
         >
           {loading
-            ? <><Loader2 className="w-4 h-4 animate-spin" /> Submitting...</>
+            ? <><Loader2 className="w-4 h-4 animate-spin" /> Submitting…</>
             : <><Send className="w-4 h-4" /> Send Application</>
           }
         </button>
@@ -1004,25 +632,16 @@ const handleSubmit = async () => {
 
       {error && (
         <div className="mb-6 px-4 py-3 bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 flex-shrink-0" />
-          {error}
+          <AlertCircle className="w-4 h-4 flex-shrink-0" />{error}
         </div>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_260px] gap-8">
-        {/* Form panel */}
         <div className="bg-white rounded-xl border border-gray-100 overflow-hidden flex flex-col">
-          {/* ── Fixed tab bar ── */}
-          <div
-            ref={tabBarRef}
-            className="flex border-b border-gray-100 overflow-x-auto sticky top-0 z-10 bg-white"
-            style={{ scrollbarWidth: 'none' }}
-          >
+          <div ref={tabBarRef} className="flex border-b border-gray-100 overflow-x-auto sticky top-0 z-10 bg-white"
+            style={{ scrollbarWidth: 'none' }}>
             {TABS.map(({ label, icon: Icon }, idx) => (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => handleTabChange(idx)}
+              <button key={idx} type="button" onClick={() => handleTabChange(idx)}
                 className={`flex items-center gap-2 px-4 py-3.5 text-sm font-medium whitespace-nowrap border-b-2 -mb-px transition-all duration-150 ${
                   activeTab === idx
                     ? 'border-[#b5e220] text-gray-900'
@@ -1034,21 +653,18 @@ const handleSubmit = async () => {
               </button>
             ))}
           </div>
-
-          {/* Scrollable content area */}
           <div ref={formPanelRef} className="p-6 sm:p-8 overflow-y-auto">
             {activeTab === 0 && <PersonalInfoTab {...tabProps} />}
-            {activeTab === 1 && <ContactInfoTab {...tabProps} />}
-            {activeTab === 2 && <EducationTab {...tabProps} />}
-            {activeTab === 3 && <InternalTestTab {...tabProps} />}
-            {activeTab === 4 && <SocialStatusTab {...tabProps} />}
+            {activeTab === 1 && (
+              <InternalTestTab
+                questions={questions}
+                selectedOptionIds={selectedOptionIds}
+                onAnswer={handleAnswer}
+              />
+            )}
           </div>
         </div>
-
-        {/* Sidebar */}
-        <div className="hidden lg:block">
-          <ApplicationSidebar />
-        </div>
+        <div className="hidden lg:block"><ApplicationSidebar /></div>
       </div>
     </div>
   );

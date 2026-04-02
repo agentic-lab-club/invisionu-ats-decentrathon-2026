@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/pkg/database"
+	"github.com/google/uuid"
 )
 
 type Repository struct {
@@ -13,6 +14,34 @@ type Repository struct {
 func NewRepository(db *database.TrackedDB) *Repository {
 	return &Repository{db: db}
 }
+
+// ─── Personality test metrics ─────────────────────────────────────────────────
+
+// PersonalityOptionMetrics объявлен в domain.go — здесь его нет
+
+func (r *Repository) GetMetricsByOptionID(optionID uuid.UUID) (PersonalityOptionMetrics, error) {
+	var metrics PersonalityOptionMetrics
+	err := r.db.TrackedGet(&metrics, `SELECT m, p, r, l, v FROM personality_test_options WHERE id = $1`, optionID)
+	return metrics, err
+}
+
+func (r *Repository) GetAllOptionsWithMetrics() (map[uuid.UUID][]PersonalityOptionMetrics, error) {
+	var rows []struct {
+		QuestionID uuid.UUID `db:"question_id"`
+		PersonalityOptionMetrics
+	}
+	err := r.db.TrackedSelect(&rows, `SELECT question_id, m, p, r, l, v FROM personality_test_options`)
+	if err != nil {
+		return nil, err
+	}
+	result := make(map[uuid.UUID][]PersonalityOptionMetrics)
+	for _, row := range rows {
+		result[row.QuestionID] = append(result[row.QuestionID], row.PersonalityOptionMetrics)
+	}
+	return result, nil
+}
+
+// ─── Test retrieval ───────────────────────────────────────────────────────────
 
 func (r *Repository) GetCurrent() (*Test, error) {
 	var rows []row
@@ -60,3 +89,4 @@ func (r *Repository) GetCurrent() (*Test, error) {
 
 	return test, nil
 }
+

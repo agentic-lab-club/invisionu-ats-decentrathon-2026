@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/applications"
+	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/assessment"
 	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/assets"
 	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/auth"
 	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/candidates"
@@ -80,7 +81,11 @@ func main() {
 		log.Fatal().Err(err).Str("event", "init_object_storage_failed").Msg("failed to init object storage")
 	}
 
-	server := fiber.New()
+	// Моя замена
+	server := fiber.New(fiber.Config{
+		BodyLimit: 100 * 1024 * 1024, // 100 МБ (можно увеличить до 200–500 МБ)
+		ReadBufferSize: 32768,        // если ранее уже увеличивали для заголовков
+	})
 	server.Use(recover.New(recover.Config{EnableStackTrace: true}))
 	server.Use(logger.RequestLoggerMiddleware())
 	server.Use(md.SecurityHeadersMiddleware())
@@ -127,6 +132,7 @@ func main() {
 	accessManager := auth.Init(server, trackedDB, cfg, emailSender)
 	programs.Init(server, trackedDB, accessManager)
 	personalitytest.Init(server, trackedDB, accessManager)
+	assessment.Init(server, trackedDB, cfg, accessManager)
 	assets.Init(server, trackedDB, accessManager, objectStorage)
 	applications.Init(server, trackedDB, cfg, accessManager, messageBus)
 	candidates.Init(server, trackedDB, accessManager)

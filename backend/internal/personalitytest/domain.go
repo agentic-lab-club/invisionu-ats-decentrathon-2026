@@ -35,3 +35,11 @@ type row struct {
 	OptionKey     string    `db:"option_key"`
 	OptionText    string    `db:"option_text"`
 }
+
+type PersonalityOptionMetrics struct {
+    M int `db:"m"`
+    P int `db:"p"`
+    R int `db:"r"`
+    L int `db:"l"`
+    V int `db:"v"`
+}
