@@ -66,7 +66,6 @@ Accept: application/json
   "session_id": {{sessionId}},
   "answers": [
     "Сначала стабилизирую прод: собираю incident-war-room, назначаю ответственных, ограничиваю blast radius и включаю fallback.",
-    "Решение о rollback/roll-forward принимаю по метрикам SLO и риску потери данных, параллельно информирую стейкхолдеров и команду.",
     "После инцидента провожу post-mortem, фиксирую action items с владельцами и сроками, обновляю runbook и мониторинг."
   ]
 }
