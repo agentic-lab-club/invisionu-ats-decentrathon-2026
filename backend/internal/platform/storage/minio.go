@@ -3,8 +3,10 @@ package storage
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/pkg/config"
 	"github.com/google/uuid"
@@ -69,4 +71,12 @@ func (s *MinIOStorage) Download(ctx context.Context, bucket string, objectKey st
 		SizeBytes:   info.Size,
 		ETag:        strings.Trim(info.ETag, "\""),
 	}, nil
+}
+
+func (s *MinIOStorage) PresignGet(ctx context.Context, bucket string, objectKey string, expiry time.Duration) (string, error) {
+	presignedURL, err := s.client.PresignedGetObject(ctx, bucket, objectKey, expiry, url.Values{})
+	if err != nil {
+		return "", fmt.Errorf("failed to presign object download: %w", err)
+	}
+	return presignedURL.String(), nil
 }

@@ -31,3 +31,15 @@ var findStatusByUserIDQuery string
 
 //go:embed queries/validate_answer_pair.sql
 var validateAnswerPairQuery string
+
+//go:embed queries/create_application_file.sql
+var createApplicationFileQuery string
+
+//go:embed queries/update_application_audio_file.sql
+var updateApplicationAudioFileQuery string
+
+//go:embed queries/update_application_transcript.sql
+var updateApplicationTranscriptQuery string
+
+//go:embed queries/update_application_screening.sql
+var updateApplicationScreeningQuery string

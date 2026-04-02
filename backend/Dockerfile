@@ -58,7 +58,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
 FROM alpine:3.20 AS runner
 
 RUN addgroup -S app && adduser -S app -G app \
-    && apk add --no-cache ca-certificates tzdata \
+    && apk add --no-cache ca-certificates tzdata ffmpeg \
     && update-ca-certificates
 
 WORKDIR /app
@@ -82,5 +82,4 @@ USER app
 
 ENTRYPOINT ["/app/backend"]
 CMD ["-config=prod"]
-
 

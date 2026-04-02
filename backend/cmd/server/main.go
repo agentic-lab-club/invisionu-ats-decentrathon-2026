@@ -22,6 +22,7 @@ package main
 // @description JWT Token as Bearer: Authorization: Bearer {token}
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -83,8 +84,8 @@ func main() {
 
 	// Моя замена
 	server := fiber.New(fiber.Config{
-		BodyLimit: 100 * 1024 * 1024, // 100 МБ (можно увеличить до 200–500 МБ)
-		ReadBufferSize: 32768,        // если ранее уже увеличивали для заголовков
+		BodyLimit:      100 * 1024 * 1024, // 100 МБ (можно увеличить до 200–500 МБ)
+		ReadBufferSize: 32768,             // если ранее уже увеличивали для заголовков
 	})
 	server.Use(recover.New(recover.Config{EnableStackTrace: true}))
 	server.Use(logger.RequestLoggerMiddleware())
@@ -134,7 +135,7 @@ func main() {
 	personalitytest.Init(server, trackedDB, accessManager)
 	assessment.Init(server, trackedDB, cfg, accessManager)
 	assets.Init(server, trackedDB, accessManager, objectStorage)
-	applications.Init(server, trackedDB, cfg, accessManager, messageBus)
+	applications.Init(server, trackedDB, cfg, accessManager, messageBus, objectStorage)
 	candidates.Init(server, trackedDB, accessManager)
 
 	log.Info().Str("event", "init_http_server_success").Int("port", cfg.Server.Port).Msg("HTTP server initialized successfully")
@@ -150,6 +151,7 @@ func registerDocsRoutes(server *fiber.App) {
 		return
 	}
 
+	server.Get("/docs/swagger.json", serveSwaggerSpec)
 	server.Get("/docs", serveDocsIndex)
 	server.Get("/docs/", serveDocsIndex)
 	server.Get("/docs/*", func(c fiber.Ctx) error {
@@ -175,9 +177,89 @@ func serveDocsIndex(c fiber.Ctx) error {
 	return c.SendFile("docs/index.html")
 }
 
+func serveSwaggerSpec(c fiber.Ctx) error {
+	spec, err := os.ReadFile("docs/swagger.json")
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "swagger spec not found"})
+	}
+
+	body, err := rewriteSwaggerSpec(spec, requestHost(c), requestScheme(c))
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to render swagger spec"})
+	}
+
+	c.Set(fiber.HeaderContentType, "application/json; charset=utf-8")
+	return c.Send(body)
+}
+
 func fileExists(path string) bool {
 	_, err := os.Stat(path)
 	return err == nil
+}
+
+func rewriteSwaggerSpec(spec []byte, host, scheme string) ([]byte, error) {
+	var doc map[string]any
+	if err := json.Unmarshal(spec, &doc); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal swagger spec: %w", err)
+	}
+
+	if host != "" {
+		doc["host"] = host
+	}
+	if scheme != "" {
+		doc["schemes"] = []string{scheme}
+	}
+
+	body, err := json.Marshal(doc)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal swagger spec: %w", err)
+	}
+
+	return body, nil
+}
+
+func requestHost(c fiber.Ctx) string {
+	if host := strings.TrimSpace(c.Get("X-Forwarded-Host")); host != "" {
+		return host
+	}
+
+	return strings.TrimSpace(c.Get("Host"))
+}
+
+func requestScheme(c fiber.Ctx) string {
+	if proto := strings.TrimSpace(c.Get("X-Forwarded-Proto")); proto != "" {
+		return normalizeScheme(strings.TrimSpace(strings.Split(proto, ",")[0]))
+	}
+
+	if c.Secure() {
+		return "https"
+	}
+
+	if origin := strings.TrimSpace(c.Get("Origin")); origin != "" {
+		origin = strings.ToLower(origin)
+		switch {
+		case strings.HasPrefix(origin, "https://"):
+			return "https"
+		case strings.HasPrefix(origin, "http://"):
+			return "http"
+		}
+	}
+
+	return "http"
+}
+
+func normalizeScheme(value string) string {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "https", "wss":
+		return "https"
+	case "http", "ws":
+		return "http"
+	default:
+		if strings.HasPrefix(strings.ToLower(value), "https") {
+			return "https"
+		}
+		return "http"
+	}
 }
 
 func docsPath() string {

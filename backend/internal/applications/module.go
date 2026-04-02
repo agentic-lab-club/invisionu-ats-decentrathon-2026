@@ -2,6 +2,7 @@ package applications
 
 import (
 	platformMessaging "github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/platform/messaging"
+	platformStorage "github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/platform/storage"
 	pkgAuth "github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/pkg/auth"
 	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/pkg/config"
 	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/pkg/database"
@@ -9,9 +10,9 @@ import (
 	"github.com/gofiber/fiber/v3"
 )
 
-func Init(server *fiber.App, db *database.TrackedDB, cfg *config.Config, accessManager *pkgAuth.TokenManager, bus platformMessaging.Bus) {
+func Init(server *fiber.App, db *database.TrackedDB, cfg *config.Config, accessManager *pkgAuth.TokenManager, bus platformMessaging.Bus, objectStorage platformStorage.ObjectStorage) {
 	repo := NewRepository(db)
-	service := NewService(repo, cfg, bus)
+	service := NewService(repo, cfg, bus, objectStorage)
 	handler := NewHandler(service)
 
 	api := server.Group("/applications", md.AuthRole(accessManager, md.RoleUser))
