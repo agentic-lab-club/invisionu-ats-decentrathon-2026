@@ -24,12 +24,12 @@ type OpenAIClient struct {
 
 func NewOpenAIClient(cfg *config.Config) *OpenAIClient {
 	return &OpenAIClient{
-		baseURL:         strings.TrimRight(cfg.LLM.BaseURL, "/"),
-		apiKey:          strings.TrimSpace(cfg.LLM.APIKey),
-		questionModel:   cfg.LLM.QuestionModel,
-		evaluationModel: cfg.LLM.EvaluationModel,
+		baseURL:         strings.TrimRight(cfg.LLMAssessment.BaseURL, "/"),
+		apiKey:          strings.TrimSpace(cfg.LLMAssessment.APIKey),
+		questionModel:   cfg.LLMAssessment.QuestionModel,
+		evaluationModel: cfg.LLMAssessment.EvaluationModel,
 		httpClient: &http.Client{
-			Timeout: time.Duration(cfg.LLM.RequestTimeoutSecs) * time.Second,
+			Timeout: time.Duration(cfg.LLMAssessment.RequestTimeoutSecs) * time.Second,
 		},
 		enabled: cfg.LLM.Enabled,
 	}

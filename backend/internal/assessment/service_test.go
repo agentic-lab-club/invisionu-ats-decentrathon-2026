@@ -276,8 +276,8 @@ func TestServiceEvaluateClampsScoresAndWritesAudit(t *testing.T) {
 		prompt:      "prompt",
 	}
 	svc := NewService(repo, llm, &config.Config{
-		Assessment: config.AssessmentConfig{TimeoutMinutes: 15},
-		LLM:        config.LLMConfig{EvaluationModel: "gpt-4o-mini"},
+		Assessment:    config.AssessmentConfig{TimeoutMinutes: 15},
+		LLMAssessment: config.LLMAssessmentConfig{EvaluationModel: "gpt-4o-mini"},
 	})
 
 	evaluation, err := svc.Evaluate(userID, sessionID, context.Background())

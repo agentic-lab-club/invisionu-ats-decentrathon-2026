@@ -55,7 +55,8 @@ email:
 
 llm: # TODO: (refactor) this should be llmscoring
   enabled: false
-  # TODO: (refactor) from here and down needs to be in llm-assement section!
+
+llm_assessment:
   provider: "openai"
   base_url: "https://api.openai.com/v1"
   api_key: ""

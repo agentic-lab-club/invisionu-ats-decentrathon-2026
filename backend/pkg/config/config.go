@@ -100,7 +100,10 @@ type EmailConfig struct {
 }
 
 type LLMConfig struct {
-	Enabled            bool   `mapstructure:"enabled"`
+	Enabled bool `mapstructure:"enabled"`
+}
+
+type LLMAssessmentConfig struct {
 	Provider           string `mapstructure:"provider"`
 	BaseURL            string `mapstructure:"base_url"`
 	APIKey             string `mapstructure:"api_key"`
@@ -115,19 +118,20 @@ type AssessmentConfig struct {
 
 // Config is the root configuration.
 type Config struct {
-	Server      HttpConfig       `mapstructure:"server"`
-	Database    PostgresConfig   `mapstructure:"database"`
-	Gotenberg   GotenbergConfig  `mapstructure:"gotenberg"`
-	Environment string           `mapstructure:"environment"`
-	Logging     LoggingConfig    `mapstructure:"logging"`
-	Security    SecurityConfig   `mapstructure:"security"`
-	Metrics     MetricsConfig    `mapstructure:"metrics"`
-	Auth        AuthConfig       `mapstructure:"auth"`
-	Storage     StorageConfig    `mapstructure:"storage"`
-	Messaging   MessagingConfig  `mapstructure:"messaging"`
-	Email       EmailConfig      `mapstructure:"email"`
-	LLM         LLMConfig        `mapstructure:"llm"`
-	Assessment  AssessmentConfig `mapstructure:"assessment"`
+	Server        HttpConfig          `mapstructure:"server"`
+	Database      PostgresConfig      `mapstructure:"database"`
+	Gotenberg     GotenbergConfig     `mapstructure:"gotenberg"`
+	Environment   string              `mapstructure:"environment"`
+	Logging       LoggingConfig       `mapstructure:"logging"`
+	Security      SecurityConfig      `mapstructure:"security"`
+	Metrics       MetricsConfig       `mapstructure:"metrics"`
+	Auth          AuthConfig          `mapstructure:"auth"`
+	Storage       StorageConfig       `mapstructure:"storage"`
+	Messaging     MessagingConfig     `mapstructure:"messaging"`
+	Email         EmailConfig         `mapstructure:"email"`
+	LLM           LLMConfig           `mapstructure:"llm"`
+	LLMAssessment LLMAssessmentConfig `mapstructure:"llm_assessment"`
+	Assessment    AssessmentConfig    `mapstructure:"assessment"`
 }
 
 func Load() (cfg *Config, err error) {
@@ -215,20 +219,20 @@ func Load() (cfg *Config, err error) {
 	if cfg.Email.Mode == "" {
 		cfg.Email.Mode = "stub"
 	}
-	if cfg.LLM.Provider == "" {
-		cfg.LLM.Provider = "openai"
+	if cfg.LLMAssessment.Provider == "" {
+		cfg.LLMAssessment.Provider = "openai"
 	}
-	if cfg.LLM.BaseURL == "" {
-		cfg.LLM.BaseURL = "https://api.openai.com/v1"
+	if cfg.LLMAssessment.BaseURL == "" {
+		cfg.LLMAssessment.BaseURL = "https://api.openai.com/v1"
 	}
-	if cfg.LLM.QuestionModel == "" {
-		cfg.LLM.QuestionModel = "gpt-4o-mini"
+	if cfg.LLMAssessment.QuestionModel == "" {
+		cfg.LLMAssessment.QuestionModel = "gpt-4o-mini"
 	}
-	if cfg.LLM.EvaluationModel == "" {
-		cfg.LLM.EvaluationModel = "gpt-4o-mini"
+	if cfg.LLMAssessment.EvaluationModel == "" {
+		cfg.LLMAssessment.EvaluationModel = "gpt-4o-mini"
 	}
-	if cfg.LLM.RequestTimeoutSecs == 0 {
-		cfg.LLM.RequestTimeoutSecs = 30
+	if cfg.LLMAssessment.RequestTimeoutSecs == 0 {
+		cfg.LLMAssessment.RequestTimeoutSecs = 30
 	}
 	if cfg.Assessment.TimeoutMinutes == 0 {
 		cfg.Assessment.TimeoutMinutes = 15
@@ -363,24 +367,24 @@ func overrideFromEnv(cfg *Config) {
 	if value := os.Getenv("LLM_ENABLED"); value != "" {
 		cfg.LLM.Enabled = strings.EqualFold(value, "true") || value == "1"
 	}
-	if value := os.Getenv("LLM_PROVIDER"); value != "" {
-		cfg.LLM.Provider = value
+	if value := os.Getenv("LLM_ASSESSMENT_PROVIDER"); value != "" {
+		cfg.LLMAssessment.Provider = value
 	}
-	if value := os.Getenv("LLM_BASE_URL"); value != "" {
-		cfg.LLM.BaseURL = value
+	if value := os.Getenv("LLM_ASSESSMENT_BASE_URL"); value != "" {
+		cfg.LLMAssessment.BaseURL = value
 	}
-	if value := os.Getenv("LLM_API_KEY"); value != "" {
-		cfg.LLM.APIKey = value
+	if value := os.Getenv("LLM_ASSESSMENT_API_KEY"); value != "" {
+		cfg.LLMAssessment.APIKey = value
 	}
-	if value := os.Getenv("LLM_QUESTION_MODEL"); value != "" {
-		cfg.LLM.QuestionModel = value
+	if value := os.Getenv("LLM_ASSESSMENT_QUESTION_MODEL"); value != "" {
+		cfg.LLMAssessment.QuestionModel = value
 	}
-	if value := os.Getenv("LLM_EVALUATION_MODEL"); value != "" {
-		cfg.LLM.EvaluationModel = value
+	if value := os.Getenv("LLM_ASSESSMENT_EVALUATION_MODEL"); value != "" {
+		cfg.LLMAssessment.EvaluationModel = value
 	}
-	if value := os.Getenv("LLM_REQUEST_TIMEOUT_SECONDS"); value != "" {
+	if value := os.Getenv("LLM_ASSESSMENT_REQUEST_TIMEOUT_SECONDS"); value != "" {
 		if parsed, err := strconv.Atoi(value); err == nil {
-			cfg.LLM.RequestTimeoutSecs = parsed
+			cfg.LLMAssessment.RequestTimeoutSecs = parsed
 		}
 	}
 	if value := os.Getenv("ASSESSMENT_TIMEOUT_MINUTES"); value != "" {

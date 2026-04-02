@@ -182,7 +182,7 @@ func (s *Service) Evaluate(userID uuid.UUID, sessionID uuid.UUID, ctx context.Co
 		return nil, err
 	}
 
-	if err := s.repo.CreateEvaluationAudit(session.ID, prompt, rawResponse, evaluation, s.cfg.LLM.EvaluationModel); err != nil {
+	if err := s.repo.CreateEvaluationAudit(session.ID, prompt, rawResponse, evaluation, s.cfg.LLMAssessment.EvaluationModel); err != nil {
 		return nil, err
 	}
 
