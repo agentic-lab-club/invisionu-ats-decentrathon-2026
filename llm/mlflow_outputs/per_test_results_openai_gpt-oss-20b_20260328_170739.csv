@@ -1,7 +1,0 @@
-test_id,label,path,schema_pass,latency_sec,model,attempt,motivation,leadership_potential,response_structure,total,error
-good_1,good,test_inputs/good_candidate_1.txt,0,37.962,openai/gpt-oss-20b,,,,,,"Не удалось получить валидный JSON после 4 попыток: Expecting ',' delimiter: line 49 column 6 (char 2167)"
-good_2,good,test_inputs/good_candidate_2.txt,0,96.8714,openai/gpt-oss-20b,,,,,,"Не удалось получить валидный JSON после 4 попыток: Expecting ',' delimiter: line 35 column 8 (char 1674)"
-mid_1,middle,test_inputs/middle_candidate_1.txt,1,2.5595,openai/gpt-oss-20b,1,10,15,19,44,
-mid_2,middle,test_inputs/middle_candidate_2.txt,0,81.1607,openai/gpt-oss-20b,,,,,,"Не удалось получить валидный JSON после 4 попыток: Expecting ',' delimiter: line 30 column 8 (char 1548)"
-bad_1,bad,test_inputs/bad_candidate_1.txt,1,42.1336,openai/gpt-oss-20b,2,1,0,14,15,
-bad_2,bad,test_inputs/bad_candidate_2.txt,1,12.2866,openai/gpt-oss-20b,1,0,1,13,14,
