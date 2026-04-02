@@ -65,6 +65,17 @@ module "iam" {
   tags                = local.common_tags
 }
 
+module "local_s3_access" {
+  source = "../../modules/local_s3_access"
+
+  name_prefix = local.name_prefix
+  bucket_name = module.s3.bucket_name
+  bucket_arn  = module.s3.bucket_arn
+  aws_region  = var.aws_region
+  secret_name = var.local_s3_access_secret_name
+  tags        = local.common_tags
+}
+
 module "ec2" {
   source = "../../modules/ec2"
 

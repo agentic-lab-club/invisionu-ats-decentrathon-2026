@@ -30,6 +30,7 @@ Deliverables:
 - Private S3 uploads bucket
 - Backend ECR repository
 - Secrets Manager secret containers without secret values
+- Dev-only local S3 access secret for local backend development
 
 Acceptance criteria:
 
@@ -85,3 +86,7 @@ These are the main risks we are explicitly avoiding:
 - RabbitMQ is provisioned, but application code does not actually use it in the intended MVP path.
 - EC2 is bootstrapped, but no deploy automation exists yet.
 - Public endpoint exists, but runtime config and CORS are not aligned.
+
+Additional accepted risk for the local dev S3 helper path:
+
+- IAM access key material for the local backend is stored via Terraform-managed Secrets Manager secret version and therefore still exists in Terraform state.

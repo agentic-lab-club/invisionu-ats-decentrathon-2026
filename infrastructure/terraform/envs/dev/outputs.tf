@@ -23,6 +23,16 @@ output "uploads_bucket_name" {
   value       = module.s3.bucket_name
 }
 
+output "uploads_bucket_regional_domain_name" {
+  description = "Regional S3 bucket domain name for direct backend configuration."
+  value       = module.s3.bucket_regional_domain_name
+}
+
+output "uploads_bucket_endpoint" {
+  description = "AWS S3-compatible endpoint host for the uploads bucket."
+  value       = module.s3.bucket_regional_domain_name
+}
+
 output "backend_ecr_repository_url" {
   description = "Backend ECR repository URL."
   value       = module.ecr.repository_url
@@ -41,4 +51,14 @@ output "postgres_secret_name" {
 output "rabbitmq_secret_name" {
   description = "RabbitMQ Secrets Manager secret name."
   value       = module.secrets.rabbitmq_secret_name
+}
+
+output "local_s3_access_secret_name" {
+  description = "Secrets Manager secret name containing local backend S3 access credentials."
+  value       = module.local_s3_access.secret_name
+}
+
+output "local_s3_access_iam_username" {
+  description = "IAM username used to generate local backend S3 access credentials."
+  value       = module.local_s3_access.iam_username
 }

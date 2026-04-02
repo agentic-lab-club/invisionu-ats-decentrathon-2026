@@ -11,6 +11,7 @@ This folder composes the AWS baseline for the backend-only `dev` environment.
 - private S3 uploads bucket
 - backend ECR repository
 - Secrets Manager secret containers
+- Secrets Manager secret with local dev S3 access credentials
 
 ## What it does not do
 
@@ -18,6 +19,8 @@ This folder composes the AWS baseline for the backend-only `dev` environment.
 - deploy application containers
 - configure root-level production compose
 - make the backend AWS-runtime-ready by itself
+
+Note: the local dev S3 access secret is an exception and is managed by Terraform so a local backend can connect directly to AWS S3.
 
 ## Usage
 

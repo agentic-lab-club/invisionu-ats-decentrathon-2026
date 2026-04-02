@@ -19,6 +19,7 @@ Implemented provisioning target:
 - private S3 uploads bucket
 - backend ECR repository
 - Secrets Manager secret containers
+- dev-only Secrets Manager secret with local S3 access credentials
 
 Not part of the current infrastructure implementation:
 

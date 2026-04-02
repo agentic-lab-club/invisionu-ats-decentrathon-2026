@@ -82,3 +82,9 @@ variable "rabbitmq_secret_name" {
   type        = string
   default     = "invisionu/dev/rabbitmq"
 }
+
+variable "local_s3_access_secret_name" {
+  description = "Secrets Manager name for local backend S3 access credentials."
+  type        = string
+  default     = "invisionu/dev/local-s3-access"
+}
