@@ -64,6 +64,10 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      llmscoring:
+        condition: service_started
+      sttwhisper:
+        condition: service_started
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/health >/dev/null 2>&1 || exit 1"]
       interval: 10s
@@ -73,44 +77,54 @@ services:
     networks:
       - invisionu-ats-network
 
-  #llmscoring:
-  #  build:
-  #    context: .
-  #    dockerfile: /llm/Dockerfile
-  #  container_name: invisionu_llscoring
-  #  ports:
-  #    - "9094:9094"
-  #  env_file:
-  #    - .env
-  #  restart: unless-stopped
-  #  networks:
-  #    - invisionu-ats-network
+  llmscoring:
+    build:
+      context: ./llm
+      dockerfile: Dockerfile
+    container_name: invisionu_llscoring
+    ports:
+      - "9094:9094"
+    env_file:
+      - .env
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:9094/docs >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - invisionu-ats-network
 
-  #sttwhisper:
-  #  build:
-  #    context: .
-  #    dockerfile: /stt/Dockerfile
-  #  container_name: invisionu_sttwhisper
-  #  ports:
-  #    - "9095:9095"
-  #  env_file:
-  #    - .env
-  #  restart: unless-stopped
-  #  networks:
-  #    - invisionu-ats-network
+  sttwhisper:
+    build:
+      context: ./STT
+      dockerfile: Dockerfile
+    container_name: invisionu_sttwhisper
+    ports:
+      - "9095:9095"
+    env_file:
+      - .env
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:9095/docs >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - invisionu-ats-network
 
-  #aidetect:
-  #  build:
-  #    context: .
-  #    dockerfile: /stt/Dockerfile
-  #  container_name: invisionu_aidetect
-  #  ports:
-  #    - "9873:9873"
-  #  healthcheck:
-  #    test: ["CMD", "curl", "-f", "http://localhost:9873/health"]
-  #    interval: 30s
-  #    timeout: 10s
-  #    retries: 4
-  #  restart: unless-stopped
-  #  networks:
-  #    - invisionu-ats-network
+  aidetect:
+    build:
+      context: ./AI_Detecter-service
+      dockerfile: Dockerfile
+    container_name: invisionu_aidetect
+    ports:
+      - "9873:9873"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9873/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 4
+    restart: unless-stopped
+    networks:
+      - invisionu-ats-network

@@ -70,3 +70,40 @@ func TestFileRecordIncludesCreatedAtDBField(t *testing.T) {
 
 	t.Fatal("expected FileRecord to include db:\"created_at\" for INSERT ... RETURNING scans")
 }
+
+func TestValidateLLMScoringResultRejectsEmptyCandidateBreakdown(t *testing.T) {
+	result := JSONMap{
+		"workflow_status": "success",
+		"candidate_breakdown": map[string]interface{}{
+			"q1_text": "",
+			"q2_text": "   ",
+			"q3_text": "",
+			"q4_text": "",
+			"q5_text": "",
+			"q6_text": "",
+		},
+	}
+
+	err := validateLLMScoringResult(result)
+	if err == nil {
+		t.Fatal("expected validation to fail when llm scoring cannot map transcript to interview questions")
+	}
+}
+
+func TestValidateLLMScoringResultAcceptsMappedCandidateBreakdown(t *testing.T) {
+	result := JSONMap{
+		"workflow_status": "success",
+		"candidate_breakdown": map[string]interface{}{
+			"q1_text": "I want to apply because...",
+			"q2_text": "",
+			"q3_text": "",
+			"q4_text": "",
+			"q5_text": "",
+			"q6_text": "",
+		},
+	}
+
+	if err := validateLLMScoringResult(result); err != nil {
+		t.Fatalf("expected validation to pass, got error: %v", err)
+	}
+}

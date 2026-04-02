@@ -7,7 +7,8 @@
 
 ## Что делает сервис
 
-- Принимает путь к аудиофайлу (`filepath`) Заменить на get из s3
+- Принимает presigned URL аудиофайла (`file_url`)
+- Сам скачивает аудио по URL
 - Отправляет файл в Groq Whisper API
 - Возвращает распознанный текст в JSON
 
@@ -68,7 +69,7 @@ docker compose up --build
 
 ```json
 {
-  "filepath": "/absolute/path/to/audio.mp3"
+  "file_url": "https://signed-object-url/audio.mp3?X-Amz-Signature=..."
 }
 ```
 
@@ -82,8 +83,9 @@ docker compose up --build
 
 Ошибки:
 
-- `404` — файл не найден
-- `500` — внутренняя ошибка (например, проблемы с API ключом/провайдером)
+- `400` — некорректный URL
+- `502` — не удалось скачать файл или выполнить транскрибацию
+- `500` — внутренняя ошибка сервиса
 
 ---
 
@@ -92,7 +94,7 @@ docker compose up --build
 ```bash
 curl -X POST http://localhost:9095/transcribe \
   -H "Content-Type: application/json" \
-  -d '{"filepath":"/absolute/path/to/audio.mp3"}'
+  -d '{"file_url":"https://signed-object-url/audio.mp3?X-Amz-Signature=..."}'
 ```
 
 ---

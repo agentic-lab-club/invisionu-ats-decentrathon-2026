@@ -145,6 +145,9 @@ func (c *LLMScoringClient) Analyze(ctx context.Context, transcript string) (JSON
 	if err := json.Unmarshal(body, &parsed); err != nil {
 		return nil, fmt.Errorf("failed to decode llm scoring response: %w", err)
 	}
+	if err := validateLLMScoringResult(parsed); err != nil {
+		return nil, err
+	}
 	return parsed, nil
 }
 
@@ -363,4 +366,29 @@ func truncateForDB(value string) string {
 		return trimmed
 	}
 	return trimmed[:2000]
+}
+
+func validateLLMScoringResult(result JSONMap) error {
+	if len(result) == 0 {
+		return fmt.Errorf("llm scoring service returned empty result")
+	}
+
+	workflowStatus, _ := result["workflow_status"].(string)
+	if strings.TrimSpace(workflowStatus) != "success" {
+		return fmt.Errorf("llm scoring service returned workflow_status=%q", workflowStatus)
+	}
+
+	rawBreakdown, ok := result["candidate_breakdown"].(map[string]interface{})
+	if !ok {
+		return fmt.Errorf("llm scoring service returned invalid candidate_breakdown payload")
+	}
+
+	for i := 1; i <= 6; i++ {
+		key := fmt.Sprintf("q%d_text", i)
+		if value, ok := rawBreakdown[key].(string); ok && strings.TrimSpace(value) != "" {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("llm scoring service could not map transcript to interview questions")
 }
