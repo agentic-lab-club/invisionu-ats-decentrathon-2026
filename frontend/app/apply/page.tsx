@@ -12,7 +12,7 @@ import { OnboardingTour, useOnboarding, TourReplayButton } from '@/components/to
 import { getAccessToken } from '@/lib/auth';
 import { FileUploader } from '@/components/FileUploader';
 
-// ================== Types ==================
+// ================== Types =================
 interface FormData {
   firstName: string;
   lastName: string;
