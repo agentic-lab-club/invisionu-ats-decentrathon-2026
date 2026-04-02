@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
-import "../globals.css";
+import "@/app/globals.css";
 import { Raleway } from 'next/font/google';
-import DashboardNav from "@/components/dashboard/DashboardNav";
-
+import Navbar from "@/components/ui/CandidateNavbar";
 const raleway = Raleway({
   subsets: ['latin'],
   display: 'swap',
@@ -17,6 +16,7 @@ export const metadata: Metadata = {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
+    <Navbar />
     {children}
     </>
   );
