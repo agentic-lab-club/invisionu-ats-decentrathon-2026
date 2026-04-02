@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/applications"
+	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/assessment"
 	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/assets"
 	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/auth"
 	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/candidates"
@@ -127,6 +128,7 @@ func main() {
 	accessManager := auth.Init(server, trackedDB, cfg, emailSender)
 	programs.Init(server, trackedDB, accessManager)
 	personalitytest.Init(server, trackedDB, accessManager)
+	assessment.Init(server, trackedDB, cfg, accessManager)
 	assets.Init(server, trackedDB, accessManager, objectStorage)
 	applications.Init(server, trackedDB, cfg, accessManager, messageBus)
 	candidates.Init(server, trackedDB, accessManager)
