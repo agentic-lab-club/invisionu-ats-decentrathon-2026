@@ -3,11 +3,6 @@ AGENTS.md
 .db
 .env
 .idea
-/skills
-AGENTS.md
-.db
-.env
-.idea
 /mlflow_outputs
 /mlruns
 /mlartifacts
