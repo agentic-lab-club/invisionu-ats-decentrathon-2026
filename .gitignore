@@ -2,3 +2,5 @@
 .env
 mlflow.db
 .idea
+
+\voice_analysis

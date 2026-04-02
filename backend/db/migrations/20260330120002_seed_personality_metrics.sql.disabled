@@ -1,0 +1,637 @@
+-- +goose Up
+
+
+-- Включаем UUID расширение (если ещё не включено)
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- Обновляем метрики для каждого вопроса
+-- Вопрос 1
+UPDATE personality_test_options
+SET m = 0, p = 1, r = 0, l = 3, v = 1
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE question_order = 1) AND option_order = 1;
+
+UPDATE personality_test_options
+SET m = 0, p = 2, r = 0, l = 1, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE question_order = 1) AND option_order = 2;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 2, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE question_order = 1) AND option_order = 3;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE question_order = 1) AND option_order = 4;
+-- Вопрос 5
+UPDATE personality_test_options
+SET m = 0, p = 1, r = 0, l = 0, v = 1
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 5) AND "option_order" = 1;
+
+UPDATE personality_test_options
+SET m = 0, p = 2, r = 0, l = 1, v = 2
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 5) AND "option_order" = 2;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 5) AND "option_order" = 3;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 5) AND "option_order" = 4;
+
+-- Вопрос 6
+UPDATE personality_test_options
+SET m = 0, p = 2, r = 0, l = 2, v = 1
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 6) AND "option_order" = 1;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 1, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 6) AND "option_order" = 2;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 6) AND "option_order" = 3;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 1, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 6) AND "option_order" = 4;
+
+-- Вопрос 7
+UPDATE personality_test_options
+SET m = 1, p = 0, r = 3, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 7) AND "option_order" = 1;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 7) AND "option_order" = 2;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 1, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 7) AND "option_order" = 3;
+
+UPDATE personality_test_options
+SET m = 0, p = 1, r = 2, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 7) AND "option_order" = 4;
+
+-- Вопрос 8
+UPDATE personality_test_options
+SET m = 2, p = 2, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 8) AND "option_order" = 1;
+
+UPDATE personality_test_options
+SET m = 1, p = 1, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 8) AND "option_order" = 2;
+
+UPDATE personality_test_options
+SET m = 1, p = 1, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 8) AND "option_order" = 3;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 8) AND "option_order" = 4;
+
+-- Вопрос 9
+UPDATE personality_test_options
+SET m = 0, p = 3, r = 1, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 9) AND "option_order" = 1;
+
+UPDATE personality_test_options
+SET m = 0, p = 1, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 9) AND "option_order" = 2;
+
+UPDATE personality_test_options
+SET m = 0, p = 1, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 9) AND "option_order" = 3;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 9) AND "option_order" = 4;
+
+-- Вопрос 10
+UPDATE personality_test_options
+SET m = 0, p = 1, r = 2, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 10) AND "option_order" = 1;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 1, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 10) AND "option_order" = 2;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 10) AND "option_order" = 3;
+
+UPDATE personality_test_options
+SET m = 0, p = 3, r = 1, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 10) AND "option_order" = 4;
+
+-- Вопрос 11
+UPDATE personality_test_options
+SET m = 3, p = 0, r = 2, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 11) AND "option_order" = 1;
+
+UPDATE personality_test_options
+SET m = 1, p = 1, r = 1, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 11) AND "option_order" = 2;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 11) AND "option_order" = 3;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 1, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 11) AND "option_order" = 4;
+
+-- Вопрос 12
+UPDATE personality_test_options
+SET m = 0, p = 1, r = 1, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 12) AND "option_order" = 1;
+
+UPDATE personality_test_options
+SET m = 0, p = 1, r = 2, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 12) AND "option_order" = 2;
+
+UPDATE personality_test_options
+SET m = 0, p = 1, r = 3, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 12) AND "option_order" = 3;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 12) AND "option_order" = 4;
+
+-- Вопрос 13
+UPDATE personality_test_options
+SET m = 2, p = 0, r = 1, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 13) AND "option_order" = 1;
+
+UPDATE personality_test_options
+SET m = 1, p = 1, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 13) AND "option_order" = 2;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 13) AND "option_order" = 3;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 13) AND "option_order" = 4;
+
+-- Вопрос 14
+UPDATE personality_test_options
+SET m = 1, p = 2, r = 2, l = 2, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 14) AND "option_order" = 1;
+
+UPDATE personality_test_options
+SET m = 1, p = 0, r = 1, l = 1, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 14) AND "option_order" = 2;
+
+UPDATE personality_test_options
+SET m = 0, p = 1, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 14) AND "option_order" = 3;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 14) AND "option_order" = 4;
+
+-- Вопрос 15
+UPDATE personality_test_options
+SET m = 1, p = 0, r = 0, l = 3, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 15) AND "option_order" = 1;
+
+UPDATE personality_test_options
+SET m = 1, p = 1, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 15) AND "option_order" = 2;
+
+UPDATE personality_test_options
+SET m = 0, p = 1, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 15) AND "option_order" = 3;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 15) AND "option_order" = 4;
+
+-- Вопрос 16
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 0, v = 1
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 16) AND "option_order" = 1;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 1, v = 3
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 16) AND "option_order" = 2;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 16) AND "option_order" = 3;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 0, v = 2
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 16) AND "option_order" = 4;
+
+-- Вопрос 17
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 1, l = 1, v = 3
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 17) AND "option_order" = 1;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 1, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 17) AND "option_order" = 2;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 0, v = 1
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 17) AND "option_order" = 3;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 1, l = 0, v = 1
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 17) AND "option_order" = 4;
+
+-- Вопрос 18
+UPDATE personality_test_options
+SET m = 0, p = 1, r = 0, l = 0, v = 3
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 18) AND "option_order" = 1;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 0, v = 1
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 18) AND "option_order" = 2;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 18) AND "option_order" = 3;
+
+UPDATE personality_test_options
+SET m = 0, p = 1, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 18) AND "option_order" = 4;
+
+-- Вопрос 19
+UPDATE personality_test_options
+SET m = 0, p = 1, r = 0, l = 2, v = 3
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 19) AND "option_order" = 1;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 19) AND "option_order" = 2;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 1, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 19) AND "option_order" = 3;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 1, v = 2
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 19) AND "option_order" = 4;
+
+-- Вопрос 20
+UPDATE personality_test_options
+SET m = 0, p = 1, r = 0, l = 1, v = 3
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 20) AND "option_order" = 1;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 1, v = 2
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 20) AND "option_order" = 2;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 20) AND "option_order" = 3;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 20) AND "option_order" = 4;
+
+-- Вопрос 21
+UPDATE personality_test_options
+SET m = 0, p = 1, r = 0, l = 3, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 21) AND "option_order" = 1;
+
+UPDATE personality_test_options
+SET m = 1, p = 0, r = 0, l = 0, v = 1
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 21) AND "option_order" = 2;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 1, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 21) AND "option_order" = 3;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 21) AND "option_order" = 4;
+
+-- Вопрос 22
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 2, l = 0, v = 1
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 22) AND "option_order" = 1;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 2, l = 1, v = 2
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 22) AND "option_order" = 2;
+
+UPDATE personality_test_options
+SET m = 0, p = 1, r = 1, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 22) AND "option_order" = 3;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 22) AND "option_order" = 4;
+
+-- Вопрос 23
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 23) AND "option_order" = 1;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 1, l = 0, v = 1
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 23) AND "option_order" = 2;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 23) AND "option_order" = 3;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 1, l = 0, v = 3
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 23) AND "option_order" = 4;
+
+-- Вопрос 24
+UPDATE personality_test_options
+SET m = 0, p = 1, r = 0, l = 1, v = 3
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 24) AND "option_order" = 1;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 0, v = 1
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 24) AND "option_order" = 2;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 24) AND "option_order" = 3;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 24) AND "option_order" = 4;
+
+-- Вопрос 25
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 25) AND "option_order" = 1;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 1, v = 2
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 25) AND "option_order" = 2;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 0, v = 1
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 25) AND "option_order" = 3;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 1, v = 3
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 25) AND "option_order" = 4;
+
+-- Вопрос 26
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 26) AND "option_order" = 1;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 1, l = 0, v = 3
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 26) AND "option_order" = 2;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 26) AND "option_order" = 3;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 1, l = 0, v = 2
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 26) AND "option_order" = 4;
+
+-- Вопрос 27
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 27) AND "option_order" = 1;
+
+UPDATE personality_test_options
+SET m = 0, p = 1, r = 0, l = 0, v = 2
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 27) AND "option_order" = 2;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 0, v = 1
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 27) AND "option_order" = 3;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 0, v = 3
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 27) AND "option_order" = 4;
+
+-- Вопрос 28
+UPDATE personality_test_options
+SET m = 0, p = 1, r = 1, l = 3, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 28) AND "option_order" = 1;
+
+UPDATE personality_test_options
+SET m = 0, p = 2, r = 0, l = 1, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 28) AND "option_order" = 2;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 28) AND "option_order" = 3;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 28) AND "option_order" = 4;
+
+-- Вопрос 29
+UPDATE personality_test_options
+SET m = 2, p = 1, r = 0, l = 0, v = 2
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 29) AND "option_order" = 1;
+
+UPDATE personality_test_options
+SET m = 1, p = 1, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 29) AND "option_order" = 2;
+
+UPDATE personality_test_options
+SET m = 2, p = 0, r = 0, l = 0, v = 1
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 29) AND "option_order" = 3;
+
+UPDATE personality_test_options
+SET m = 0, p = 1, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 29) AND "option_order" = 4;
+
+-- Вопрос 30
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 1, l = 0, v = 3
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 30) AND "option_order" = 1;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 0, v = 1
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 30) AND "option_order" = 2;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 0, v = 1
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 30) AND "option_order" = 3;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 30) AND "option_order" = 4;
+
+-- Вопрос 31
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 2, v = 1
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 31) AND "option_order" = 1;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 3, v = 1
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 31) AND "option_order" = 2;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 31) AND "option_order" = 3;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 0, v = 1
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 31) AND "option_order" = 4;
+
+-- Вопрос 32
+UPDATE personality_test_options
+SET m = 0, p = 1, r = 0, l = 2, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 32) AND "option_order" = 1;
+
+UPDATE personality_test_options
+SET m = 0, p = 1, r = 0, l = 2, v = 1
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 32) AND "option_order" = 2;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 1, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 32) AND "option_order" = 3;
+
+UPDATE personality_test_options
+SET m = 0, p = 1, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 32) AND "option_order" = 4;
+
+-- Вопрос 33
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 33) AND "option_order" = 1;
+
+UPDATE personality_test_options
+SET m = 0, p = 1, r = 0, l = 1, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 33) AND "option_order" = 2;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 3, v = 1
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 33) AND "option_order" = 3;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 1, v = 1
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 33) AND "option_order" = 4;
+
+-- Вопрос 34
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 2, v = 2
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 34) AND "option_order" = 1;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 1, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 34) AND "option_order" = 2;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 34) AND "option_order" = 3;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 2, v = 1
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 34) AND "option_order" = 4;
+
+-- Вопрос 35
+UPDATE personality_test_options
+SET m = 0, p = 1, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 35) AND "option_order" = 1;
+
+UPDATE personality_test_options
+SET m = 0, p = 2, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 35) AND "option_order" = 2;
+
+UPDATE personality_test_options
+SET m = 0, p = 3, r = 0, l = 0, v = 1
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 35) AND "option_order" = 3;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 35) AND "option_order" = 4;
+
+-- Вопрос 36
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 3, l = 0, v = 1
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 36) AND "option_order" = 1;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 36) AND "option_order" = 2;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 36) AND "option_order" = 3;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 2, l = 0, v = 1
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 36) AND "option_order" = 4;
+
+-- Вопрос 37
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 37) AND "option_order" = 1;
+
+UPDATE personality_test_options
+SET m = 1, p = 0, r = 3, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 37) AND "option_order" = 2;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 1, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 37) AND "option_order" = 3;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 1, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 37) AND "option_order" = 4;
+
+-- Вопрос 38
+UPDATE personality_test_options
+SET m = 2, p = 0, r = 2, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 38) AND "option_order" = 1;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 38) AND "option_order" = 2;
+
+UPDATE personality_test_options
+SET m = 1, p = 0, r = 2, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 38) AND "option_order" = 3;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 38) AND "option_order" = 4;
+
+-- Вопрос 39
+UPDATE personality_test_options
+SET m = 1, p = 0, r = 2, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 39) AND "option_order" = 1;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 39) AND "option_order" = 2;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 1, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 39) AND "option_order" = 3;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 2, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 39) AND "option_order" = 4;
+
+-- Вопрос 40
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 2, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 40) AND "option_order" = 1;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 0, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 40) AND "option_order" = 2;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 3, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 40) AND "option_order" = 3;
+
+UPDATE personality_test_options
+SET m = 0, p = 0, r = 1, l = 0, v = 0
+WHERE question_id = (SELECT id FROM personality_test_questions WHERE "question_order" = 40) AND "option_order" = 4;
+
+
+-- +goose Down

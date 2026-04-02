@@ -29,6 +29,7 @@ services:
     networks:
       - invisionu-ats-network
 
+<<<<<<< HEAD
   rabbitmq:
     image: rabbitmq:3.13-management-alpine
     container_name: invisionu_ats_rabbitmq_dev
@@ -72,3 +73,48 @@ services:
       "
     networks:
       - invisionu-ats-network
+=======
+  #rabbitmq:
+  #  image: rabbitmq:3.13-management-alpine
+  #  container_name: invisionu_ats_rabbitmq_dev
+  #  restart: unless-stopped
+  #  ports:
+  #    - "5672:5672"
+  #    - "15672:15672"
+  #  networks:
+  #    - invisionu-ats-network
+
+  #minio:
+  #  image: minio/minio:RELEASE.2025-02-28T09-55-16Z
+  #  container_name: invisionu_ats_minio_dev
+  #  restart: unless-stopped
+  #  environment:
+  #    MINIO_ROOT_USER: ${STORAGE_ACCESS_KEY}
+  #    MINIO_ROOT_PASSWORD: ${STORAGE_SECRET_KEY}
+  #  command: server /data --console-address ":9001"
+  #  volumes:
+  #    - minio_dev_data:/data
+  #  ports:
+  #    - "9000:9000"
+  #    - "9002:9001"
+  #  networks:
+  #    - invisionu-ats-network
+
+  #minio-init:
+  #  image: minio/mc:RELEASE.2025-02-21T16-00-46Z
+  #  container_name: invisionu_ats_minio_init
+  #  depends_on:
+  #    - minio
+  #  entrypoint: >
+  #    /bin/sh -c "
+  #    until /usr/bin/mc alias set local http://minio:9000 ${STORAGE_ACCESS_KEY} ${STORAGE_SECRET_KEY}; do
+  #      echo 'waiting for minio...';
+  #      sleep 2;
+  #    done;
+  #    /usr/bin/mc mb --ignore-existing local/${STORAGE_BUCKET};
+  #    /usr/bin/mc anonymous set private local/${STORAGE_BUCKET};
+  #    exit 0;
+  #    "
+  #  networks:
+  #    - invisionu-ats-network
+>>>>>>> 6b0b155e42d452c85448ede2ed708fcf55c63c87

@@ -35,6 +35,7 @@ type row struct {
 	OptionKey     string    `db:"option_key"`
 	OptionText    string    `db:"option_text"`
 }
+<<<<<<< HEAD
 
 type PersonalityOptionMetrics struct {
     M int `db:"m"`
@@ -43,3 +44,5 @@ type PersonalityOptionMetrics struct {
     L int `db:"l"`
     V int `db:"v"`
 }
+=======
+>>>>>>> 6b0b155e42d452c85448ede2ed708fcf55c63c87

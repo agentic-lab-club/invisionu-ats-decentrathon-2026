@@ -1,0 +1,43 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ai_generation_answer_question_service
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+psycopg2://${DB_USER:-postgres}:${DB_PASSWORD:-root}@db:5432/${DB_DATABASE:-llm_assessment}
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${APP_PORT:-9977}:9977"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:9977/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 15s
+
+  db:
+    image: pgvector/pgvector:pg17
+    container_name: ai_generation_answer_question_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-llm_assessment}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-root}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_DATABASE:-llm_assessment}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    ports:
+      - "${DB_PORT:-5434}:5432"
+
+volumes:
+  postgres_data:

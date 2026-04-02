@@ -1,12 +1,35 @@
 networks:
   invisionu-ats-network:
-    external: true
+    driver: bridge
 
 volumes:
+  postgres_dev_data: {} 
   go-mod-cache: {}
   go-build-cache: {}
 
 services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: invisionu_ats_postgres_dev
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: ${DB_DATABASE}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_DATABASE}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    ports:
+      - "5432:5432"
+    networks:
+      - invisionu-ats-network
+
   golang:
     build:
       context: .

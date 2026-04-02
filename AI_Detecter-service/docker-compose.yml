@@ -1,0 +1,18 @@
+services:
+  ai_detect_service:
+    build: .
+    container_name: ai_detect_service
+    volumes:
+      - hf_cache:/root/.cache/huggingface
+    ports:
+      - "9873:9873"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9873/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 4
+    restart: unless-stopped
+
+
+volumes:
+  hf_cache:

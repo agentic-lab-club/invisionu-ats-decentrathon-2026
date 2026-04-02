@@ -1,0 +1,132 @@
+@host = localhost
+@port = 9977
+@baseUrl = http://{{host}}:{{port}}
+@specialization = Инновационные цифровые продукты и сервисы: разработка IT-решений управление продуктами.
+@numQuestions = 2
+@userId = 123
+
+### 0) Health check
+GET {{baseUrl}}/health
+Accept: application/json
+
+### Ожидаемый ответ (пример)
+# {
+#   "status": "ok",
+#   "timestamp": "2026-04-01T08:10:00.000000",
+#   "db": "connected"
+# }
+
+### 1) Generate questions
+POST {{baseUrl}}/generate-questions
+Content-Type: application/json
+Accept: application/json
+
+{
+  "specialization": "{{specialization}}",
+  "num_questions": {{numQuestions}},
+  "user_id": {{userId}}
+}
+
+> {%
+  client.test("generate-questions returns 200", function() {
+    client.assert(response.status === 200, "Expected 200");
+  });
+  client.global.set("sessionId", response.body.session_id);
+  client.log("sessionId = " + response.body.session_id);
+%}
+
+### Ожидаемый ответ (пример)
+# {
+#   "session_id": 1,
+#   "questions": ["...", "...", "..."],
+#   "expires_at": "2026-04-01T08:25:00.000000",
+#   "timeout_minutes": 15
+# }
+
+### 2) Get session status (после генерации)
+GET {{baseUrl}}/session/{{sessionId}}
+Accept: application/json
+
+### Ожидаемый ответ (пример)
+# {
+#   "session_id": 1,
+#   "status": "active",
+#   "time_remaining_seconds": 880,
+#   "questions_count": 3,
+#   "has_answers": false,
+#   "evaluation": null
+# }
+
+### 3) Submit answers
+POST {{baseUrl}}/submit-answers
+Content-Type: application/json
+Accept: application/json
+
+{
+  "session_id": {{sessionId}},
+  "answers": [
+    "Сначала стабилизирую прод: собираю incident-war-room, назначаю ответственных, ограничиваю blast radius и включаю fallback.",
+    "После инцидента провожу post-mortem, фиксирую action items с владельцами и сроками, обновляю runbook и мониторинг."
+  ]
+}
+
+> {%
+  client.test("submit-answers returns 200", function() {
+    client.assert(response.status === 200, "Expected 200");
+  });
+%}
+
+### Ожидаемый ответ (пример)
+# {
+#   "status": "ok",
+#   "message": "Ответы сохранены. Можно запускать оценку.",
+#   "session_id": 1
+# }
+
+### 4) Evaluate answers
+POST {{baseUrl}}/evaluate?session_id={{sessionId}}
+Accept: application/json
+
+> {%
+  client.test("evaluate returns 200", function() {
+    client.assert(response.status === 200, "Expected 200");
+  });
+%}
+
+### Ожидаемый ответ (пример)
+# {
+#   "overall_score": 82,
+#   "leadership_score": 87,
+#   "reason": "...",
+#   "detailed_feedback": "...",
+#   "evaluated_at": "2026-04-01T08:20:00.000000"
+# }
+
+### 5) Get final session status (после оценки)
+GET {{baseUrl}}/session/{{sessionId}}
+Accept: application/json
+
+### Ожидаемый ответ (пример)
+# {
+#   "session_id": 1,
+#   "status": "evaluated",
+#   "time_remaining_seconds": 700,
+#   "questions_count": 3,
+#   "has_answers": true,
+#   "evaluation": {
+#     "overall_score": 82,
+#     "leadership_score": 87,
+#     "reason": "...",
+#     "detailed_feedback": "...",
+#     "evaluated_at": "2026-04-01T08:20:00.000000"
+#   }
+# }
+
+### 6) Negative case: wrong session id
+GET {{baseUrl}}/session/999999
+Accept: application/json
+
+### Ожидаемо: 404
+# {
+#   "detail": "Сессия не найдена"
+# }

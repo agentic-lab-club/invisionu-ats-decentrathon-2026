@@ -1,0 +1,35 @@
+{
+  "version": "1.0.0",
+  "questions": {
+    "q1": {
+      "question_text": "Why are you applying to inVision U?",
+      "target_metrics": ["motivation", "planning"],
+      "primary_metric": "motivation"
+    },
+    "q2": {
+      "question_text": "Which program are you interested in and why?",
+      "target_metrics": ["motivation", "planning"],
+      "primary_metric": "planning"
+    },
+    "q3": {
+      "question_text": "What major challenge have you overcome, and what helped you through it?",
+      "target_metrics": ["resilience", "leadership", "values"],
+      "primary_metric": "resilience"
+    },
+    "q4": {
+      "question_text": "What are your long-term goals, and how will this program help you reach them? What motivates you in your life?",
+      "target_metrics": ["planning", "motivation"],
+      "primary_metric": "planning"
+    },
+    "q5": {
+      "question_text": "What does being a leader mean to you? Could you share an example of a time you showed leadership?",
+      "target_metrics": ["leadership", "values"],
+      "primary_metric": "leadership"
+    },
+    "q6": {
+      "question_text": "Does your family support your decision to join inVision U? Who is your biggest source of encouragement?",
+      "target_metrics": ["social_support", "resilience", "motivation"],
+      "primary_metric": "social_support"
+    }
+  }
+}

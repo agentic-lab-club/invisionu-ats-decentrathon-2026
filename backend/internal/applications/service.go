@@ -3,7 +3,10 @@ package applications
 import (
 	"context"
 	"fmt"
+<<<<<<< HEAD
 	"time"
+=======
+>>>>>>> 6b0b155e42d452c85448ede2ed708fcf55c63c87
 
 	platformMessaging "github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/platform/messaging"
 	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/pkg/config"
@@ -12,6 +15,7 @@ import (
 )
 
 type Service struct {
+<<<<<<< HEAD
 	repo    *Repository
 	cfg     *config.Config
 	bus     platformMessaging.Bus
@@ -124,6 +128,17 @@ func (s *Service) computeRecommendation(fusion map[string]float64) string {
         return "not_recommend"
     }
 }
+=======
+	repo *Repository
+	cfg  *config.Config
+	bus  platformMessaging.Bus
+}
+
+func NewService(repo *Repository, cfg *config.Config, bus platformMessaging.Bus) *Service {
+	return &Service{repo: repo, cfg: cfg, bus: bus}
+}
+
+>>>>>>> 6b0b155e42d452c85448ede2ed708fcf55c63c87
 func (s *Service) Create(ctx context.Context, userID uuid.UUID, req CreateRequest) (*CreateResponse, error) {
 	user, err := s.repo.FindUserByID(userID)
 	if err != nil {
@@ -152,7 +167,10 @@ func (s *Service) Create(ctx context.Context, userID uuid.UUID, req CreateReques
 		return nil, fmt.Errorf("program is invalid or inactive")
 	}
 
+<<<<<<< HEAD
 	// Валидация файлов
+=======
+>>>>>>> 6b0b155e42d452c85448ede2ed708fcf55c63c87
 	fileIDs := []struct {
 		id       *uuid.UUID
 		fileType string
@@ -162,6 +180,10 @@ func (s *Service) Create(ctx context.Context, userID uuid.UUID, req CreateReques
 		{id: req.EnglishResultFileID, fileType: "english_result"},
 		{id: req.CertificateFileID, fileType: "certificate"},
 	}
+<<<<<<< HEAD
+=======
+
+>>>>>>> 6b0b155e42d452c85448ede2ed708fcf55c63c87
 	for _, item := range fileIDs {
 		if item.id == nil {
 			continue
@@ -184,7 +206,10 @@ func (s *Service) Create(ctx context.Context, userID uuid.UUID, req CreateReques
 		}
 	}
 
+<<<<<<< HEAD
 	// Валидация ответов теста
+=======
+>>>>>>> 6b0b155e42d452c85448ede2ed708fcf55c63c87
 	for _, answer := range req.PersonalityTestAnswers {
 		valid, err := s.repo.ValidateAnswerPair(answer.QuestionID, answer.OptionID)
 		if err != nil {
@@ -195,11 +220,14 @@ func (s *Service) Create(ctx context.Context, userID uuid.UUID, req CreateReques
 		}
 	}
 
+<<<<<<< HEAD
 	scores, err := s.computePersonalityScores(req.PersonalityTestAnswers)
 	if err != nil {
 		return nil, err
 	}
 
+=======
+>>>>>>> 6b0b155e42d452c85448ede2ed708fcf55c63c87
 	tx, err := s.repo.BeginTx()
 	if err != nil {
 		return nil, err
@@ -210,7 +238,11 @@ func (s *Service) Create(ctx context.Context, userID uuid.UUID, req CreateReques
 		return nil, err
 	}
 
+<<<<<<< HEAD
 	app, err := s.repo.CreateApplication(tx, userID, program.ID, req.VideoFileID, timekit.NowUTC())
+=======
+	application, err := s.repo.CreateApplication(tx, userID, program.ID, req.VideoFileID, timekit.NowUTC())
+>>>>>>> 6b0b155e42d452c85448ede2ed708fcf55c63c87
 	if err != nil {
 		return nil, err
 	}
@@ -219,17 +251,26 @@ func (s *Service) Create(ctx context.Context, userID uuid.UUID, req CreateReques
 		if item.id == nil {
 			continue
 		}
+<<<<<<< HEAD
 		if err := s.repo.AttachFileToApplication(tx, app.ID, *item.id); err != nil {
+=======
+		if err := s.repo.AttachFileToApplication(tx, application.ID, *item.id); err != nil {
+>>>>>>> 6b0b155e42d452c85448ede2ed708fcf55c63c87
 			return nil, err
 		}
 	}
 
 	for _, answer := range req.PersonalityTestAnswers {
+<<<<<<< HEAD
 		if err := s.repo.InsertApplicationTestAnswer(tx, app.ID, answer.QuestionID, answer.OptionID); err != nil {
+=======
+		if err := s.repo.InsertApplicationTestAnswer(tx, application.ID, answer.QuestionID, answer.OptionID); err != nil {
+>>>>>>> 6b0b155e42d452c85448ede2ed708fcf55c63c87
 			return nil, err
 		}
 	}
 
+<<<<<<< HEAD
 	scoringRun := &ScoringRun{
 		ID:            uuid.New(),
 		ApplicationID: app.ID,
@@ -254,3 +295,19 @@ func (s *Service) Create(ctx context.Context, userID uuid.UUID, req CreateReques
 func (s *Service) Status(ctx context.Context, userID uuid.UUID) (*StatusResponse, error) {
 	return s.repo.FindStatusByUserID(userID)
 }
+=======
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("failed to commit application transaction: %w", err)
+	}
+
+	if err := s.bus.Publish(ctx, s.cfg.Messaging.ApplicationSubmittedKey, SubmittedEvent{ApplicationID: application.ID}); err != nil {
+		return nil, err
+	}
+
+	return &CreateResponse{ApplicationID: application.ID}, nil
+}
+
+func (s *Service) Status(_ context.Context, userID uuid.UUID) (*StatusResponse, error) {
+	return s.repo.FindStatusByUserID(userID)
+}
+>>>>>>> 6b0b155e42d452c85448ede2ed708fcf55c63c87
