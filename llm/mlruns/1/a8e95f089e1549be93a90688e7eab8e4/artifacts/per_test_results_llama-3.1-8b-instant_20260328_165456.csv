@@ -1,7 +1,0 @@
-test_id,label,path,schema_pass,latency_sec,model,attempt,motivation,leadership_potential,response_structure,total,error
-good_1,good,test_inputs/good_candidate_1.txt,1,2.1343,llama-3.1-8b-instant,1,20,23,20,63,
-good_2,good,test_inputs/good_candidate_2.txt,1,1.2941,llama-3.1-8b-instant,1,22,27,24,73,
-mid_1,middle,test_inputs/middle_candidate_1.txt,1,1.4326,llama-3.1-8b-instant,1,12,13,14,39,
-mid_2,middle,test_inputs/middle_candidate_2.txt,0,43.9392,llama-3.1-8b-instant,,,,,,"Ошибка Groq API: Error code: 429 - {'error': {'message': 'Rate limit reached for model `llama-3.1-8b-instant` in organization `org_01k8wvs680fnfb1k2frfrmjj73` service tier `on_demand` on tokens per minute (TPM): Limit 6000, Used 3783, Requested 2460. Please try again in 2.43s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}"
-bad_1,bad,test_inputs/bad_candidate_1.txt,1,1.6319,llama-3.1-8b-instant,1,5,6,5,16,
-bad_2,bad,test_inputs/bad_candidate_2.txt,1,19.1497,llama-3.1-8b-instant,1,5,1,5,11,
