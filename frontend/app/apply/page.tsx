@@ -461,13 +461,17 @@ useEffect(() => {
       }
       const data = await res.json();
       // ожидаем: { test_id, code, title, questions: [...] }
-      if (data.questions && Array.isArray(data.questions)) {
-        setQuestions(data.questions);
-        setSelectedOptionIds(Array(data.questions.length).fill(''));
-        setTestError(null);
-      } else {
-        throw new Error('Invalid test data format');
-      }
+if (data.questions && Array.isArray(data.questions)) {
+  setQuestions(data.questions);
+  setSelectedOptionIds(Array(data.questions.length).fill(''));
+} else if (data.test?.questions) {
+  // fallback если вложено
+  setQuestions(data.test.questions);
+  setSelectedOptionIds(Array(data.test.questions.length).fill(''));
+} else {
+  throw new Error('Invalid test data format');
+}
+
     } catch (err: any) {
       console.error('Failed to fetch personality test', err);
       setTestError(err.message || 'Could not load personality test. Please refresh or contact support.');
@@ -525,17 +529,18 @@ useEffect(() => {
       option_id: selectedOptionIds[idx],
     }));
 
-    const payload = {
-      first_name:   formData.firstName,
-      last_name:    formData.lastName,
-      phone_number: formData.phoneNumber,
-      program_code: formData.programCode,
-      video_file_id: formData.videoFileId,
-      portfolio_file_id: formData.portfolioFileId || '',
-      certificate_file_id: formData.certificateFileId || '',
-      english_result_file_id: formData.englishResultFileId || '',
-      personality_test_answers,
-    };
+const payload = {
+  first_name:   formData.firstName,
+  last_name:    formData.lastName,
+  phone_number: formData.phoneNumber,
+  program_code: formData.programCode,
+  video_file_id: formData.videoFileId,
+  // передаём только если заполнено
+  ...(formData.portfolioFileId     && { portfolio_file_id:      formData.portfolioFileId }),
+  ...(formData.certificateFileId   && { certificate_file_id:    formData.certificateFileId }),
+  ...(formData.englishResultFileId && { english_result_file_id: formData.englishResultFileId }),
+  personality_test_answers,
+};
 
     const token = getAccessToken();
     if (!token) {
@@ -546,7 +551,7 @@ useEffect(() => {
     }
 
     try {
-      const res = await fetch(`${API_URL}/applications`, {
+      const res = await fetch('/api/backend/applications', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -555,7 +560,8 @@ useEffect(() => {
         body: JSON.stringify(payload),
       });
 
-      const data = await res.json();
+const data = await res.json();
+console.log('personality test response:', data);
 
       if (res.status === 401) {
         setError('Session expired. Please sign in again.');

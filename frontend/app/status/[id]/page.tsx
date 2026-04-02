@@ -31,33 +31,44 @@ export default function StatusPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    const fetchDetail = async () => {
-      const token = getAccessToken();
-      if (!token) {
-        router.push('/login');
+useEffect(() => {
+  const fetchStatus = async () => {
+    const token = getAccessToken();
+    if (!token) {
+      router.push('/login');
+      return;
+    }
+    try {
+      // Вместо candidates/{id} используем applications/status
+      const res = await fetch('/api/backend/applications/status', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.status === 404) {
+        setError('No application found.');
+        setLoading(false);
         return;
       }
-      try {
-        const res = await fetch(`/api/backend/candidates/${applicationId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.status === 404) {
-          setError('Application not found.');
-          setLoading(false);
-          return;
-        }
-        if (!res.ok) throw new Error('Failed to fetch');
-        const data = await res.json();
-        setCandidate(data);
-      } catch (err: any) {
-        setError(err.message || 'Something went wrong');
-      } finally {
-        setLoading(false);
-      }
-    };
-    if (applicationId) fetchDetail();
-  }, [applicationId, router]);
+      if (!res.ok) throw new Error('Failed to fetch');
+      const data = await res.json();
+      // Эндпоинт возвращает { application_id, review_stage, decision, screening_error }
+      setCandidate({
+        application_id: data.application_id,
+        first_name: '', // этих полей нет в ответе, можно убрать или загрузить отдельно
+        last_name: '',
+        program_name: '',
+        review_stage: data.review_stage,
+        decision: data.decision,
+        screening_error: data.screening_error,
+      });
+    } catch (err: any) {
+      setError(err.message || 'Something went wrong');
+    } finally {
+      setLoading(false);
+    }
+  };
+  fetchStatus();
+}, [router]);
+
 
   if (loading) {
     return (
