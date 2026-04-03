@@ -2,7 +2,7 @@
 
 import { Suspense, useState } from 'react';
 import { Users, Play } from 'lucide-react';
-import CandidatesTable from '@/components/candidates/CandidatesTable';
+import CandidatesTable from '@/components/candidates/CandidatesTableWithFavorites';
 import CandidateFilters from '@/components/candidates/CandidateFilters';
 import { OnboardingTour, useOnboarding } from '@/components/tours/Onboardingtour';
 

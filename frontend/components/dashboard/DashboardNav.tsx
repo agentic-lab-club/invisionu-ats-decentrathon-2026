@@ -34,6 +34,7 @@ export default function DashboardNav({ children, activeTab }: DashboardNavProps)
   const navigationItems: NavItem[] = [
     { id: 'candidates', label: 'Candidates', icon: <Users className="w-4 h-4" />, href: '/' },
     { id: 'statistics', label: 'Statistics',  icon: <BarChart2 className="w-4 h-4" />, href: '/statistics' },
+    { id: 'favorites',   label: 'Favorites',    icon: <Settings className="w-4 h-4" />, href: '/favorites' },
     { id: 'settings',   label: 'Settings',    icon: <Settings className="w-4 h-4" />, href: '/settings' },
   ];
 
