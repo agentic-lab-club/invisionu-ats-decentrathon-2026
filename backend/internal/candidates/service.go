@@ -1,6 +1,10 @@
 package candidates
 
-import "github.com/google/uuid"
+import (
+	"fmt"
+
+	"github.com/google/uuid"
+)
 
 type Service struct {
 	repo *Repository
@@ -20,4 +24,11 @@ func (s *Service) Detail(applicationID uuid.UUID) (*Detail, error) {
 
 func (s *Service) UpdateStage(applicationID uuid.UUID, req UpdateStageRequest) error {
 	return s.repo.UpdateStage(applicationID, req.ReviewStage, req.Decision)
+}
+
+func (s *Service) SmartFilter(preset string) ([]ListItem, error) {
+	if _, ok := ValidSmartFilterPresets[preset]; !ok {
+		return nil, fmt.Errorf("invalid preset: %s", preset)
+	}
+	return s.repo.SmartFilter(preset)
 }

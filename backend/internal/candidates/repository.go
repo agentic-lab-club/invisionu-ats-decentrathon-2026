@@ -139,6 +139,30 @@ func (r *Repository) UpdateStage(applicationID uuid.UUID, reviewStage string, de
 	return nil
 }
 
+// SmartFilter returns candidates matching one of the predefined smart-filter presets.
+// Each preset maps to a dedicated SQL query that filters on JSONB scoring metrics.
+func (r *Repository) SmartFilter(preset string) ([]ListItem, error) {
+	var query string
+	switch preset {
+	case PresetHighPotentialLowEnglish:
+		query = smartFilterHighPotentialLowEnglishQuery
+	case PresetStrongMotivationWeakSoft:
+		query = smartFilterStrongMotivationWeakSoftQuery
+	case PresetLowMotivationHighBackground:
+		query = smartFilterLowMotivationHighBackgroundQuery
+	case PresetTop10Percent:
+		query = smartFilterTop10PercentQuery
+	default:
+		return nil, fmt.Errorf("unknown smart filter preset: %s", preset)
+	}
+
+	var items []ListItem
+	if err := r.db.TrackedSelect(&items, query); err != nil {
+		return nil, fmt.Errorf("smart filter query failed (preset=%s): %w", preset, err)
+	}
+	return items, nil
+}
+
 func emptyToNil(value string) any {
 	value = strings.TrimSpace(value)
 	if value == "" {

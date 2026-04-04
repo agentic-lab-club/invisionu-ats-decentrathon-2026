@@ -94,3 +94,31 @@ func (h *Handler) UpdateStage(c fiber.Ctx) error {
 type MessageResponse struct {
 	Message string `json:"message"`
 }
+
+// SmartFilter godoc
+// @Summary Smart filter candidates by preset
+// @Description Returns candidates matching a predefined smart-filter preset based on LLM scoring metrics.
+// @Tags @candidates
+// @Produce json
+// @Security BearerToken
+// @Param preset query string true "Smart filter preset ID" Enums(high_potential_low_english,strong_motivation_weak_soft,low_motivation_high_background,top10_percent)
+// @Success 200 {object} SmartFilterResponse
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /candidates/smart-filter [get]
+func (h *Handler) SmartFilter(c fiber.Ctx) error {
+	preset := c.Query("preset")
+	if preset == "" {
+		return respond.ErrorStatus(c, fmt.Errorf("preset query parameter is required"), fiber.StatusBadRequest)
+	}
+	if _, ok := ValidSmartFilterPresets[preset]; !ok {
+		return respond.ErrorStatus(c, fmt.Errorf("invalid preset: %s", preset), fiber.StatusBadRequest)
+	}
+
+	items, err := h.service.SmartFilter(preset)
+	if err != nil {
+		return respond.ErrorStatus(c, err, fiber.StatusInternalServerError)
+	}
+	return respond.OK(c, SmartFilterResponse{Preset: preset, Items: items}, nil)
+}

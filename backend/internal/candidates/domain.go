@@ -54,6 +54,28 @@ type ScoringResult struct {
 	CreatedAt      time.Time       `db:"created_at"     json:"created_at"`
 }
 
+// SmartFilter preset identifiers — must match frontend PRESETS[].id values.
+const (
+	PresetHighPotentialLowEnglish    = "high_potential_low_english"
+	PresetStrongMotivationWeakSoft   = "strong_motivation_weak_soft"
+	PresetLowMotivationHighBackground = "low_motivation_high_background"
+	PresetTop10Percent               = "top10_percent"
+)
+
+// ValidSmartFilterPresets is the full set of allowed preset values.
+var ValidSmartFilterPresets = map[string]struct{}{
+	PresetHighPotentialLowEnglish:    {},
+	PresetStrongMotivationWeakSoft:   {},
+	PresetLowMotivationHighBackground: {},
+	PresetTop10Percent:               {},
+}
+
+// SmartFilterResponse wraps the result list for the smart-filter endpoint.
+type SmartFilterResponse struct {
+	Preset string     `json:"preset"`
+	Items  []ListItem `json:"items"`
+}
+
 type UpdateStageRequest struct {
 	ReviewStage string  `json:"review_stage" validate:"required,oneof=initial_screening application_review decision"`
 	Decision    *string `json:"decision,omitempty" validate:"omitempty,oneof=pending accepted rejected"`

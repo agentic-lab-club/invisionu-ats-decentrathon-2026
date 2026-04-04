@@ -19,3 +19,15 @@ var getLatestScoringRunByModelQuery string
 
 //go:embed queries/update_candidate_stage.sql
 var updateCandidateStageQuery string
+
+//go:embed queries/smart_filter_high_potential_low_english.sql
+var smartFilterHighPotentialLowEnglishQuery string
+
+//go:embed queries/smart_filter_strong_motivation_weak_soft.sql
+var smartFilterStrongMotivationWeakSoftQuery string
+
+//go:embed queries/smart_filter_low_motivation_high_background.sql
+var smartFilterLowMotivationHighBackgroundQuery string
+
+//go:embed queries/smart_filter_top10_percent.sql
+var smartFilterTop10PercentQuery string
