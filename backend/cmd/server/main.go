@@ -50,6 +50,7 @@ import (
 	"github.com/gofiber/fiber/v3/middleware/cors"
 	"github.com/gofiber/fiber/v3/middleware/recover"
 	"github.com/rs/zerolog/log"
+	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/favorites"
 )
 
 func main() {
@@ -137,7 +138,7 @@ func main() {
 	assets.Init(server, trackedDB, accessManager, objectStorage)
 	applications.Init(server, trackedDB, cfg, accessManager, messageBus, objectStorage)
 	candidates.Init(server, trackedDB, accessManager)
-
+	favorites.Init(server, trackedDB, accessManager)
 	log.Info().Str("event", "init_http_server_success").Int("port", cfg.Server.Port).Msg("HTTP server initialized successfully")
 
 	if err := server.Listen(fmt.Sprintf(":%d", cfg.Server.Port)); err != nil {
