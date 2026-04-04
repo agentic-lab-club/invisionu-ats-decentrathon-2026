@@ -10,7 +10,8 @@
 - Принимает presigned URL аудиофайла (`file_url`)
 - Сам скачивает аудио по URL
 - Отправляет файл в Groq Whisper API
-- Возвращает распознанный текст в JSON
+- Удаляет/анонимизирует персональные данные через Microsoft Presidio
+- Возвращает очищенный распознанный текст в JSON
 
 ---
 
@@ -20,6 +21,7 @@
 - FastAPI + Uvicorn
 - groq SDK
 - python-dotenv
+- Microsoft Presidio (analyzer + anonymizer)
 
 ---
 
