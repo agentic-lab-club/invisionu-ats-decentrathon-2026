@@ -163,6 +163,87 @@ func (r *Repository) SmartFilter(preset string) ([]ListItem, error) {
 	return items, nil
 }
 
+// AdvancedFilter returns candidates matching arbitrary metric range constraints.
+// All constraints are optional; omitted fields impose no restriction.
+func (r *Repository) AdvancedFilter(p AdvancedFilterParams) ([]ListItem, error) {
+	base := `
+SELECT
+    a.id AS application_id,
+    TRIM(COALESCE(u.first_name, '') || ' ' || COALESCE(u.last_name, '')) AS full_name,
+    p.name AS program_name,
+    a.review_stage,
+    a.decision,
+    sr.recommendation
+FROM applications a
+JOIN users u ON u.id = a.user_id
+JOIN programs p ON p.id = a.program_id
+JOIN LATERAL (
+    SELECT recommendation, result_json
+    FROM scoring_runs
+    WHERE application_id = a.id
+    ORDER BY created_at DESC
+    LIMIT 1
+) sr ON TRUE
+WHERE 1=1
+`
+	args := []any{}
+	i := 1
+
+	// helper: adds a JSONB numeric range constraint
+	addMetric := func(path, subkey string, min, max *float64) {
+		expr := fmt.Sprintf("(sr.result_json -> '%s' ->> '%s')", path, subkey)
+		if min != nil {
+			base += fmt.Sprintf(" AND (%s) IS NOT NULL AND (%s)::float >= $%d", expr, expr, i)
+			args = append(args, *min)
+			i++
+		}
+		if max != nil {
+			base += fmt.Sprintf(" AND (%s) IS NOT NULL AND (%s)::float <= $%d", expr, expr, i)
+			args = append(args, *max)
+			i++
+		}
+	}
+
+	addMetric("aggregated_metrics", "Motivation", p.MotivationMin, p.MotivationMax)
+	addMetric("aggregated_metrics", "Leadership", p.LeadershipMin, p.LeadershipMax)
+	addMetric("aggregated_metrics", "Planning", p.PlanningMin, p.PlanningMax)
+	addMetric("aggregated_metrics", "Resilience", p.ResilienceMin, p.ResilienceMax)
+	addMetric("aggregated_metrics", "Values", p.ValuesMin, p.ValuesMax)
+	addMetric("aggregated_metrics", "Social_Support", p.SocialSupportMin, p.SocialSupportMax)
+	addMetric("global_score", "AdmissionsPotential", p.AdmissionsPotentialMin, p.AdmissionsPotentialMax)
+	addMetric("global_score", "LeadershipIndex", p.LeadershipIndexMin, p.LeadershipIndexMax)
+
+	// Standard list filters
+	if p.ProgramCode != "" {
+		base += fmt.Sprintf(" AND p.code = $%d", i)
+		args = append(args, p.ProgramCode)
+		i++
+	}
+	if p.ReviewStage != "" {
+		base += fmt.Sprintf(" AND a.review_stage = $%d", i)
+		args = append(args, p.ReviewStage)
+		i++
+	}
+	if p.Decision != "" {
+		base += fmt.Sprintf(" AND a.decision = $%d", i)
+		args = append(args, p.Decision)
+		i++
+	}
+	if p.Search != "" {
+		base += fmt.Sprintf(` AND (LOWER(u.first_name || ' ' || u.last_name) LIKE LOWER($%d) OR LOWER(u.email) LIKE LOWER($%d))`, i, i)
+		args = append(args, "%"+p.Search+"%")
+		i++
+	}
+
+	base += " ORDER BY (sr.result_json -> 'global_score' ->> 'AdmissionsPotential')::float DESC NULLS LAST"
+
+	var items []ListItem
+	if err := r.db.TrackedSelect(&items, base, args...); err != nil {
+		return nil, fmt.Errorf("advanced filter query failed: %w", err)
+	}
+	return items, nil
+}
+
 func emptyToNil(value string) any {
 	value = strings.TrimSpace(value)
 	if value == "" {

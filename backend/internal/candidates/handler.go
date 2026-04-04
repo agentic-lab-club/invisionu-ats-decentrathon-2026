@@ -2,6 +2,7 @@ package candidates
 
 import (
 	"fmt"
+	"strconv"
 
 	respond "github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/pkg/http/responder"
 	"github.com/gofiber/fiber/v3"
@@ -89,6 +90,80 @@ func (h *Handler) UpdateStage(c fiber.Ctx) error {
 		return respond.ErrorStatus(c, err, fiber.StatusBadRequest)
 	}
 	return respond.OK(c, MessageResponse{Message: "Candidate stage updated"}, nil)
+}
+
+// AdvancedFilter godoc
+// @Summary Advanced metric-range filter for candidates
+// @Description Returns candidates within optional min/max ranges for each LLM scoring metric.
+// @Tags @candidates
+// @Produce json
+// @Security BearerToken
+// @Param motivation_min    query number false "Min Motivation (0–5)"
+// @Param motivation_max    query number false "Max Motivation (0–5)"
+// @Param leadership_min   query number false "Min Leadership (0–5)"
+// @Param leadership_max   query number false "Max Leadership (0–5)"
+// @Param planning_min     query number false "Min Planning (0–5)"
+// @Param planning_max     query number false "Max Planning (0–5)"
+// @Param resilience_min   query number false "Min Resilience (0–5)"
+// @Param resilience_max   query number false "Max Resilience (0–5)"
+// @Param values_min       query number false "Min Values (0–5)"
+// @Param values_max       query number false "Max Values (0–5)"
+// @Param social_support_min query number false "Min Social Support (0–5)"
+// @Param social_support_max query number false "Max Social Support (0–5)"
+// @Param admissions_potential_min query number false "Min Admissions Potential (0–5)"
+// @Param admissions_potential_max query number false "Max Admissions Potential (0–5)"
+// @Param leadership_index_min query number false "Min Leadership Index (0–5)"
+// @Param leadership_index_max query number false "Max Leadership Index (0–5)"
+// @Param program_code     query string false "Filter by program code"
+// @Param review_stage     query string false "Filter by review stage"
+// @Param decision         query string false "Filter by decision"
+// @Param search           query string false "Search by name or email"
+// @Success 200 {object} AdvancedFilterResponse
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /candidates/advanced-filter [get]
+func (h *Handler) AdvancedFilter(c fiber.Ctx) error {
+	parseFloat := func(key string) *float64 {
+		v := c.Query(key)
+		if v == "" {
+			return nil
+		}
+		f, err := strconv.ParseFloat(v, 64)
+		if err != nil {
+			return nil
+		}
+		return &f
+	}
+
+	p := AdvancedFilterParams{
+		MotivationMin:          parseFloat("motivation_min"),
+		MotivationMax:          parseFloat("motivation_max"),
+		LeadershipMin:          parseFloat("leadership_min"),
+		LeadershipMax:          parseFloat("leadership_max"),
+		PlanningMin:            parseFloat("planning_min"),
+		PlanningMax:            parseFloat("planning_max"),
+		ResilienceMin:          parseFloat("resilience_min"),
+		ResilienceMax:          parseFloat("resilience_max"),
+		ValuesMin:              parseFloat("values_min"),
+		ValuesMax:              parseFloat("values_max"),
+		SocialSupportMin:       parseFloat("social_support_min"),
+		SocialSupportMax:       parseFloat("social_support_max"),
+		AdmissionsPotentialMin: parseFloat("admissions_potential_min"),
+		AdmissionsPotentialMax: parseFloat("admissions_potential_max"),
+		LeadershipIndexMin:     parseFloat("leadership_index_min"),
+		LeadershipIndexMax:     parseFloat("leadership_index_max"),
+		ProgramCode:            c.Query("program_code"),
+		ReviewStage:            c.Query("review_stage"),
+		Decision:               c.Query("decision"),
+		Search:                 c.Query("search"),
+	}
+
+	items, err := h.service.AdvancedFilter(p)
+	if err != nil {
+		return respond.ErrorStatus(c, err, fiber.StatusInternalServerError)
+	}
+	return respond.OK(c, AdvancedFilterResponse{Items: items}, nil)
 }
 
 type MessageResponse struct {

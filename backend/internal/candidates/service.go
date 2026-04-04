@@ -32,3 +32,7 @@ func (s *Service) SmartFilter(preset string) ([]ListItem, error) {
 	}
 	return s.repo.SmartFilter(preset)
 }
+
+func (s *Service) AdvancedFilter(p AdvancedFilterParams) ([]ListItem, error) {
+	return s.repo.AdvancedFilter(p)
+}

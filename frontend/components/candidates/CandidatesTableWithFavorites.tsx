@@ -9,6 +9,7 @@ import {
 import { getAccessToken } from '@/lib/auth';
 import StatusBadge from '@/components/ui/StatusBadge';
 import FavoriteButton from '@/components/ui/FavoriteButton';
+import type { AdvancedFilterState } from './CandidateAdvancedFilters';
 
 // ================== Types ==================
 interface Candidate {
@@ -26,6 +27,7 @@ interface Candidate {
 
 interface CandidatesTableProps {
   preset?: string | null;
+  advancedFilter?: AdvancedFilterState | null;
   showFavorites?: boolean;
 }
 
@@ -123,7 +125,7 @@ function TableSkeleton() {
 }
 
 // ================== Main Component ==================
-export default function CandidatesTable({ preset, showFavorites = true }: CandidatesTableProps) {
+export default function CandidatesTable({ preset, advancedFilter, showFavorites = true }: CandidatesTableProps) {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [loading, setLoading] = useState(true);
   const [sortField, setSortField] = useState<'full_name' | 'program_name' | 'overall_score'>('overall_score');
@@ -146,13 +148,37 @@ export default function CandidatesTable({ preset, showFavorites = true }: Candid
         return;
       }
 
-      // When a smart filter preset is active → hit the dedicated endpoint.
-      // Otherwise fall back to the standard candidates list.
       let url: URL;
-      if (preset) {
+
+      if (advancedFilter) {
+        // Advanced metric-range filter
+        url = new URL('/api/backend/candidates/advanced-filter', window.location.origin);
+        const af = advancedFilter;
+        const METRIC_MAX = 5;
+
+        const addRange = (param: string, range: { min: number; max: number }) => {
+          if (range.min > 0)         url.searchParams.set(`${param}_min`, range.min.toString());
+          if (range.max < METRIC_MAX) url.searchParams.set(`${param}_max`, range.max.toString());
+        };
+
+        addRange('motivation',            af.motivation);
+        addRange('leadership',            af.leadership);
+        addRange('planning',              af.planning);
+        addRange('resilience',            af.resilience);
+        addRange('values',                af.values);
+        addRange('social_support',        af.social_support);
+        addRange('admissions_potential',  af.admissions_potential);
+        addRange('leadership_index',      af.leadership_index);
+
+        if (af.program_code)  url.searchParams.set('program_code', af.program_code);
+        if (af.review_stage)  url.searchParams.set('review_stage', af.review_stage);
+
+      } else if (preset) {
+        // Smart filter preset
         url = new URL('/api/backend/candidates/smart-filter', window.location.origin);
         url.searchParams.set('preset', preset);
       } else {
+        // Default full list
         url = new URL('/api/backend/candidates', window.location.origin);
         url.searchParams.set('program_code', '');
         url.searchParams.set('review_stage', '');
@@ -165,7 +191,7 @@ export default function CandidatesTable({ preset, showFavorites = true }: Candid
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
-        // smart-filter returns { preset, items } — list returns { items }
+        // smart-filter returns { preset, items } — advanced-filter and list return { items }
         const items = data?.items ?? (Array.isArray(data) ? data : []);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const mapped = items.map((item: any) => {
@@ -203,7 +229,7 @@ export default function CandidatesTable({ preset, showFavorites = true }: Candid
       }
     };
     fetchCandidates();
-  }, [preset]);
+  }, [preset, advancedFilter]);
 
   const handleSort = (field: typeof sortField) => {
     if (sortField === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
@@ -250,7 +276,7 @@ export default function CandidatesTable({ preset, showFavorites = true }: Candid
         <div className="flex items-center gap-3">
           <p className="text-[11px] uppercase tracking-widest text-gray-400 font-semibold">
             {sorted.length} candidate{sorted.length !== 1 ? 's' : ''}
-            {preset && <span className="ml-1.5 text-[#4d7c0f] normal-case tracking-normal">· filtered</span>}
+            {(preset || advancedFilter) && <span className="ml-1.5 text-[#4d7c0f] normal-case tracking-normal">· filtered</span>}
           </p>
           <div className="flex items-center gap-1 border-l border-gray-100 pl-3">
             {statusFilterButtons.map(s => {

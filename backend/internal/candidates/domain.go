@@ -54,6 +54,41 @@ type ScoringResult struct {
 	CreatedAt      time.Time       `db:"created_at"     json:"created_at"`
 }
 
+// AdvancedFilterParams holds all metric range constraints for the advanced filter endpoint.
+// Every field is optional (zero value = no constraint).
+type AdvancedFilterParams struct {
+	// LLM aggregated_metrics ranges (scale 0–5)
+	MotivationMin    *float64
+	MotivationMax    *float64
+	LeadershipMin    *float64
+	LeadershipMax    *float64
+	PlanningMin      *float64
+	PlanningMax      *float64
+	ResilienceMin    *float64
+	ResilienceMax    *float64
+	ValuesMin        *float64
+	ValuesMax        *float64
+	SocialSupportMin *float64
+	SocialSupportMax *float64
+
+	// global_score ranges (scale 0–5)
+	AdmissionsPotentialMin *float64
+	AdmissionsPotentialMax *float64
+	LeadershipIndexMin     *float64
+	LeadershipIndexMax     *float64
+
+	// Standard list filters
+	ProgramCode string
+	ReviewStage string
+	Decision    string
+	Search      string
+}
+
+// AdvancedFilterResponse wraps the result for the advanced filter endpoint.
+type AdvancedFilterResponse struct {
+	Items []ListItem `json:"items"`
+}
+
 // SmartFilter preset identifiers — must match frontend PRESETS[].id values.
 const (
 	PresetHighPotentialLowEnglish    = "high_potential_low_english"

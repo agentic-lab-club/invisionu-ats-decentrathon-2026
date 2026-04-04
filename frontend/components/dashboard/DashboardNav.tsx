@@ -35,7 +35,6 @@ export default function DashboardNav({ children, activeTab }: DashboardNavProps)
     { id: 'candidates', label: 'Candidates', icon: <Users className="w-4 h-4" />, href: '/' },
     { id: 'favorites',   label: 'Favorites',    icon: <Heart className="w-4 h-4" />, href: '/favorites' },
     { id: 'statistics', label: 'Statistics',  icon: <BarChart2 className="w-4 h-4" />, href: '/statistics' },
-    { id: 'settings',   label: 'Settings',    icon: <Settings className="w-4 h-4" />, href: '/settings' },
   ];
 
   const handleLogout = () => {
