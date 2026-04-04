@@ -146,17 +146,26 @@ export default function CandidatesTable({ preset, showFavorites = true }: Candid
         return;
       }
 
-      const url = new URL('/api/backend/candidates', window.location.origin);
-      url.searchParams.set('program_code', '');
-      url.searchParams.set('review_stage', '');
-      url.searchParams.set('decision', '');
-      url.searchParams.set('search', '');
+      // When a smart filter preset is active → hit the dedicated endpoint.
+      // Otherwise fall back to the standard candidates list.
+      let url: URL;
+      if (preset) {
+        url = new URL('/api/backend/candidates/smart-filter', window.location.origin);
+        url.searchParams.set('preset', preset);
+      } else {
+        url = new URL('/api/backend/candidates', window.location.origin);
+        url.searchParams.set('program_code', '');
+        url.searchParams.set('review_stage', '');
+        url.searchParams.set('decision', '');
+        url.searchParams.set('search', '');
+      }
 
       try {
         const res = await fetch(url.toString(), {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
+        // smart-filter returns { preset, items } — list returns { items }
         const items = data?.items ?? (Array.isArray(data) ? data : []);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const mapped = items.map((item: any) => {
