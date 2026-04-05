@@ -606,7 +606,7 @@ app = FastAPI(
 
 
 @app.get(
-    "/",
+    "/get_news",
     response_model=list[NewsItem],
     summary="Список всех релевантных новостей",
 )
