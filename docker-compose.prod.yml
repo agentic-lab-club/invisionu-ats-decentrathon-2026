@@ -1,0 +1,192 @@
+networks:
+  invisionu-aws:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  chroma_data:
+
+services:
+  # ------------
+  # Reviewer Flow: The ATS Platform and Admin Panel/Dashboards (Applicant, Admission Committee)
+  # ------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        BACKEND_INTERNAL_URL: ${BACKEND_INTERNAL_URL:-http://backend:8080}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_HOST_PORT:-3000}:3000"
+    env_file:
+      - ${COMPOSE_ENV_FILE:-/opt/invisionu-ats/runtime/env/.env.prod}
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - invisionu-aws
+
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    env_file:
+      - ${COMPOSE_ENV_FILE:-/opt/invisionu-ats/runtime/env/.env.prod}
+    environment:
+      POSTGRES_DB: ${DB_DATABASE}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_DATABASE}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks:
+      - invisionu-aws
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: runner
+    restart: unless-stopped
+    command: ["-config=prod"]
+    env_file:
+      - ${COMPOSE_ENV_FILE:-/opt/invisionu-ats/runtime/env/.env.prod}
+    ports:
+      - "${BACKEND_HOST_PORT:-8080}:8080"
+    volumes:
+      - ${BACKEND_CONFIG_FILE:-/opt/invisionu-ats/runtime/config/config.prod.yaml}:/app/config/config.prod.yaml:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/health >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+    networks:
+      - invisionu-aws
+
+  llmscoring:
+    build:
+      context: ./llm
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ${COMPOSE_ENV_FILE:-/opt/invisionu-ats/runtime/env/.env.prod}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:9094/docs >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - invisionu-aws
+
+  sttwhisper:
+    build:
+      context: ./STT
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ${COMPOSE_ENV_FILE:-/opt/invisionu-ats/runtime/env/.env.prod}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:9095/docs >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - invisionu-aws
+
+  aidetect:
+    build:
+      context: ./AI_Detecter-service
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9873/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 4
+    networks:
+      - invisionu-aws
+
+  # ------------
+  # Inbound Flow: The RAG AI Chat Bot (Applicant)
+  # 
+  # ------------
+  rag-app:
+    build:
+      context: ./tg_bot_rag/KazRAGUNIProject
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ${COMPOSE_ENV_FILE:-/opt/invisionu-ats/runtime/env/.env.prod}
+    environment:
+      CHROMA_URL: ${CHROMA_URL:-http://chroma:8000}
+    depends_on:
+      chroma:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - invisionu-aws
+
+  chroma:
+    image: ghcr.io/chroma-core/chroma:latest
+    restart: unless-stopped
+    volumes:
+      - chroma_data:/chroma/chroma
+    healthcheck:
+      test: ["CMD", "chroma", "--version"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    networks:
+      - invisionu-aws
+
+  telegram-bot:
+    build:
+      context: ./tg_bot_rag/KazRAGUNIProject
+      dockerfile: Dockerfile
+    command: ["python", "telegram_bot.py"]
+    restart: unless-stopped
+    env_file:
+      - ${COMPOSE_ENV_FILE:-/opt/invisionu-ats/runtime/env/.env.prod}
+    environment:
+      RAG_INVOKE_URL: ${RAG_INVOKE_URL:-http://rag-app:8000/rag/invoke}
+      RAG_TIMEOUT_SECONDS: ${RAG_TIMEOUT_SECONDS:-60}
+    depends_on:
+      rag-app:
+        condition: service_healthy
+    networks:
+      - invisionu-aws
+
+  # ------------
+  # Outbound Flow: The Proactive Scraper
+  # Goal: Find talent before they apply.
+  # ------------
+  scraper:
+    build:
+      context: ./TalantParser/TalantParser
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${SCRAPER_HOST_PORT:-9432}:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 4
+    networks:
+      - invisionu-aws

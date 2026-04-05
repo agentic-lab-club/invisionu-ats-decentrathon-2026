@@ -1,3 +1,7 @@
+networks:
+  invisionu-ats-network:
+    driver: bridge
+
 services:
   app:
     build:
@@ -12,3 +16,5 @@ services:
     ports:
       - "9432:9432"
     restart: unless-stopped
+    networks:
+      - invisionu-ats-network

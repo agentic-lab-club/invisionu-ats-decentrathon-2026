@@ -20,6 +20,8 @@ environment: "development"
 gotenberg:
   url: "http://localhost:3000"
 
+# Generates a high-entropy, base64-encoded string command:
+# openssl rand -base64 16
 auth:
   jwt_access_secret: "change-me"
   jwt_refresh_secret: "change-me-too"
@@ -48,7 +50,7 @@ email:
   mode: "stub"  # stub for dev, smtp for prod
   from_name: "InVisionU ATS"
   from_email: "noreply@example.com"
-  smtp_host: "smtp.example.com"
+  smtp_host: "smtp.example.com"  # google: smtp.gmail.com
   smtp_port: 587
   smtp_user: "jokergame434@gmail.com"
   smtp_pass: "mfkb wimn pthi dnhf"
