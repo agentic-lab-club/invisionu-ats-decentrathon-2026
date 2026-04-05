@@ -43,3 +43,12 @@ var updateApplicationTranscriptQuery string
 
 //go:embed queries/update_application_screening.sql
 var updateApplicationScreeningQuery string
+
+//go:embed queries/update_application_ai_probability.sql
+var updateApplicationAIProbabilityQuery string
+
+//go:embed queries/update_application_ielts_score.sql
+var updateApplicationIELTSScoreQuery string
+
+//go:embed queries/update_application_ent_score.sql
+var updateApplicationENTScoreQuery string

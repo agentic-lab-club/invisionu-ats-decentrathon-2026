@@ -13,7 +13,8 @@ SELECT
     p.name AS program_name,
     a.review_stage,
     a.decision,
-    sr.recommendation
+    sr.recommendation,
+    a.ielts_score
 FROM applications a
 JOIN users u ON u.id = a.user_id
 JOIN programs p ON p.id = a.program_id

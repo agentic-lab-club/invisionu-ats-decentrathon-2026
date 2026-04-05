@@ -37,7 +37,7 @@ func TestLLMScoringClientAnalyze(t *testing.T) {
 			t.Fatalf("expected POST, got %s", r.Method)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprint(w, `{"workflow_status":"success","global_score":{"LeadershipIndex":3.4}}`)
+		fmt.Fprint(w, `{"workflow_status":"success","global_score":{"LeadershipIndex":3.4},"candidate_breakdown":{"q1_text":"candidate transcript","q2_text":"","q3_text":"","q4_text":"","q5_text":"","q6_text":""}}`)
 	}))
 	defer server.Close()
 
@@ -48,6 +48,55 @@ func TestLLMScoringClientAnalyze(t *testing.T) {
 	}
 	if result["workflow_status"] != "success" {
 		t.Fatalf("expected workflow_status=success, got %#v", result["workflow_status"])
+	}
+}
+
+func TestAIDetectClientDetect(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `{"verdict":"AI","ai_probs":85.42,"human_probability":14.58}`)
+	}))
+	defer server.Close()
+
+	client := NewAIDetectClient(server.URL, &http.Client{Timeout: time.Second})
+	result, probability, err := client.Detect(context.Background(), "candidate transcript")
+	if err != nil {
+		t.Fatalf("Detect returned error: %v", err)
+	}
+	if probability != 85.42 {
+		t.Fatalf("expected ai probability to be 85.42, got %.2f", probability)
+	}
+	if result["verdict"] != "AI" {
+		t.Fatalf("expected verdict=AI, got %#v", result["verdict"])
+	}
+}
+
+func TestParserClientParse(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `{"score":5.5,"status":"ok","error":null}`)
+	}))
+	defer server.Close()
+
+	client := NewParserClient(server.URL, &http.Client{Timeout: time.Second})
+	payload, result, err := client.Parse(context.Background(), "https://signed.example/file.pdf", "IELTS")
+	if err != nil {
+		t.Fatalf("Parse returned error: %v", err)
+	}
+	if result.Score == nil || *result.Score != 5.5 {
+		t.Fatalf("expected score 5.5, got %#v", result.Score)
+	}
+	if result.Status != "ok" {
+		t.Fatalf("expected status ok, got %q", result.Status)
+	}
+	if payload["status"] != "ok" {
+		t.Fatalf("expected raw status=ok, got %#v", payload["status"])
 	}
 }
 
@@ -105,5 +154,30 @@ func TestValidateLLMScoringResultAcceptsMappedCandidateBreakdown(t *testing.T) {
 
 	if err := validateLLMScoringResult(result); err != nil {
 		t.Fatalf("expected validation to pass, got error: %v", err)
+	}
+}
+
+func TestAsFloat64(t *testing.T) {
+	tests := []struct {
+		name  string
+		input interface{}
+		want  float64
+		ok    bool
+	}{
+		{name: "float64", input: float64(12.5), want: 12.5, ok: true},
+		{name: "int", input: 42, want: 42, ok: true},
+		{name: "unsupported", input: "42", want: 0, ok: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, ok := asFloat64(tt.input)
+			if ok != tt.ok {
+				t.Fatalf("expected ok=%v, got %v", tt.ok, ok)
+			}
+			if got != tt.want {
+				t.Fatalf("expected value %.2f, got %.2f", tt.want, got)
+			}
+		})
 	}
 }

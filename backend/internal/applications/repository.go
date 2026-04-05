@@ -165,6 +165,27 @@ func (r *Repository) UpdateApplicationScreening(applicationID uuid.UUID, status 
 	return nil
 }
 
+func (r *Repository) UpdateApplicationAIProbability(applicationID uuid.UUID, probability float64) error {
+	if _, err := r.db.TrackedExec("update", r.db.Rebind(updateApplicationAIProbabilityQuery), probability, applicationID); err != nil {
+		return fmt.Errorf("failed to update application ai probability: %w", err)
+	}
+	return nil
+}
+
+func (r *Repository) UpdateApplicationIELTSScore(applicationID uuid.UUID, score float64) error {
+	if _, err := r.db.TrackedExec("update", r.db.Rebind(updateApplicationIELTSScoreQuery), score, applicationID); err != nil {
+		return fmt.Errorf("failed to update application ielts score: %w", err)
+	}
+	return nil
+}
+
+func (r *Repository) UpdateApplicationENTScore(applicationID uuid.UUID, score int) error {
+	if _, err := r.db.TrackedExec("update", r.db.Rebind(updateApplicationENTScoreQuery), score, applicationID); err != nil {
+		return fmt.Errorf("failed to update application ent score: %w", err)
+	}
+	return nil
+}
+
 func (r *Repository) FindStatusByUserID(userID uuid.UUID) (*StatusResponse, error) {
 	var status StatusResponse
 	if err := r.db.TrackedGet(&status, r.db.Rebind(findStatusByUserIDQuery), userID); err != nil {

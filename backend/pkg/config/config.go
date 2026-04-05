@@ -119,6 +119,8 @@ type AssessmentConfig struct {
 type ScreeningConfig struct {
 	STTBaseURL         string `mapstructure:"stt_base_url"`
 	LLMBaseURL         string `mapstructure:"llm_base_url"`
+	AIDetectBaseURL    string `mapstructure:"ai_detect_base_url"`
+	ParserBaseURL      string `mapstructure:"parser_base_url"`
 	RequestTimeoutSecs int    `mapstructure:"request_timeout_seconds"`
 	PresignTTLSeconds  int    `mapstructure:"presign_ttl_seconds"`
 }
@@ -251,6 +253,12 @@ func Load() (cfg *Config, err error) {
 	if cfg.Screening.LLMBaseURL == "" {
 		cfg.Screening.LLMBaseURL = "http://llmscoring:9094"
 	}
+	if cfg.Screening.AIDetectBaseURL == "" {
+		cfg.Screening.AIDetectBaseURL = "http://aidetect:9873"
+	}
+	if cfg.Screening.ParserBaseURL == "" {
+		cfg.Screening.ParserBaseURL = "http://parserapi:8001"
+	}
 	if cfg.Screening.RequestTimeoutSecs == 0 {
 		cfg.Screening.RequestTimeoutSecs = 180
 	}
@@ -300,6 +308,12 @@ func overrideFromEnv(cfg *Config) {
 	}
 	if value := os.Getenv("SCREENING_LLM_BASE_URL"); value != "" {
 		cfg.Screening.LLMBaseURL = value
+	}
+	if value := os.Getenv("SCREENING_AI_DETECT_BASE_URL"); value != "" {
+		cfg.Screening.AIDetectBaseURL = value
+	}
+	if value := os.Getenv("SCREENING_PARSER_BASE_URL"); value != "" {
+		cfg.Screening.ParserBaseURL = value
 	}
 	if value := os.Getenv("SCREENING_REQUEST_TIMEOUT_SECONDS"); value != "" {
 		if parsed, err := strconv.Atoi(value); err == nil {

@@ -15,6 +15,7 @@ type ListItem struct {
 	ReviewStage    string    `db:"review_stage" json:"review_stage"`
 	Decision       string    `db:"decision" json:"decision"`
 	Recommendation *string   `db:"recommendation" json:"recommendation"`
+	IELTSScore     *float64  `db:"ielts_score" json:"ielts_score,omitempty"`
 }
 
 type ListResponse struct {
@@ -32,6 +33,9 @@ type Detail struct {
 	Decision                    string         `json:"decision"`
 	VideoTranscript             *string        `json:"video_transcript,omitempty"`
 	ScreeningError              *string        `json:"screening_error,omitempty"`
+	AIProbability               *float64       `json:"ai_probability,omitempty"`
+	IELTSScore                  *float64       `json:"ielts_score,omitempty"`
+	ENTScore                    *int           `json:"ent_score,omitempty"`
 	Files                       []DetailFile   `json:"files"`
 	LatestScoringRun            *ScoringResult `json:"latest_scoring_run,omitempty"`
 	LatestPersonalityScoringRun *ScoringResult `json:"latest_personality_scoring_run,omitempty"`
@@ -91,18 +95,18 @@ type AdvancedFilterResponse struct {
 
 // SmartFilter preset identifiers — must match frontend PRESETS[].id values.
 const (
-	PresetHighPotentialLowEnglish    = "high_potential_low_english"
-	PresetStrongMotivationWeakSoft   = "strong_motivation_weak_soft"
+	PresetHighPotentialLowEnglish     = "high_potential_low_english"
+	PresetStrongMotivationWeakSoft    = "strong_motivation_weak_soft"
 	PresetLowMotivationHighBackground = "low_motivation_high_background"
-	PresetTop10Percent               = "top10_percent"
+	PresetTop10Percent                = "top10_percent"
 )
 
 // ValidSmartFilterPresets is the full set of allowed preset values.
 var ValidSmartFilterPresets = map[string]struct{}{
-	PresetHighPotentialLowEnglish:    {},
-	PresetStrongMotivationWeakSoft:   {},
+	PresetHighPotentialLowEnglish:     {},
+	PresetStrongMotivationWeakSoft:    {},
 	PresetLowMotivationHighBackground: {},
-	PresetTop10Percent:               {},
+	PresetTop10Percent:                {},
 }
 
 // SmartFilterResponse wraps the result list for the smart-filter endpoint.
@@ -127,4 +131,7 @@ type detailRow struct {
 	Decision        string    `db:"decision"`
 	VideoTranscript *string   `db:"video_transcript"`
 	ScreeningError  *string   `db:"screening_error"`
+	AIProbability   *float64  `db:"ai_probability"`
+	IELTSScore      *float64  `db:"ielts_score"`
+	ENTScore        *int      `db:"ent_score"`
 }

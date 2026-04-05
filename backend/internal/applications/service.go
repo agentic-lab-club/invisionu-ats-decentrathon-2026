@@ -254,7 +254,7 @@ func (s *Service) Create(ctx context.Context, userID uuid.UUID, req CreateReques
 	// Публикация события (не критична)
 	_ = s.bus.Publish(ctx, s.cfg.Messaging.ApplicationSubmittedKey, SubmittedEvent{ApplicationID: app.ID})
 	if s.screening != nil {
-		s.screening.Start(app.ID, userID, req.VideoFileID)
+		s.screening.Start(app.ID, userID, req.VideoFileID, req.EnglishResultFileID, req.CertificateFileID)
 	}
 
 	return &CreateResponse{ApplicationID: app.ID}, nil

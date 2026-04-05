@@ -72,6 +72,8 @@ assessment:
 screening:
   stt_base_url: "http://sttwhisper:9095"
   llm_base_url: "http://llmscoring:9094"
+  ai_detect_base_url: "http://aidetect:9873"
+  parser_base_url: "http://parserapi:8001"
   request_timeout_seconds: 180
   presign_ttl_seconds: 900
 

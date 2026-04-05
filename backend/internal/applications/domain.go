@@ -133,6 +133,9 @@ type Application struct {
 	VideoFileID      uuid.UUID  `db:"video_file_id"`
 	VideoAudioFileID *uuid.UUID `db:"video_audio_file_id"`
 	VideoTranscript  *string    `db:"video_transcript"`
+	AIProbability    *float64   `db:"ai_probability"`
+	IELTSScore       *float64   `db:"ielts_score"`
+	ENTScore         *int       `db:"ent_score"`
 	ScreeningStatus  string     `db:"screening_status"`
 	ScreeningError   *string    `db:"screening_error"`
 	SubmittedAt      time.Time  `db:"submitted_at"`

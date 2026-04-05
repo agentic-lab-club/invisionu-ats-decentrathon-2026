@@ -17,30 +17,10 @@ func NewRepository(db *database.TrackedDB) *Repository {
 	return &Repository{db: db}
 }
 
-// ИЗМЕНЕНИЯ, КОТОРЫЕ НУЖНО СДЕЛАТЬ, ИЛЬЯС
 func (r *Repository) List(programCode string, reviewStage string, decision string, search string) ([]ListItem, error) {
 	var items []ListItem
 
-	query := `
-SELECT
-    a.id AS application_id,
-    TRIM(COALESCE(u.first_name, '') || ' ' || COALESCE(u.last_name, '')) AS full_name,
-    p.name AS program_name,
-    a.review_stage,
-    a.decision,
-    sr.recommendation
-FROM applications a
-JOIN users u ON u.id = a.user_id
-JOIN programs p ON p.id = a.program_id
-LEFT JOIN LATERAL (
-    SELECT recommendation
-    FROM scoring_runs
-    WHERE application_id = a.id
-    ORDER BY created_at DESC
-    LIMIT 1
-) sr ON TRUE
-WHERE 1=1
-`
+	query := listCandidatesQuery + "\n"
 
 	args := []any{}
 	i := 1
@@ -128,6 +108,9 @@ func (r *Repository) GetDetail(applicationID uuid.UUID) (*Detail, error) {
 		LatestScoringRun:            latest,
 		LatestPersonalityScoringRun: personalityRun,
 		LatestLLMScoringRun:         llmRun,
+		AIProbability:               row.AIProbability,
+		IELTSScore:                  row.IELTSScore,
+		ENTScore:                    row.ENTScore,
 	}, nil
 }
 
@@ -173,7 +156,8 @@ SELECT
     p.name AS program_name,
     a.review_stage,
     a.decision,
-    sr.recommendation
+    sr.recommendation,
+    a.ielts_score
 FROM applications a
 JOIN users u ON u.id = a.user_id
 JOIN programs p ON p.id = a.program_id

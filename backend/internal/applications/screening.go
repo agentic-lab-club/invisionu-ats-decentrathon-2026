@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"os"
 	"os/exec"
@@ -105,6 +106,22 @@ type LLMScoringClient struct {
 	httpClient *http.Client
 }
 
+type AIDetectClient struct {
+	baseURL    string
+	httpClient *http.Client
+}
+
+type ParserClient struct {
+	baseURL    string
+	httpClient *http.Client
+}
+
+type ParseScoreResponse struct {
+	Score  *float64 `json:"score"`
+	Status string   `json:"status"`
+	Error  *string  `json:"error"`
+}
+
 func NewLLMScoringClient(baseURL string, httpClient *http.Client) *LLMScoringClient {
 	if strings.TrimSpace(baseURL) == "" || httpClient == nil {
 		return nil
@@ -151,12 +168,114 @@ func (c *LLMScoringClient) Analyze(ctx context.Context, transcript string) (JSON
 	return parsed, nil
 }
 
+func NewAIDetectClient(baseURL string, httpClient *http.Client) *AIDetectClient {
+	if strings.TrimSpace(baseURL) == "" || httpClient == nil {
+		return nil
+	}
+	return &AIDetectClient{
+		baseURL:    strings.TrimRight(baseURL, "/"),
+		httpClient: httpClient,
+	}
+}
+
+func (c *AIDetectClient) Detect(ctx context.Context, transcript string) (JSONMap, float64, error) {
+	payload, err := json.Marshal(map[string]string{"text": transcript})
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to marshal ai detect request: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/detect", bytes.NewReader(payload))
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to create ai detect request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to call ai detect service: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to read ai detect response: %w", err)
+	}
+	if resp.StatusCode >= http.StatusBadRequest {
+		return nil, 0, fmt.Errorf("ai detect service returned status %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
+	}
+
+	var parsed JSONMap
+	if err := json.Unmarshal(body, &parsed); err != nil {
+		return nil, 0, fmt.Errorf("failed to decode ai detect response: %w", err)
+	}
+
+	probability, ok := asFloat64(parsed["ai_probs"])
+	if !ok {
+		return nil, 0, fmt.Errorf("ai detect service returned invalid ai_probs payload")
+	}
+	return parsed, probability, nil
+}
+
+func NewParserClient(baseURL string, httpClient *http.Client) *ParserClient {
+	if strings.TrimSpace(baseURL) == "" || httpClient == nil {
+		return nil
+	}
+	return &ParserClient{
+		baseURL:    strings.TrimRight(baseURL, "/"),
+		httpClient: httpClient,
+	}
+}
+
+func (c *ParserClient) Parse(ctx context.Context, fileURL string, scoreType string) (JSONMap, ParseScoreResponse, error) {
+	payload, err := json.Marshal(map[string]string{
+		"file_url":   fileURL,
+		"score_type": scoreType,
+	})
+	if err != nil {
+		return nil, ParseScoreResponse{}, fmt.Errorf("failed to marshal parser request: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/parse-score", bytes.NewReader(payload))
+	if err != nil {
+		return nil, ParseScoreResponse{}, fmt.Errorf("failed to create parser request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, ParseScoreResponse{}, fmt.Errorf("failed to call parser service: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, ParseScoreResponse{}, fmt.Errorf("failed to read parser response: %w", err)
+	}
+	if resp.StatusCode >= http.StatusBadRequest {
+		return nil, ParseScoreResponse{}, fmt.Errorf("parser service returned status %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
+	}
+
+	var parsed JSONMap
+	if err := json.Unmarshal(body, &parsed); err != nil {
+		return nil, ParseScoreResponse{}, fmt.Errorf("failed to decode parser payload: %w", err)
+	}
+
+	var result ParseScoreResponse
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, ParseScoreResponse{}, fmt.Errorf("failed to decode parser response: %w", err)
+	}
+
+	return parsed, result, nil
+}
+
 type ScreeningProcessor struct {
 	repo           *Repository
 	storage        platformStorage.ObjectStorage
 	audioExtractor AudioExtractor
 	sttClient      *STTClient
 	llmClient      *LLMScoringClient
+	aiDetectClient *AIDetectClient
+	parserClient   *ParserClient
 	presignTTL     time.Duration
 }
 
@@ -181,15 +300,17 @@ func NewScreeningProcessor(repo *Repository, objectStorage platformStorage.Objec
 		audioExtractor: FFmpegAudioExtractor{},
 		sttClient:      sttClient,
 		llmClient:      llmClient,
+		aiDetectClient: NewAIDetectClient(cfg.Screening.AIDetectBaseURL, httpClient),
+		parserClient:   NewParserClient(cfg.Screening.ParserBaseURL, httpClient),
 		presignTTL:     time.Duration(cfg.Screening.PresignTTLSeconds) * time.Second,
 	}
 }
 
-func (p *ScreeningProcessor) Start(applicationID uuid.UUID, userID uuid.UUID, videoFileID uuid.UUID) {
-	go p.process(applicationID, userID, videoFileID)
+func (p *ScreeningProcessor) Start(applicationID uuid.UUID, userID uuid.UUID, videoFileID uuid.UUID, englishResultFileID *uuid.UUID, certificateFileID *uuid.UUID) {
+	go p.process(applicationID, userID, videoFileID, englishResultFileID, certificateFileID)
 }
 
-func (p *ScreeningProcessor) process(applicationID uuid.UUID, userID uuid.UUID, videoFileID uuid.UUID) {
+func (p *ScreeningProcessor) process(applicationID uuid.UUID, userID uuid.UUID, videoFileID uuid.UUID, englishResultFileID *uuid.UUID, certificateFileID *uuid.UUID) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
 	defer cancel()
 
@@ -265,6 +386,8 @@ func (p *ScreeningProcessor) process(applicationID uuid.UUID, userID uuid.UUID, 
 		return
 	}
 
+	p.runBestEffortEnrichment(ctx, logger, applicationID, transcript, englishResultFileID, certificateFileID)
+
 	logger.Info().Msg("calling llm scoring service")
 	llmResult, err := p.llmClient.Analyze(ctx, transcript)
 	if err != nil {
@@ -290,6 +413,97 @@ func (p *ScreeningProcessor) process(applicationID uuid.UUID, userID uuid.UUID, 
 	}
 
 	logger.Info().Msg("screening pipeline completed successfully")
+}
+
+func (p *ScreeningProcessor) runBestEffortEnrichment(ctx context.Context, logger zerolog.Logger, applicationID uuid.UUID, transcript string, englishResultFileID *uuid.UUID, certificateFileID *uuid.UUID) {
+	p.runAIDetect(ctx, logger, applicationID, transcript)
+	p.runParser(ctx, logger, applicationID, englishResultFileID, "IELTS", "parser_ielts")
+	p.runParser(ctx, logger, applicationID, certificateFileID, "ENT", "parser_ent")
+}
+
+func (p *ScreeningProcessor) runAIDetect(ctx context.Context, logger zerolog.Logger, applicationID uuid.UUID, transcript string) {
+	if p.aiDetectClient == nil || strings.TrimSpace(transcript) == "" {
+		return
+	}
+
+	result, probability, err := p.aiDetectClient.Detect(ctx, transcript)
+	if err != nil {
+		logger.Warn().Err(err).Msg("ai detect enrichment failed")
+		return
+	}
+
+	if err := p.repo.UpdateApplicationAIProbability(applicationID, probability); err != nil {
+		logger.Warn().Err(err).Msg("failed to persist ai probability")
+	}
+
+	if err := p.repo.CreateScoringRun(&ScoringRun{
+		ID:             uuid.New(),
+		ApplicationID:  applicationID,
+		ModelName:      "aidetect",
+		ResultJSON:     result,
+		Recommendation: nil,
+		CreatedAt:      time.Now().UTC(),
+	}); err != nil {
+		logger.Warn().Err(err).Msg("failed to persist ai detect scoring run")
+	}
+}
+
+func (p *ScreeningProcessor) runParser(ctx context.Context, logger zerolog.Logger, applicationID uuid.UUID, fileID *uuid.UUID, scoreType string, modelName string) {
+	if p.parserClient == nil || fileID == nil {
+		return
+	}
+
+	file, err := p.repo.FindFileByID(*fileID)
+	if err != nil {
+		logger.Warn().Err(err).Str("score_type", scoreType).Msg("failed to load parser source file")
+		return
+	}
+	if file == nil {
+		logger.Warn().Str("score_type", scoreType).Msg("parser source file not found")
+		return
+	}
+
+	presignedURL, err := p.storage.PresignGet(ctx, file.BucketName, file.ObjectKey, p.presignTTL)
+	if err != nil {
+		logger.Warn().Err(err).Str("score_type", scoreType).Msg("failed to presign parser source file")
+		return
+	}
+
+	result, parsed, err := p.parserClient.Parse(ctx, presignedURL, scoreType)
+	if err != nil {
+		logger.Warn().Err(err).Str("score_type", scoreType).Msg("parser enrichment failed")
+		return
+	}
+
+	if err := p.repo.CreateScoringRun(&ScoringRun{
+		ID:             uuid.New(),
+		ApplicationID:  applicationID,
+		ModelName:      modelName,
+		ResultJSON:     result,
+		Recommendation: nil,
+		CreatedAt:      time.Now().UTC(),
+	}); err != nil {
+		logger.Warn().Err(err).Str("score_type", scoreType).Msg("failed to persist parser scoring run")
+	}
+
+	if strings.TrimSpace(strings.ToLower(parsed.Status)) != "ok" || parsed.Score == nil {
+		logger.Info().
+			Str("score_type", scoreType).
+			Str("parser_status", parsed.Status).
+			Msg("parser did not return a normalized score")
+		return
+	}
+
+	switch scoreType {
+	case "IELTS":
+		if err := p.repo.UpdateApplicationIELTSScore(applicationID, *parsed.Score); err != nil {
+			logger.Warn().Err(err).Msg("failed to persist ielts score")
+		}
+	case "ENT":
+		if err := p.repo.UpdateApplicationENTScore(applicationID, int(math.Round(*parsed.Score))); err != nil {
+			logger.Warn().Err(err).Msg("failed to persist ent score")
+		}
+	}
 }
 
 func (p *ScreeningProcessor) uploadDerivedAudio(ctx context.Context, applicationID uuid.UUID, userID uuid.UUID, audioPath string) (*FileRecord, error) {
@@ -391,4 +605,25 @@ func validateLLMScoringResult(result JSONMap) error {
 	}
 
 	return fmt.Errorf("llm scoring service could not map transcript to interview questions")
+}
+
+func asFloat64(value interface{}) (float64, bool) {
+	switch typed := value.(type) {
+	case float64:
+		return typed, true
+	case float32:
+		return float64(typed), true
+	case int:
+		return float64(typed), true
+	case int64:
+		return float64(typed), true
+	case json.Number:
+		parsed, err := typed.Float64()
+		if err != nil {
+			return 0, false
+		}
+		return parsed, true
+	default:
+		return 0, false
+	}
 }
