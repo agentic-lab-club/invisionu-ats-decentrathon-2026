@@ -1,14 +1,7 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "../globals.css";
-import { Raleway } from 'next/font/google';
 import DashboardNav from "@/components/dashboard/DashboardNav";
 import AuthGuard from '@/components/auth/AuthGuard';
-const raleway = Raleway({
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-raleway',
-});
 
 export const metadata: Metadata = {
   title: "InVision U | Dashboard",
@@ -19,10 +12,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <div className="min-h-full flex flex-col">
       <AuthGuard>
-        <DashboardNav activeTab="orders">
+        <DashboardNav>
           {children}
         </DashboardNav>
-        </AuthGuard>
-      </div>
+      </AuthGuard>
+    </div>
   );
 }
