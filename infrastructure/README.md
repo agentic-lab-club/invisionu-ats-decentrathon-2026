@@ -144,6 +144,31 @@ Important:
 - the actual backend config file in this repo is `backend/config/config.prod.yaml`
 - if you were thinking of `config.prod.env`, use the YAML file instead because that is what the backend currently loads
 
+### Regenerate S3 Credentials
+
+If you need to rotate or regenerate the local S3 credentials stored in AWS Secrets Manager, run this from `infrastructure/terraform/envs/dev`:
+
+```bash
+terraform apply -replace="module.local_s3_access.aws_iam_access_key.this" -var-file="terraform.tfvars"
+```
+
+Then:
+
+1. note `local_s3_access_secret_name`
+2. open that secret in AWS Secrets Manager
+3. copy the new `access_key_id` and `secret_access_key`
+4. paste them into [`backend/config/config.prod.yaml`](/workspaces/invisionu-ats-decentrathon-2026/backend/config/config.prod.yaml)
+5. update the runtime secret `backend_config_secret_name` with the new YAML content
+
+If you want to recreate the whole IAM user too, run:
+
+```bash
+terraform apply \
+  -replace="module.local_s3_access.aws_iam_user.this" \
+  -replace="module.local_s3_access.aws_iam_access_key.this" \
+  -var-file="terraform.tfvars"
+```
+
 ## Scripts
 
 Scripts for the EC2 deployment flow live under [`infrastructure/scripts`](./scripts):
