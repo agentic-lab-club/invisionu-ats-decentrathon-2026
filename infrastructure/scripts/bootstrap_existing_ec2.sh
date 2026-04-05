@@ -25,7 +25,36 @@ retry() {
 }
 
 retry 3 apt-get update
-retry 3 apt-get install -y ca-certificates curl git jq unzip awscli zsh sudo
+retry 3 apt-get install -y ca-certificates curl git jq unzip zsh sudo
+
+install_aws_cli() {
+  if command -v aws >/dev/null 2>&1; then
+    return 0
+  fi
+
+  local arch
+  arch="$(uname -m)"
+
+  case "$arch" in
+    x86_64)
+      arch="x86_64"
+      ;;
+    aarch64|arm64)
+      arch="aarch64"
+      ;;
+    *)
+      echo "Unsupported architecture for AWS CLI installer: $arch" >&2
+      return 1
+      ;;
+  esac
+
+  curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-${arch}.zip" -o /tmp/awscliv2.zip
+  rm -rf /tmp/aws /usr/local/aws-cli /usr/local/bin/aws
+  unzip -q /tmp/awscliv2.zip -d /tmp
+  /tmp/aws/install --update
+}
+
+install_aws_cli
 
 if ! command -v docker >/dev/null 2>&1; then
   curl -fsSL https://get.docker.com -o /tmp/get-docker.sh
