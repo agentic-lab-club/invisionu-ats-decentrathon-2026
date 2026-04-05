@@ -20,7 +20,11 @@ func NewRepository(db *database.TrackedDB) *Repository {
 func (r *Repository) List(programCode string, reviewStage string, decision string, search string) ([]ListItem, error) {
 	var items []ListItem
 
-	query := listCandidatesQuery + "\n"
+	// Base query — axis scores and Potential (overall_score) are computed in SQL
+	// using the same weighted formula as the detail page:
+	//   Potential = (0.15·M + 0.15·P + 0.20·R + 0.35·L + 0.15·V) * (100/3)
+	// This guarantees the list and the detail card always show the same number.
+	query := listCandidatesQuery
 
 	args := []any{}
 	i := 1
@@ -50,7 +54,6 @@ func (r *Repository) List(programCode string, reviewStage string, decision strin
 			OR LOWER(u.email) LIKE LOWER($%d)
 		)
 		`, i, i)
-
 		args = append(args, "%"+search+"%")
 		i++
 	}
@@ -160,6 +163,7 @@ SELECT
     a.ai_probability,
     a.ielts_score,
     a.ent_score
+    sr.recommendation
 FROM applications a
 JOIN users u ON u.id = a.user_id
 JOIN programs p ON p.id = a.program_id

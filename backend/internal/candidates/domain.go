@@ -18,6 +18,18 @@ type ListItem struct {
 	AIProbability  *float64  `db:"ai_probability" json:"ai_probability,omitempty"`
 	IELTSScore     *float64  `db:"ielts_score" json:"ielts_score,omitempty"`
 	ENTScore       *int      `db:"ent_score" json:"ent_score,omitempty"`
+
+	// Potential score (0–100): weighted sum of M/P/R/L/V axes from the latest
+	// LLM scoring run. NULL when no scoring run exists yet.
+	OverallScore *float64 `db:"overall_score" json:"overall_score"`
+
+	// Individual axis scores (0–100) – mirrors what the detail page derives
+	// from result_json so the list and detail views are always in sync.
+	AxisM *float64 `db:"axis_m" json:"axis_m,omitempty"`
+	AxisP *float64 `db:"axis_p" json:"axis_p,omitempty"`
+	AxisR *float64 `db:"axis_r" json:"axis_r,omitempty"`
+	AxisL *float64 `db:"axis_l" json:"axis_l,omitempty"`
+	AxisV *float64 `db:"axis_v" json:"axis_v,omitempty"`
 }
 
 type ListResponse struct {
@@ -35,13 +47,16 @@ type Detail struct {
 	Decision                    string         `json:"decision"`
 	VideoTranscript             *string        `json:"video_transcript,omitempty"`
 	ScreeningError              *string        `json:"screening_error,omitempty"`
-	AIProbability               *float64       `json:"ai_probability,omitempty"`
-	IELTSScore                  *float64       `json:"ielts_score,omitempty"`
-	ENTScore                    *int           `json:"ent_score,omitempty"`
 	Files                       []DetailFile   `json:"files"`
 	LatestScoringRun            *ScoringResult `json:"latest_scoring_run,omitempty"`
 	LatestPersonalityScoringRun *ScoringResult `json:"latest_personality_scoring_run,omitempty"`
 	LatestLLMScoringRun         *ScoringResult `json:"latest_llm_scoring_run,omitempty"`
+
+	// Optional scores populated from external sources / scoring runs.
+	// These were referenced in repository.go but missing from the struct.
+	AIProbability *float64 `json:"ai_probability,omitempty"`
+	IELTSScore    *float64 `json:"ielts_score,omitempty"`
+	ENTScore      *float64 `json:"ent_score,omitempty"`
 }
 
 type DetailFile struct {
@@ -97,18 +112,18 @@ type AdvancedFilterResponse struct {
 
 // SmartFilter preset identifiers — must match frontend PRESETS[].id values.
 const (
-	PresetHighPotentialLowEnglish     = "high_potential_low_english"
-	PresetStrongMotivationWeakSoft    = "strong_motivation_weak_soft"
+	PresetHighPotentialLowEnglish    = "high_potential_low_english"
+	PresetStrongMotivationWeakSoft   = "strong_motivation_weak_soft"
 	PresetLowMotivationHighBackground = "low_motivation_high_background"
-	PresetTop10Percent                = "top10_percent"
+	PresetTop10Percent               = "top10_percent"
 )
 
 // ValidSmartFilterPresets is the full set of allowed preset values.
 var ValidSmartFilterPresets = map[string]struct{}{
-	PresetHighPotentialLowEnglish:     {},
-	PresetStrongMotivationWeakSoft:    {},
+	PresetHighPotentialLowEnglish:    {},
+	PresetStrongMotivationWeakSoft:   {},
 	PresetLowMotivationHighBackground: {},
-	PresetTop10Percent:                {},
+	PresetTop10Percent:               {},
 }
 
 // SmartFilterResponse wraps the result list for the smart-filter endpoint.
@@ -133,7 +148,9 @@ type detailRow struct {
 	Decision        string    `db:"decision"`
 	VideoTranscript *string   `db:"video_transcript"`
 	ScreeningError  *string   `db:"screening_error"`
-	AIProbability   *float64  `db:"ai_probability"`
-	IELTSScore      *float64  `db:"ielts_score"`
-	ENTScore        *int      `db:"ent_score"`
+
+	// Optional scored fields from JOIN with scoring_runs (may be NULL).
+	AIProbability *float64 `db:"ai_probability"`
+	IELTSScore    *float64 `db:"ielts_score"`
+	ENTScore      *float64 `db:"ent_score"`
 }

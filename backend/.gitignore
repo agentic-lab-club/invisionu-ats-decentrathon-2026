@@ -10,6 +10,7 @@ config.yaml
 *.dll
 *.so
 *.dylib
+.DS_Store
 
 # Local Go caches (used when GOCACHE/GOMODCACHE/GOTMPDIR are redirected)
 .gocache/
