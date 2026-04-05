@@ -65,6 +65,42 @@ cd /opt/invisionu-ats/app
 ./infrastructure/scripts/deploy_compose.sh
 ```
 
+9. To destroy the Infrastructure: `terraform destroy`
+
+## If User Data Did Not Run On An Existing EC2
+
+If the EC2 instance was already created before the fixed `user_data` was applied, Terraform will not magically rerun the old first-boot cloud-init logic on that same machine.
+
+Use one of these two recovery paths:
+
+### Fastest: bootstrap the current EC2 manually
+
+SSH into the existing host, clone the repo if needed, then run:
+
+```bash
+cd /opt/invisionu-ats/app
+sudo bash infrastructure/scripts/bootstrap_existing_ec2.sh
+```
+
+Then verify:
+
+```bash
+docker --version
+docker compose version
+git --version
+ohmyzsh
+```
+
+### Cleanest: recreate the EC2 so cloud-init runs again
+
+From `infrastructure/terraform/envs/dev`:
+
+```bash
+terraform apply -replace="module.ec2.aws_instance.this" -var-file="terraform.tfvars"
+```
+
+This recreates the EC2 instance and reruns `user_data` on first boot. The Terraform module is now configured with `user_data_replace_on_change = true`, so future `user_data` changes will trigger instance replacement instead of silently doing nothing.
+
 ## What Terraform Provisions
 
 - VPC with one public subnet

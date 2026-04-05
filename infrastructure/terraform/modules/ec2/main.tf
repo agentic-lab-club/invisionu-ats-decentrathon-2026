@@ -22,6 +22,7 @@ resource "aws_instance" "this" {
   key_name               = var.key_pair_name
 
   associate_public_ip_address = true
+  user_data_replace_on_change = true
 
   root_block_device {
     volume_size           = 30
