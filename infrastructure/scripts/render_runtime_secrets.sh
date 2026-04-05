@@ -28,6 +28,10 @@ aws secretsmanager get-secret-value \
   --query 'SecretString' \
   --output text > "${CONFIG_DIR}/config.prod.yaml"
 
-chmod 600 "${ENV_DIR}/.env.prod" "${CONFIG_DIR}/config.prod.yaml"
+# `.env.prod` is only read on the host by docker compose, so keep it root-only.
+chmod 600 "${ENV_DIR}/.env.prod"
+
+# The backend container runs as a non-root user and reads this file through a bind mount.
+chmod 644 "${CONFIG_DIR}/config.prod.yaml"
 
 echo "Rendered runtime files into ${RUNTIME_DIR}"
