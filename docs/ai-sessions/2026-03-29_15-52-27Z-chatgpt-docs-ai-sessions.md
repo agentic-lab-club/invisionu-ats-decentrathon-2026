@@ -19117,3 +19117,3716 @@ Rel(llm, ats, "Returns scoring results and recommendations", "DB/Event integrati
 _**User (2026-03-30 22:47:45Z)**_
 
 exit
+
+_**User (2026-03-30 23:15:50Z)**_
+
+Ниже — готовое **ТЗ / Specification для AWS Infrastructure (Terraform)** под твой **текущий выбранный подход**, а не под “enterprise reference architecture”.
+
+Я опираюсь на ваш фактический план: **Frontend + Admin Panel, Golang Backend, Postgres, RabbitMQ, Whisper STT, LLM Scoring**, где backend orchestration строится вокруг заявки, video → transcript → scoring, и всё это нужно быстро задеплоить как рабочий прототип для хакатона.
+
+---
+
+# AWS Infrastructure Terraform Specification
+
+## 1. Цель
+
+Поднять в AWS минимально достаточную инфраструктуру для запуска системы ATS / Admission Screening Platform в формате:
+
+* **1 EC2** как основной runtime host
+* **Docker Compose** для сервисов внутри EC2
+* **S3** для хранения загружаемых файлов кандидатов
+* **CloudFront** для фронтенда
+* **API Gateway HTTP API** для публичного доступа к Golang Backend
+* **Secrets Manager** для секретов по сервисам
+* **IAM Role / Instance Profile** для доступа EC2 к AWS API
+* **VPC / Security Groups / Internet Gateway**
+* **SSH-доступ** к EC2 с allowlist IP
+
+Инфраструктура должна быть простой, быстрой в развёртывании и подходить для MVP/хакатона, а не для высоконагруженного production.
+
+---
+
+## 2. Архитектурные решения
+
+## 2.1 Общая схема
+
+### Публичный слой
+
+* **CloudFront**
+
+  * отдаёт фронтенд
+* **API Gateway HTTP API**
+
+  * проксирует HTTP-запросы к Golang Backend на EC2
+
+### Compute
+
+* **EC2**
+
+  * запускает Docker Compose stack `invisionu-ats-network`
+  * на EC2 работают:
+
+    * `golang-backend`
+    * `postgres`
+    * `rabbitmq`
+    * `whisper`
+    * `llm-scoring`
+
+### Storage
+
+* **S3 uploads bucket**
+
+  * хранит mp4/pdf и другие загружаемые файлы
+
+### Secrets / access
+
+* **Secrets Manager**
+
+  * хранит secrets по сервисам
+* **IAM Role + Instance Profile**
+
+  * даёт EC2 временные credentials для чтения S3 и Secrets Manager; IAM roles on EC2 are passed through an instance profile. ([AWS Documentation][1])
+
+### Bootstrap
+
+* **EC2 user_data / cloud-init**
+
+  * выполняется при старте instance и устанавливает базовый runtime; EC2 user data поддерживает shell scripts и cloud-init directives. ([AWS Documentation][2])
+
+---
+
+## 2.2 Принятые ограничения
+
+В инфраструктуре **не используются**:
+
+* ECS
+* Fargate
+* ECR
+* RDS
+* ALB
+* SQS
+* Route 53
+* ACM
+* SSM
+
+Это сознательное упрощение под ваш MVP.
+
+---
+
+## 2.3 Важный сетевой принцип
+
+**API Gateway используется только для HTTP API**, то есть для маршрутов backend.
+AWS HTTP API умеет отправлять запросы к **любому routable HTTP endpoint**. ([AWS Documentation][3])
+
+Это значит:
+
+* **можно** публиковать:
+
+  * `/api/*`
+  * `/docs/*`
+* **нельзя использовать API Gateway как замену внутренней сети** для:
+
+  * Postgres
+  * RabbitMQ AMQP
+  * внутренних контейнеров, которые не должны быть доступны извне
+
+Внутренние сервисы должны общаться только в Docker network.
+
+---
+
+# 3. Состав инфраструктуры
+
+## 3.1 VPC
+
+Terraform должен создать:
+
+* `aws_vpc`
+* `aws_internet_gateway`
+* `aws_route_table`
+* `aws_route_table_association`
+* **1 public subnet**
+
+### Требования
+
+* EC2 размещается в public subnet
+* subnet должна иметь route в Internet Gateway
+* `map_public_ip_on_launch = true`
+
+### Почему этого достаточно
+
+Для текущего MVP всё работает на одном хосте, поэтому отдельные private subnets и NAT gateway пока не нужны.
+
+---
+
+## 3.2 Security Group для EC2
+
+Нужен один основной SG.
+
+### Inbound rules
+
+* `22/tcp` — **только с вашего IP / CIDR**
+* `80/tcp` — если backend/API Gateway origin будет слушать HTTP
+* `443/tcp` — опционально, если позже добавите TLS на EC2 origin
+* при необходимости временно:
+
+  * `8080/tcp` — только если backend слушает напрямую на 8080 и API Gateway идёт в этот порт
+  * `15672/tcp` — только если нужен внешний доступ к RabbitMQ management UI, и только с allowlist IP
+
+### Запрещено открывать наружу
+
+* `5432` Postgres
+* `5672` RabbitMQ AMQP
+* внутренние порты Whisper / LLM Scoring
+
+### Outbound
+
+* `0.0.0.0/0` allow all
+
+---
+
+## 3.3 EC2
+
+Terraform должен создать:
+
+* `aws_instance`
+* `aws_key_pair` или использовать существующий key pair
+* optional `aws_eip`
+
+### Требования к EC2
+
+* Amazon Linux 2023 или Ubuntu LTS
+* instance type: `t3.small` / `t3.medium` / `t3.large` в зависимости от реальной нагрузки
+* root EBS volume минимум 20–40 GB
+* public IP или Elastic IP
+
+### User data
+
+При запуске инстанса должны автоматически выполняться команды bootstrap через **user data/cloud-init**. AWS EC2 поддерживает запуск shell scripts и cloud-init через user data. ([AWS Documentation][2])
+
+### Что делает bootstrap
+
+* обновляет систему
+* ставит Docker Engine
+* ставит Docker Compose plugin
+* ставит `awscli`
+* ставит `jq` и/или `python3`
+* создаёт рабочие директории:
+
+  * `/opt/invisionu-ats`
+  * `/opt/invisionu-ats/config`
+  * `/opt/invisionu-ats/env`
+  * `/opt/invisionu-ats/deploy`
+
+---
+
+## 3.4 IAM
+
+Terraform должен создать:
+
+* `aws_iam_role`
+* `aws_iam_instance_profile`
+* `aws_iam_role_policy` или `aws_iam_policy` + attach
+
+### Назначение
+
+EC2 instance получает IAM role через instance profile. AWS EC2 uses an instance profile as the container for the role, and applications on the instance can use temporary credentials from the role instead of long-lived access keys. ([AWS Documentation][1])
+
+### Минимальные permissions
+
+EC2 role должна уметь:
+
+#### S3
+
+* `s3:GetObject`
+* `s3:PutObject`
+* `s3:DeleteObject` — опционально
+* `s3:ListBucket`
+
+#### Secrets Manager
+
+* `secretsmanager:GetSecretValue`
+
+Secrets Manager retrieves secret values through `GetSecretValue`, and AWS recommends client-side caching to reduce cost and latency. ([AWS Documentation][4])
+
+#### Optional
+
+* `kms:Decrypt` — если secret или bucket используют customer-managed KMS key
+
+---
+
+## 3.5 S3
+
+Terraform должен создать **минимум 2 buckets**.
+
+### Bucket 1 — frontend
+
+Например:
+
+* `invisionu-frontend-<env>`
+
+Назначение:
+
+* сборка фронтенда
+* static assets
+
+### Bucket 2 — uploads
+
+Например:
+
+* `invisionu-uploads-<env>`
+
+Назначение:
+
+* mp4
+* audio
+* pdf
+* certificates
+* portfolio
+
+### Требования к uploads bucket
+
+* bucket private
+* versioning optional
+* lifecycle rules optional
+* блокировка публичного доступа
+
+### Что backend хранит в БД
+
+Не публичную ссылку, а:
+
+* `bucket_name`
+* `object_key`
+* `etag`
+* `content_type`
+* `size_bytes`
+
+---
+
+## 3.6 CloudFront
+
+Terraform должен создать `aws_cloudfront_distribution`.
+
+### Назначение
+
+CloudFront используется для фронтенда, чтобы получить публичный URL вида `*.cloudfront.net` и раздавать статические файлы.
+
+### Origin
+
+* S3 bucket фронтенда
+
+### Минимальные требования
+
+* default root object: `index.html`
+* поддержка SPA fallback при необходимости
+* compression enabled
+* caching enabled
+
+### Важно
+
+CloudFront в этой архитектуре **не является универсальным прокси для всех сервисов**.
+Он нужен главным образом для frontend/static layer.
+
+---
+
+## 3.7 API Gateway
+
+Terraform должен создать:
+
+* `aws_apigatewayv2_api`
+* `aws_apigatewayv2_integration`
+* `aws_apigatewayv2_route`
+* `aws_apigatewayv2_stage`
+
+### Тип
+
+* **HTTP API**
+
+HTTP API в API Gateway подходит для проксирования запросов к любому routable HTTP endpoint. ([AWS Documentation][3])
+
+### Integration target
+
+* публичный HTTP endpoint EC2 backend
+
+### Рекомендуемые routes
+
+* `ANY /api/{proxy+}`
+* `GET /docs`
+* `GET /docs/{proxy+}`
+
+### Stage
+
+* использовать `$default` stage или `prod`
+
+API Gateway HTTP APIs route requests by stage and then by the most specific route match; `$default` stage and `$default` route supported. ([AWS Documentation][5])
+
+### Что не публиковать через API Gateway
+
+* RabbitMQ AMQP
+* Postgres
+* внутренние FastAPI сервисы напрямую
+
+---
+
+## 3.8 Secrets Manager
+
+Terraform должен создать secrets **по сервисам**.
+
+AWS Secrets Manager stores a secret value as string or binary; for multiple fields AWS recommends using a JSON string with key-value pairs. ([AWS Documentation][6])
+
+### Обязательные secrets
+
+* `invisionu/<env>/backend`
+* `invisionu/<env>/postgres`
+* `invisionu/<env>/rabbitmq`
+* `invisionu/<env>/whisper`
+* `invisionu/<env>/llm-scoring`
+* optional: `invisionu/<env>/shared`
+
+### Пример `backend` secret
+
+```json
+{
+  "app_env": "prod",
+  "jwt_secret": "xxx",
+  "jwt_ttl_seconds": 86400,
+  "db_host": "postgres",
+  "db_port": 5432,
+  "db_name": "invisionu",
+  "db_user": "app",
+  "db_password": "secret",
+  "s3_bucket": "invisionu-uploads-prod",
+  "aws_region": "eu-central-1",
+  "rabbitmq_url": "amqp://user:pass@rabbitmq:5672/",
+  "smtp_host": "smtp.example.com",
+  "smtp_port": 587,
+  "smtp_user": "user",
+  "smtp_password": "pass"
+}
+```
+
+### Как используются secrets
+
+Secrets Manager **не подменяет `.env` или `config.prod.yaml` автоматически**.
+EC2 bootstrap/deploy script должен:
+
+1. вызвать `GetSecretValue` через AWS CLI/SDK
+2. получить JSON secret
+3. сгенерировать:
+
+   * `config.prod.yaml` для Go backend
+   * `.env` / `env_file` для Python/RabbitMQ/Postgres
+4. затем выполнить `docker compose up -d`
+
+Secrets retrieval is done via `GetSecretValue`, and AWS recommends caching retrieved values. ([AWS Documentation][4])
+
+---
+
+# 4. Docker Compose runtime scope на EC2
+
+На EC2 должен запускаться compose stack:
+
+* `golang-backend`
+* `postgres`
+* `rabbitmq`
+* `whisper`
+* `llm-scoring`
+
+и отдельный stack RAG-бота, если вы хотите держать его изолированно:
+
+* `invisionu-ragbot-network`
+
+Это соответствует вашему текущему разделению сервисов. 
+
+---
+
+# 5. Terraform modules / структура проекта
+
+Рекомендуемая структура:
+
+```text
+terraform/
+  modules/
+    vpc/
+    security_group/
+    iam/
+    ec2/
+    s3/
+    cloudfront/
+    apigateway/
+    secrets/
+  envs/
+    dev/
+      main.tf
+      variables.tf
+      outputs.tf
+      terraform.tfvars
+    stage/
+      main.tf
+      variables.tf
+      outputs.tf
+      terraform.tfvars
+    prod/
+      main.tf
+      variables.tf
+      outputs.tf
+      terraform.tfvars
+```
+
+---
+
+# 6. Обязательные Terraform outputs
+
+Terraform должен возвращать:
+
+* `ec2_instance_id`
+* `ec2_public_ip`
+* `ec2_public_dns`
+* `frontend_bucket_name`
+* `uploads_bucket_name`
+* `cloudfront_domain_name`
+* `api_gateway_invoke_url`
+* secret names / arns
+* ssh connection hint
+
+---
+
+# 7. Bootstrap / user_data specification
+
+## 7.1 Что должен делать user_data
+
+`user_data` должен:
+
+1. установить зависимости
+2. настроить Docker
+3. скачать или подготовить deploy scripts
+4. подготовить директории
+5. не запускать production stack до тех пор, пока не положены compose files / repo
+
+### Минимальный набор действий
+
+* install Docker
+* enable/start Docker
+* install Docker Compose plugin
+* install awscli
+* install jq / python3
+* create `/opt/invisionu-ats/*`
+
+---
+
+## 7.2 Что user_data не должен делать
+
+Чтобы не усложнять initial boot, user_data **не обязан**:
+
+* делать `git clone` приватного repo
+* тянуть все секреты
+* запускать compose stack автоматически
+
+Это лучше делать отдельным deploy script после того, как infra поднялась.
+
+---
+
+# 8. Deployment specification
+
+## 8.1 Последовательность
+
+### Шаг 1 — Terraform apply
+
+Поднимаются:
+
+* VPC
+* subnet
+* IGW
+* SG
+* EC2
+* IAM
+* S3
+* CloudFront
+* API Gateway
+* Secrets Manager
+
+### Шаг 2 — SSH на EC2
+
+Ты явно хочешь работать через SSH, поэтому деплой рассчитан на SSH-доступ.
+
+### Шаг 3 — перенос приложения
+
+На EC2 должны попасть:
+
+* `docker-compose.yml`
+* `docker-compose.prod.yml`
+* backend / scoring / whisper code or build artifacts
+* deploy scripts
+
+### Шаг 4 — получение secret values
+
+Deploy script на EC2:
+
+* делает `aws secretsmanager get-secret-value`
+* рендерит `config.prod.yaml`
+* рендерит `.env` для сервисов
+
+### Шаг 5 — запуск
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+```
+
+---
+
+## 8.2 Способ деплоя
+
+Для вашего MVP допустимы два варианта:
+
+### Вариант A — ручной deploy по SSH
+
+* `scp` / `rsync`
+* `ssh`
+* запуск deploy script
+
+### Вариант B — Ansible
+
+Если хочешь стандартизировать деплой, Ansible тут уместен:
+
+* copy files
+* template config
+* shell tasks
+* docker compose up
+
+Но **Terraform не должен отвечать за запуск Docker Compose**.
+Terraform поднимает infra; deploy — это отдельный шаг.
+
+---
+
+# 9. Security requirements
+
+## 9.1 SSH
+
+* открыть только `22/tcp`
+* allowlist только ваш IP/CIDR
+* не использовать `0.0.0.0/0`
+
+## 9.2 S3
+
+* uploads bucket private
+* не хранить public URLs как source of truth
+
+## 9.3 Secrets
+
+* не хранить access keys на EC2
+* использовать IAM role through instance profile for AWS access ([AWS Documentation][1])
+
+## 9.4 Internal services
+
+Не публиковать наружу:
+
+* Postgres
+* RabbitMQ AMQP
+* Whisper
+* LLM Scoring
+
+Это согласуется и с приватностью решения, что важно по ТЗ.
+
+---
+
+# 10. Нефункциональные требования
+
+## Простота
+
+Инфраструктура должна подниматься одной командой:
+
+```bash
+terraform init
+terraform apply
+```
+
+## Повторяемость
+
+Вся инфраструктура должна быть описана в Terraform и воспроизводиться в `dev/stage/prod`.
+
+## Минимальная стоимость
+
+Схема должна быть дешёвой и подходить для MVP.
+
+## Изоляция секретов
+
+Секреты не должны лежать в git и не должны быть зашиты в Terraform state как plaintext business config.
+
+---
+
+# 11. Acceptance criteria
+
+Инфраструктура считается готовой, если:
+
+1. Terraform создаёт EC2, S3, CloudFront, API Gateway, IAM, VPC и Secrets Manager.
+2. По SSH можно подключиться к EC2 с allowlist IP.
+3. На EC2 установлен Docker и Docker Compose.
+4. Backend и Python services можно запустить через Docker Compose.
+5. Backend с EC2 умеет читать secrets через IAM role + Secrets Manager. ([AWS Documentation][4])
+6. Frontend доступен через `*.cloudfront.net`.
+7. Backend API доступен через API Gateway invoke URL.
+8. Upload-файлы сохраняются в private S3 bucket.
+9. Внутренние сервисы не торчат наружу.
+
+---
+
+# 12. Что я рекомендую зафиксировать как final infra scope
+
+Для вашего случая я бы зафиксировал такой **final MVP scope**:
+
+* **VPC**
+* **Public Subnet**
+* **Internet Gateway**
+* **Security Group**
+* **EC2**
+* **IAM Role + Instance Profile**
+* **S3 frontend bucket**
+* **S3 uploads bucket**
+* **CloudFront**
+* **API Gateway HTTP API**
+* **Secrets Manager**
+* **user_data bootstrap**
+* **SSH-based deploy**
+
+---
+
+# 13. Короткий итог
+
+Это ТЗ соответствует тому, как вы реально хотите строить проект:
+
+* сервисы живут в Docker Compose на EC2,
+* backend orchestrates application → whisper → scoring,
+* S3 хранит candidate files,
+* API Gateway публикует backend HTTP API,
+* CloudFront публикует frontend,
+* Secrets Manager хранит конфиг по сервисам,
+* Terraform поднимает всю инфраструктуру,
+* деплой делается отдельно после `terraform apply`.
+
+Если хочешь, следующим сообщением я соберу это уже в **Terraform module blueprint**:
+`main.tf / variables.tf / outputs.tf` по каждому модулю и список конкретных AWS ресурсов.
+
+[1]: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html?utm_source=chatgpt.com "IAM roles for Amazon EC2 - Amazon Elastic Compute Cloud"
+[2]: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/user-data.html?utm_source=chatgpt.com "Run commands when you launch an EC2 instance with user ..."
+[3]: https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api.html?utm_source=chatgpt.com "API Gateway HTTP APIs"
+[4]: https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html?utm_source=chatgpt.com "GetSecretValue - AWS Secrets Manager"
+[5]: https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-develop-routes.html?utm_source=chatgpt.com "Create routes for HTTP APIs in API Gateway"
+[6]: https://docs.aws.amazon.com/secretsmanager/latest/userguide/whats-in-a-secret.html?utm_source=chatgpt.com "What's in a Secrets Manager secret?"
+
+
+---
+помоги мне четко опрделить что нужно сделать и реализовать infrastructure terraform aws!!!
+
+---
+
+_**Agent (gpt-5.4 2026-03-30 23:16:39Z)**_
+
+Да. Ниже уже не “общая идея”, а чёткий **implementation scope** для вашего `infrastructure/terraform` под текущий MVP.
+
+**Что реально нужно сделать**
+
+Ты поднимаешь не “production platform”, а **MVP infra для хакатона**, поэтому final scope должен быть таким:
+
+- `VPC`
+- `1 public subnet`
+- `Internet Gateway`
+- `Route table + association`
+- `1 Security Group for EC2`
+- `EC2 instance`
+- `IAM Role + Instance Profile for EC2`
+- `2 S3 buckets`
+- `CloudFront for frontend`
+- `API Gateway HTTP API for backend`
+- `Secrets Manager`
+- `user_data bootstrap for EC2`
+
+Не делать сейчас:
+
+- `ECS/Fargate`
+- `RDS`
+- `ALB`
+- `Route53`
+- `ACM`
+- `SSM`
+- `NAT Gateway`
+- multi-AZ
+- autoscaling
+
+**Что будет жить где**
+
+AWS:
+- `CloudFront` -> frontend static
+- `API Gateway HTTP API` -> public backend HTTP entry
+- `S3 frontend bucket`
+- `S3 uploads bucket`
+- `Secrets Manager`
+- `EC2`
+
+Внутри EC2 через Docker Compose:
+- `golang-backend`
+- `postgres`
+- `rabbitmq`
+- `whisper`
+- `llm-scoring`
+
+Отдельно, как другая система:
+- `tg_bot_rag/KazRAGUNIProject`
+  Это лучше держать вне первого Terraform scope, если он пока не нужен в одном deploy.
+
+**Самый важный архитектурный выбор**
+
+Для вашего подхода Terraform должен делать только:
+
+1. поднять AWS infra
+2. подготовить EC2
+3. выдать outputs
+
+Terraform **не должен**:
+- деплоить приложение
+- делать `docker compose up`
+- тянуть git repo
+- рендерить app config из secrets
+
+Это должен делать отдельный deploy script после `terraform apply`.
+
+---
+
+**Финальная структура Terraform**
+
+Я бы зафиксировал такую:
+
+```text
+infrastructure/
+  terraform/
+    modules/
+      vpc/
+      security_group/
+      iam/
+      ec2/
+      s3/
+      cloudfront/
+      apigateway/
+      secrets/
+    envs/
+      dev/
+        main.tf
+        variables.tf
+        outputs.tf
+        terraform.tfvars
+      stage/
+        main.tf
+        variables.tf
+        outputs.tf
+        terraform.tfvars
+      prod/
+        main.tf
+        variables.tf
+        outputs.tf
+        terraform.tfvars
+```
+
+Для вас сейчас достаточно начать с:
+- `envs/dev`
+- потом переиспользовать для `stage/prod`
+
+---
+
+**Какие Terraform modules сделать**
+
+**1. `modules/vpc`**
+Ресурсы:
+- `aws_vpc`
+- `aws_internet_gateway`
+- `aws_subnet`
+- `aws_route_table`
+- `aws_route`
+- `aws_route_table_association`
+
+Outputs:
+- `vpc_id`
+- `public_subnet_id`
+
+**2. `modules/security_group`**
+Ресурсы:
+- `aws_security_group`
+- `aws_vpc_security_group_ingress_rule`
+- `aws_vpc_security_group_egress_rule`
+
+Inbound:
+- `22` only your IP
+- `80` for backend origin
+- optional `443`
+- optional `8080` if backend listens there directly
+- optional `15672` only from allowlist if RabbitMQ UI needed
+
+Never open:
+- `5432`
+- `5672`
+- whisper internal port
+- llm internal port
+
+Output:
+- `ec2_security_group_id`
+
+**3. `modules/iam`**
+Ресурсы:
+- `aws_iam_role`
+- `aws_iam_instance_profile`
+- `aws_iam_policy`
+- `aws_iam_role_policy_attachment`
+
+Permissions:
+- S3 read/write to uploads bucket
+- S3 read to frontend bucket if needed
+- `secretsmanager:GetSecretValue`
+- optional `kms:Decrypt`
+
+Outputs:
+- `instance_profile_name`
+- `iam_role_arn`
+
+**4. `modules/s3`**
+Ресурсы:
+- `aws_s3_bucket` for frontend
+- `aws_s3_bucket` for uploads
+- `aws_s3_bucket_public_access_block`
+- optional `aws_s3_bucket_versioning`
+- optional lifecycle rules
+
+Rules:
+- uploads bucket private
+- frontend bucket private too if CloudFront uses OAC
+
+Outputs:
+- `frontend_bucket_name`
+- `uploads_bucket_name`
+- `frontend_bucket_arn`
+- `uploads_bucket_arn`
+
+**5. `modules/cloudfront`**
+Ресурсы:
+- `aws_cloudfront_origin_access_control`
+- `aws_cloudfront_distribution`
+- `aws_s3_bucket_policy` for frontend bucket access from CloudFront
+
+Purpose:
+- serve frontend from S3
+
+Output:
+- `cloudfront_domain_name`
+
+**6. `modules/apigateway`**
+Ресурсы:
+- `aws_apigatewayv2_api`
+- `aws_apigatewayv2_stage`
+- `aws_apigatewayv2_integration`
+- `aws_apigatewayv2_route`
+
+Important:
+- backend origin should target EC2 public DNS or Elastic IP
+- if API Gateway points to EC2, I strongly recommend **Elastic IP**, not random public IP
+
+Routes:
+- `ANY /api/{proxy+}`
+- `GET /docs`
+- `GET /docs/{proxy+}`
+
+Output:
+- `api_gateway_invoke_url`
+
+**7. `modules/secrets`**
+Ресурсы:
+- `aws_secretsmanager_secret`
+- `aws_secretsmanager_secret_version`
+
+Secrets:
+- `invisionu/<env>/backend`
+- `invisionu/<env>/postgres`
+- `invisionu/<env>/rabbitmq`
+- `invisionu/<env>/whisper`
+- `invisionu/<env>/llm-scoring`
+
+Outputs:
+- secret names / arns
+
+**8. `modules/ec2`**
+Ресурсы:
+- `aws_instance`
+- optional `aws_eip`
+- optional `aws_eip_association`
+- optional `aws_key_pair`
+
+Inputs:
+- subnet id
+- sg id
+- instance profile
+- AMI
+- instance type
+- key pair
+- user_data
+
+Output:
+- `instance_id`
+- `public_ip`
+- `public_dns`
+- `elastic_ip`
+
+---
+
+**Что именно должно быть в `envs/dev/main.tf`**
+
+В `dev/main.tf` ты просто связываешь modules:
+
+1. `vpc`
+2. `s3`
+3. `iam`
+4. `security_group`
+5. `secrets`
+6. `ec2`
+7. `cloudfront`
+8. `apigateway`
+
+Порядок логический:
+- сначала network
+- потом storage/secrets/iam
+- потом ec2
+- потом public entrypoints
+
+---
+
+**Какие variables нужны**
+
+Минимальный набор:
+
+- `project_name`
+- `environment`
+- `aws_region`
+- `availability_zone`
+- `vpc_cidr`
+- `public_subnet_cidr`
+- `allowed_ssh_cidr`
+- `instance_type`
+- `root_volume_size`
+- `key_pair_name`
+- `create_eip`
+- `backend_origin_port`
+- `frontend_bucket_name_suffix`
+- `uploads_bucket_name_suffix`
+
+И отдельно app-related values для secrets:
+- JWT secrets
+- DB creds
+- RabbitMQ creds
+- SMTP creds
+- app env
+
+---
+
+**Что положить в Secrets Manager**
+
+Секреты должны хранить **runtime config**, а не terraform variable dump.
+
+Минимально:
+- backend secret JSON
+- postgres secret JSON
+- rabbitmq secret JSON
+- whisper secret JSON
+- llm secret JSON
+
+И дальше deploy script делает:
+1. `aws secretsmanager get-secret-value`
+2. `jq` parsing
+3. рендер `config.prod.yaml` / `.env`
+4. `docker compose up -d --build`
+
+---
+
+**Что должно быть в `user_data`**
+
+Минимум:
+
+- update packages
+- install docker
+- enable/start docker
+- install docker compose plugin
+- install awscli
+- install jq
+- create dirs:
+  - `/opt/invisionu-ats`
+  - `/opt/invisionu-ats/config`
+  - `/opt/invisionu-ats/env`
+  - `/opt/invisionu-ats/deploy`
+
+Не делать в `user_data`:
+- `git clone`
+- secrets fetch
+- automatic compose deploy
+
+---
+
+**Очень важные практические решения**
+
+**1. Для API Gateway лучше закрепить EIP**
+Иначе при пересоздании instance backend origin сломается.
+
+**2. Для frontend bucket лучше сразу делать private + CloudFront OAC**
+Не делать public website bucket, если хочешь чуть аккуратнее.
+
+**3. Postgres и RabbitMQ наружу не открывать**
+Только внутри Docker network на EC2.
+
+**4. Terraform state**
+Если делаешь серьёзно, то сразу предусмотри backend для state:
+- S3 backend
+- DynamoDB lock
+
+Но если хочешь совсем быстро для MVP, можно временно local state.
+Я бы всё равно рекомендовал S3 state backend.
+
+---
+
+**Порядок реализации**
+
+Вот в каком порядке реально делать:
+
+1. `modules/vpc`
+2. `modules/security_group`
+3. `modules/iam`
+4. `modules/s3`
+5. `modules/secrets`
+6. `modules/ec2`
+7. `modules/cloudfront`
+8. `modules/apigateway`
+9. `envs/dev`
+10. `terraform apply`
+11. проверить SSH
+12. проверить EC2 bootstrap
+13. потом отдельно сделать deploy script
+
+---
+
+**Acceptance checklist**
+
+После реализации должно быть так:
+
+- `terraform apply` создаёт всю AWS infra
+- можно зайти по SSH на EC2
+- на EC2 установлен Docker и Compose
+- есть 2 S3 buckets
+- frontend bucket раздаётся через CloudFront
+- backend доступен через API Gateway invoke URL
+- EC2 может читать secrets через IAM role
+- uploads идут в private S3 bucket
+- Postgres/RabbitMQ/STT/LLM не открыты наружу
+
+---
+
+**Что я бы зафиксировал как next step**
+
+Сейчас тебе нужен не ещё один документ, а уже **terraform blueprint**.
+
+То есть следующий практический шаг:
+1. я расписываю exact `modules/*`
+2. даю список ресурсов по файлам
+3. потом могу сразу начать писать Terraform в `infrastructure/terraform`
+
+Если хочешь, следующим сообщением я могу дать уже **готовую файловую карту Terraform проекта**:
+- какие `.tf` файлы создать
+- что в каждом файле лежит
+- какие ресурсы в каком модуле будут.
+
+---
+
+_**User (2026-03-30 23:20:39Z)**_
+
+Не делать в user_data: git clone, что ты имеешь тут ввиду? я хочу сделать деплой моего backend, frontend, rabbitmq, но на потом оставить llm scoring и так далее!!!
+может тут не стоит git clone и само развертывание делать с помошью ec2 user_data а сделать через github ci/cd or aws ci/cd?
+или какой лучше вариант?
+
+---
+
+_**Agent (gpt-5.4 2026-03-30 23:20:45Z)**_
+
+Сравню варианты деплоя для твоего текущего MVP на AWS: `user_data`, GitHub Actions, и AWS-native CI/CD. Возьму только практичные варианты под ваш стек и потом дам чёткую рекомендацию, что делать сейчас, а что отложить.
+
+_**Agent (gpt-5.4 2026-03-30 23:21:10Z)**_
+
+Под `не делать git clone в user_data` я имею в виду:
+
+`user_data` должно готовить **сервер**, а не делать **релиз приложения**.
+
+То есть `user_data` хорошо подходит для:
+- установки Docker
+- установки Docker Compose plugin
+- установки `awscli`, `jq`
+- создания `/opt/invisionu-ats/...`
+- базовой подготовки EC2
+
+Но `user_data` плохо подходит для:
+- `git clone` приложения
+- `docker compose up` с вашим backend/frontend
+- вытягивания актуального кода при каждом релизе
+- нормального rollback/redeploy
+
+Причина простая: `user_data` это bootstrap при запуске инстанса, а не нормальный deployment-механизм. AWS описывает `user data` как механизм запуска команд при старте EC2, а не как полноценный CD-процесс:  
+https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/user-data.html
+
+**Что я рекомендую именно вам**
+
+Для вашего текущего MVP лучший вариант сейчас:
+
+- Terraform поднимает infra
+- `user_data` только подготавливает EC2
+- deploy делать через **GitHub Actions**
+- GitHub Actions получает доступ в AWS через **OIDC**, без long-lived AWS keys
+- GitHub Actions по SSH или через `rsync/scp` кладёт файлы на EC2
+- дальше на EC2 запускается `docker compose -f ... up -d --build`
+
+Это сейчас самый прагматичный путь.
+
+Почему так:
+- у вас 1 EC2
+- у вас Docker Compose
+- вы хотите быстро поднять backend/frontend/rabbitmq
+- `llm/stt` можно добавить позже в тот же deploy flow
+- GitHub Actions уже нормально подходит под CI/CD, а OIDC в AWS для этого официальный и безопаснее, чем хранить AWS keys в GitHub secrets  
+  GitHub OIDC: https://docs.github.com/en/actions/how-tos/secure-your-work/security-harden-deployments/oidc-in-aws  
+  AWS IAM OIDC provider: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_create_oidc.html
+
+**Что я не советую сейчас**
+
+Не советую сейчас делать AWS CodeDeploy как основной путь.
+
+CodeDeploy сам по себе нормальный сервис для EC2 deploy, но для вашего текущего single-EC2 + Docker Compose MVP он, скорее всего, даст больше сложности, чем пользы. AWS прямо позиционирует CodeDeploy как deployment service для EC2/on-prem, но это уже отдельный слой процессов, deployment groups, revision artifacts, agent и т.д.:  
+https://docs.aws.amazon.com/codedeploy/latest/userguide/welcome.html  
+https://docs.aws.amazon.com/codedeploy/latest/userguide/deployments.html
+
+Для хакатона я бы не тащил это первым этапом.
+
+**Итоговая рекомендация**
+
+Сейчас делай так:
+
+1. Terraform
+   - VPC
+   - subnet
+   - SG
+   - IAM
+   - EC2
+   - S3
+   - CloudFront
+   - API Gateway
+   - Secrets Manager
+
+2. `user_data`
+   - только bootstrap сервера
+
+3. GitHub Actions
+   - build frontend/backend
+   - upload frontend build в S3
+   - invalidate CloudFront
+   - по SSH деплой backend compose stack на EC2
+
+4. EC2 deploy script
+   - fetch secrets from Secrets Manager
+   - render config/env
+   - run docker compose
+
+**То есть final answer:**
+- `git clone` в `user_data` делать не надо
+- auto deploy через `user_data` делать не надо
+- для вас сейчас лучший вариант: **GitHub Actions + OIDC + SSH deploy to EC2**
+- AWS-native CodeDeploy можно оставить на потом, если проект переживёт MVP
+
+Если хочешь, следующим сообщением я могу дать тебе уже **конкретную целевую схему CI/CD**:
+- какие workflows нужны
+- что делает `deploy-backend.yml`
+- что делает `deploy-frontend.yml`
+- как связать это с Terraform outputs и Secrets Manager.
+
+---
+
+_**User (2026-03-30 23:22:13Z)**_
+
+тогда что ты думаешь насчет сделать container registry для backend and frontend?
+
+---
+
+_**Agent (gpt-5.4 2026-03-30 23:22:28Z)**_
+
+Да, это разумно. Для вашего случая я бы разделил так:
+
+**Frontend**
+- container registry обычно не нужен, если frontend это статическая сборка
+- лучше:
+  - GitHub Actions делает `build`
+  - артефакты заливаются в `S3 frontend bucket`
+  - потом `CloudFront invalidation`
+
+То есть для frontend в вашей текущей AWS-схеме **registry не обязателен**.
+
+**Backend**
+- для backend container registry уже имеет смысл
+- особенно если хочешь:
+  - не копировать исходники на EC2
+  - не собирать образ на EC2
+  - иметь версионированные immutable images
+  - упростить deploy и rollback
+
+Для backend лучший путь:
+- собирать Docker image в CI
+- пушить в registry
+- на EC2 делать `docker pull` + `docker compose up -d`
+
+**Что я рекомендую именно вам**
+- `frontend`: без registry, деплой в `S3 + CloudFront`
+- `backend`: с registry
+- `rabbitmq/postgres`: использовать official images, свой registry не нужен
+- `llm/stt`: позже тоже можно перевести на registry, когда начнёте их деплоить
+
+**Какой registry**
+Если AWS-first, то правильно брать **ECR** для backend image.
+
+Хотя раньше мы intentionally не включали `ECR` в MVP infra scope, это было только ради упрощения. Но если ты хочешь нормальный deploy flow, то:
+- `ECR` для backend это хорошее упрощение deployment-процесса
+- а не усложнение
+
+То есть я бы обновил scope так:
+- добавить `ECR repository` для backend
+- frontend оставить через `S3`
+
+**Когда registry точно стоит делать**
+Делай registry, если ты хочешь:
+- CI/CD без `scp/rsync` исходников
+- predictable deploy
+- rollback на прошлый image tag
+- меньше логики на EC2
+
+**Когда можно не делать**
+Можно не делать, если:
+- у тебя совсем жёсткий дедлайн
+- ты готов копировать repo на EC2 и собирать там контейнеры
+
+Но это хуже как operational model.
+
+**Моя практическая рекомендация**
+Финально я бы выбрал такой путь:
+
+- `frontend`
+  - build in GitHub Actions
+  - upload to S3
+  - invalidate CloudFront
+
+- `backend`
+  - build Docker image in GitHub Actions
+  - push to ECR
+  - EC2 pulls image from ECR
+  - deploy via `docker compose`
+
+- `postgres/rabbitmq`
+  - official public images
+
+- `llm/stt`
+  - later: separate ECR repos when you deploy them
+
+**Итог**
+- да, **container registry для backend стоит сделать**
+- для **frontend обычно не нужно**, если это static web app через S3/CloudFront
+- если хочешь, я могу следующим сообщением обновить твой infra scope и сказать:
+  - что добавить в Terraform из-за `ECR`
+  - как тогда будет выглядеть полный deployment flow backend/frontend.
+
+---
+
+_**User (2026-03-30 23:23:05Z)**_
+
+нет мой frontend это не статик апп!!! тебе нужно закново сделать анализ репозитория!
+
+---
+
+_**Agent (gpt-5.4 2026-03-30 23:23:13Z)**_
+
+Перепроверю репозиторий и реальную структуру `frontend`, чтобы не опираться на старое предположение про static app. Сначала посмотрю файлы фронтенда и его runtime/build model, потом дам обновлённую рекомендацию по registry и AWS deploy.
+
+_**Agent (gpt-5.4 2026-03-30 23:23:13Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="shell_command"><details>
+<summary>Tool use: **shell_command** `Get-ChildItem -Force`</summary>
+```
+Exit code: 0
+Wall time: 3.8 seconds
+Output:
+
+
+    Directory: D:\Hackathons\InvisionU-ATS-decentrathon-2026\frontend
+
+
+Mode                 LastWriteTime         Length Name                                                            
+----                 -------------         ------ ----                                                            
+d-----         3/29/2026   5:16 PM                app                                                             
+d-----         3/29/2026   5:16 PM                components                                                      
+d-----         3/29/2026   5:16 PM                lib                                                             
+d-----         3/29/2026   5:16 PM                public                                                          
+d-----         3/29/2026   5:16 PM                scripts                                                         
+-a----         3/29/2026   5:16 PM            100 .dockerignore                                                   
+-a----         3/31/2026   1:51 AM             62 .env.example                                                    
+-a----         3/29/2026   5:17 PM             81 .env.local                                                      
+-a----         3/29/2026   5:16 PM            521 .gitignore                                                      
+-a----         3/29/2026   5:16 PM            332 AGENTS.md                                                       
+-a----         3/29/2026   5:16 PM             12 CLAUDE.md                                                       
+-a----         3/29/2026   5:16 PM           1137 docker-compose.yml                                              
+-a----         3/29/2026   5:16 PM           1122 Dockerfile                                                      
+-a----         3/29/2026   5:16 PM            483 eslint.config.mjs                                               
+-a----         3/29/2026   5:16 PM            192 next.config.ts                                                  
+-a----         3/29/2026   5:16 PM         258213 package-lock.json                                               
+-a----         3/29/2026   5:16 PM            743 package.json                                                    
+-a----         3/29/2026   5:16 PM            101 postcss.config.mjs                                              
+-a----         3/29/2026   5:16 PM           6648 README.md                                                       
+-a----         3/29/2026   5:16 PM            700 tsconfig.json
+```
+</details></tool-use>
+
+_**Agent (gpt-5.4 2026-03-30 23:23:13Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="shell_command"><details>
+<summary>Tool use: **shell_command** `Get-Content -Raw package.json`</summary>
+```
+Exit code: 0
+Wall time: 2.6 seconds
+Output:
+{
+  "name": "invision",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "migrate": "node scripts/migrate.js"
+  },
+  "dependencies": {
+    "@heroicons/react": "^2.2.0",
+    "lucide-react": "^1.7.0",
+    "next": "16.2.1",
+    "pg": "^8.20.0",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "recharts": "^3.8.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/pg": "^8.20.0",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.1",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
+```
+</details></tool-use>
+
+_**Agent (gpt-5.4 2026-03-30 23:23:13Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="shell_command"><details>
+<summary>Tool use: **shell_command** `Get-Content -Raw README.md`</summary>
+```
+Exit code: 0
+Wall time: 2.7 seconds
+Output:
+# InVision U вЂ“ Admissions Platform (Frontend)
+
+Frontend-С‡Р°СЃС‚СЊ РїР»Р°С‚С„РѕСЂРјС‹ РїСЂРёС‘РјР° Р·Р°СЏРІРѕРє РІ СѓРЅРёРІРµСЂСЃРёС‚РµС‚ **InVision U**.  
+РџРѕСЃС‚СЂРѕРµРЅР° РЅР° **Next.js 15** В· **TypeScript** В· **Tailwind CSS** В· **React**
+
+---
+
+## РЎРѕРґРµСЂР¶Р°РЅРёРµ
+
+- [РўСЂРµР±РѕРІР°РЅРёСЏ](#С‚СЂРµР±РѕРІР°РЅРёСЏ)
+- [РџРµСЂРµРјРµРЅРЅС‹Рµ РѕРєСЂСѓР¶РµРЅРёСЏ](#РїРµСЂРµРјРµРЅРЅС‹Рµ-РѕРєСЂСѓР¶РµРЅРёСЏ)
+- [РЈСЃС‚Р°РЅРѕРІРєР° Рё Р»РѕРєР°Р»СЊРЅС‹Р№ Р·Р°РїСѓСЃРє](#СѓСЃС‚Р°РЅРѕРІРєР°-Рё-Р»РѕРєР°Р»СЊРЅС‹Р№-Р·Р°РїСѓСЃРє)
+- [РЎР±РѕСЂРєР° РґР»СЏ production](#СЃР±РѕСЂРєР°-РґР»СЏ-production)
+- [Р—Р°РїСѓСЃРє С‡РµСЂРµР· Docker](#Р·Р°РїСѓСЃРє-С‡РµСЂРµР·-docker)
+- [РЎС‚СЂСѓРєС‚СѓСЂР° РїСЂРѕРµРєС‚Р°](#СЃС‚СЂСѓРєС‚СѓСЂР°-РїСЂРѕРµРєС‚Р°)
+- [РџРѕР»РµР·РЅС‹Рµ РєРѕРјР°РЅРґС‹](#РїРѕР»РµР·РЅС‹Рµ-РєРѕРјР°РЅРґС‹)
+- [Р’Р°Р¶РЅС‹Рµ Р·Р°РјРµС‡Р°РЅРёСЏ](#РІР°Р¶РЅС‹Рµ-Р·Р°РјРµС‡Р°РЅРёСЏ)
+
+---
+
+## РўСЂРµР±РѕРІР°РЅРёСЏ
+
+| РРЅСЃС‚СЂСѓРјРµРЅС‚ | Р’РµСЂСЃРёСЏ |
+|---|---|
+| Node.js | 20+ |
+| npm / yarn / pnpm | Р»СЋР±Р°СЏ Р°РєС‚СѓР°Р»СЊРЅР°СЏ |
+| Docker + Docker Compose | РѕРїС†РёРѕРЅР°Р»СЊРЅРѕ |
+
+---
+
+## РџРµСЂРµРјРµРЅРЅС‹Рµ РѕРєСЂСѓР¶РµРЅРёСЏ
+
+РЎРѕР·РґР°Р№С‚Рµ С„Р°Р№Р» `.env.local` РІ РєРѕСЂРЅРµ РїСЂРѕРµРєС‚Р°:
+
+```env
+# URL Р±СЌРєРµРЅРґР° (Go-СЃРµСЂРІРёСЃ)
+NEXT_PUBLIC_API_URL=http://localhost:8080
+```
+
+> **Р’Р°Р¶РЅРѕ:** РµСЃР»Рё Р±СЌРєРµРЅРґ Р·Р°РїСѓС‰РµРЅ РЅРµ РЅР° `localhost:8080`, СѓРєР°Р¶РёС‚Рµ РєРѕСЂСЂРµРєС‚РЅС‹Р№ Р°РґСЂРµСЃ Рё РїРѕСЂС‚.
+
+---
+
+## РЈСЃС‚Р°РЅРѕРІРєР° Рё Р»РѕРєР°Р»СЊРЅС‹Р№ Р·Р°РїСѓСЃРє
+
+```bash
+# 1. РљР»РѕРЅРёСЂСѓР№С‚Рµ СЂРµРїРѕР·РёС‚РѕСЂРёР№ Рё РїРµСЂРµР№РґРёС‚Рµ РІ РїР°РїРєСѓ С„СЂРѕРЅС‚РµРЅРґР°
+git clone <repo-url>
+cd frontend
+
+# 2. РЈСЃС‚Р°РЅРѕРІРёС‚Рµ Р·Р°РІРёСЃРёРјРѕСЃС‚Рё
+npm install
+# РёР»Рё: yarn install / pnpm install
+
+# 3. Р—Р°РїСѓСЃС‚РёС‚Рµ СЃРµСЂРІРµСЂ СЂР°Р·СЂР°Р±РѕС‚РєРё
+npm run dev
+# РёР»Рё: yarn dev
+```
+
+РћС‚РєСЂРѕР№С‚Рµ [http://localhost:3000](http://localhost:3000) РІ Р±СЂР°СѓР·РµСЂРµ.
+
+---
+
+## РЎР±РѕСЂРєР° РґР»СЏ production
+
+```bash
+npm run build
+npm start
+```
+
+РџСЂРёР»РѕР¶РµРЅРёРµ Р±СѓРґРµС‚ РґРѕСЃС‚СѓРїРЅРѕ РЅР° РїРѕСЂС‚Сѓ `3000`.
+
+---
+
+## Р—Р°РїСѓСЃРє С‡РµСЂРµР· Docker
+
+РџСЂРѕРµРєС‚ СЃРѕСЃС‚РѕРёС‚ РёР· РґРІСѓС… РЅРµР·Р°РІРёСЃРёРјС‹С… С‡Р°СЃС‚РµР№:
+
+- **Frontend** (Next.js) вЂ” СЌС‚РѕС‚ СЂРµРїРѕР·РёС‚РѕСЂРёР№.
+- **Backend** (Go) вЂ” [РѕС‚РґРµР»СЊРЅС‹Р№ СЂРµРїРѕР·РёС‚РѕСЂРёР№](https://github.com/agentic-lab-club/invisionu-ats-decentrathon-2026).
+
+### Р›РѕРєР°Р»СЊРЅР°СЏ СЂР°Р·СЂР°Р±РѕС‚РєР° (С‚РѕР»СЊРєРѕ С„СЂРѕРЅС‚РµРЅРґ + PostgreSQL)
+
+Р•СЃР»Рё РЅСѓР¶РЅРѕ Р·Р°РїСѓСЃС‚РёС‚СЊ С‚РѕР»СЊРєРѕ С„СЂРѕРЅС‚РµРЅРґ СЃ СЃРѕР±СЃС‚РІРµРЅРЅРѕР№ Р±Р°Р·РѕР№ РґР°РЅРЅС‹С…:
+
+```bash
+# 1. Р—Р°РїСѓСЃС‚РёС‚Рµ Р±Р°Р·Сѓ РґР°РЅРЅС‹С… Рё Next.js
+docker-compose up --build
+
+# 2. РџСЂРёРјРµРЅРёС‚Рµ РјРёРіСЂР°С†РёРё (СЃРѕР·РґР°РЅРёРµ С‚Р°Р±Р»РёС†)
+docker exec invision_app npm run migrate
+
+# 3. Р—Р°РїРѕР»РЅРёС‚Рµ Р±Р°Р·Сѓ С‚РµСЃС‚РѕРІС‹РјРё РґР°РЅРЅС‹РјРё (РѕРїС†РёРѕРЅР°Р»СЊРЅРѕ)
+d
+... (truncated)
+```
+</details></tool-use>
+
+_**Agent (gpt-5.4 2026-03-30 23:23:13Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="shell_command"><details>
+<summary>Tool use: **shell_command** `Get-ChildItem -Recurse -Filter Dockerfile | Select-Object -ExpandProperty FullName`</summary>
+```
+Exit code: 0
+Wall time: 2.8 seconds
+Output:
+D:\Hackathons\InvisionU-ATS-decentrathon-2026\frontend\Dockerfile
+```
+</details></tool-use>
+
+_**Agent (gpt-5.4 2026-03-30 23:23:27Z)**_
+
+Фронтенд у вас действительно не static-only: это Next.js server runtime с `build` + `start` и отдельным Dockerfile. Ещё быстро посмотрю сам Dockerfile и `next.config.ts`, чтобы уточнить, нужен ли контейнерный деплой фронтенда на EC2/ECR как полноценный runtime.
+
+_**Agent (gpt-5.4 2026-03-30 23:23:27Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="shell_command"><details>
+<summary>Tool use: **shell_command** `Get-Content -Raw Dockerfile`</summary>
+```
+Exit code: 0
+Wall time: 2.3 seconds
+Output:
+# Р­С‚Р°Рї 1: РЈСЃС‚Р°РЅРѕРІРєР° Р·Р°РІРёСЃРёРјРѕСЃС‚РµР№ (Р±РµР· dev-Р·Р°РІРёСЃРёРјРѕСЃС‚РµР№)
+FROM node:20-alpine AS deps
+RUN apk add --no-cache libc6-compat
+WORKDIR /app
+COPY package.json package-lock.json* ./
+RUN npm ci --only=production && npm cache clean --force
+
+# Р­С‚Р°Рї 2: РЎР±РѕСЂРєР° РїСЂРёР»РѕР¶РµРЅРёСЏ
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+RUN npm ci                 # СѓСЃС‚Р°РЅР°РІР»РёРІР°РµРј dev-Р·Р°РІРёСЃРёРјРѕСЃС‚Рё РґР»СЏ СЃР±РѕСЂРєРё
+RUN npm run build          # СЃРѕР±РёСЂР°РµРј Next.js
+
+# Р­С‚Р°Рї 3: Р¤РёРЅР°Р»СЊРЅС‹Р№ РѕР±СЂР°Р· (С‚РѕР»СЊРєРѕ production)
+FROM node:20-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+
+RUN chown -R nextjs:nodejs /app
+USER nextjs
+
+EXPOSE 3000
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+
+CMD ["node", "server.js"]
+```
+</details></tool-use>
+
+_**Agent (gpt-5.4 2026-03-30 23:23:27Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="shell_command"><details>
+<summary>Tool use: **shell_command** `Get-Content -Raw next.config.ts`</summary>
+```
+Exit code: 0
+Wall time: 2.2 seconds
+Output:
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  output: 'standalone',
+  // РґСЂСѓРіРёРµ РЅР°СЃС‚СЂРѕР№РєРё (РµСЃР»Рё РµСЃС‚СЊ)
+};
+
+export default nextConfig;
+```
+</details></tool-use>
+
+_**Agent (gpt-5.4 2026-03-30 23:23:27Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="shell_command"><details>
+<summary>Tool use: **shell_command** `Get-ChildItem -Recurse -File app,components,lib | Select-Object -First 20 -ExpandProperty FullName`</summary>
+```
+Exit code: 0
+Wall time: 2.2 seconds
+Output:
+D:\Hackathons\InvisionU-ATS-decentrathon-2026\frontend\app\favicon.ico
+D:\Hackathons\InvisionU-ATS-decentrathon-2026\frontend\app\globals.css
+D:\Hackathons\InvisionU-ATS-decentrathon-2026\frontend\app\layout.tsx
+D:\Hackathons\InvisionU-ATS-decentrathon-2026\frontend\app\(dashboard)\layout.tsx
+D:\Hackathons\InvisionU-ATS-decentrathon-2026\frontend\app\(dashboard)\page.tsx
+D:\Hackathons\InvisionU-ATS-decentrathon-2026\frontend\app\(dashboard)\candidate\[id]\page.tsx
+D:\Hackathons\InvisionU-ATS-decentrathon-2026\frontend\app\(dashboard)\settings\page.tsx
+D:\Hackathons\InvisionU-ATS-decentrathon-2026\frontend\app\(dashboard)\statistics\page.tsx
+D:\Hackathons\InvisionU-ATS-decentrathon-2026\frontend\app\api\apply\route.ts
+D:\Hackathons\InvisionU-ATS-decentrathon-2026\frontend\app\api\candidates\route.ts
+D:\Hackathons\InvisionU-ATS-decentrathon-2026\frontend\app\api\candidates\[id]\route.ts
+D:\Hackathons\InvisionU-ATS-decentrathon-2026\frontend\app\api\candidates\[id]\status\route.ts
+D:\Hackathons\InvisionU-ATS-decentrathon-2026\frontend\app\api\stats\route.ts
+D:\Hackathons\InvisionU-ATS-decentrathon-2026\frontend\app\api\weights\route.ts
+D:\Hackathons\InvisionU-ATS-decentrathon-2026\frontend\app\apply\layout.tsx
+D:\Hackathons\InvisionU-ATS-decentrathon-2026\frontend\app\apply\page.tsx
+D:\Hackathons\InvisionU-ATS-decentrathon-2026\frontend\app\status\[id]\page.tsx
+D:\Hackathons\InvisionU-ATS-decentrathon-2026\frontend\components\candidates\CandidatesTable.tsx
+D:\Hackathons\InvisionU-ATS-decentrathon-2026\frontend\components\candidates\CategorySection.tsx
+D:\Hackathons\InvisionU-ATS-decentrathon-2026\frontend\components\candidates\HumanInLoop.tsx
+```
+</details></tool-use>
+
+_**Agent (gpt-5.4 2026-03-30 23:23:54Z)**_
+
+Да, ты прав: после повторного анализа репозитория frontend у вас **не static app**.
+
+Что я подтвердил по коду:
+- [package.json](D:/Hackathons/InvisionU-ATS-decentrathon-2026/frontend/package.json) содержит `next build` и `next start`
+- [next.config.ts](D:/Hackathons/InvisionU-ATS-decentrathon-2026/frontend/next.config.ts) включает `output: 'standalone'`
+- [Dockerfile](D:/Hackathons/InvisionU-ATS-decentrathon-2026/frontend/Dockerfile) собирает и запускает `server.js`
+- в [app/api](D:/Hackathons/InvisionU-ATS-decentrathon-2026/frontend/app/api) есть server routes, то есть frontend сам исполняет backend-like runtime logic
+
+Из этого следует жёсткий вывод:
+
+**frontend тоже нужно деплоить как runtime container**, а не как `S3 static site`.
+
+## Что это меняет в infra
+
+Теперь я бы рекомендовал так:
+
+- `frontend` -> Docker image + container registry
+- `backend` -> Docker image + container registry
+- `postgres` -> public official image
+- `rabbitmq` -> public official image
+- `whisper`/`llm` -> позже, тоже через registry
+
+То есть **ECR нужен уже не только для backend, но и для frontend тоже**.
+
+## Новая правильная рекомендация
+
+Для вашего текущего MVP на AWS:
+
+- Terraform поднимает:
+  - VPC
+  - subnet
+  - SG
+  - EC2
+  - IAM
+  - ECR frontend repo
+  - ECR backend repo
+  - S3 uploads bucket
+  - API Gateway for backend
+  - Secrets Manager
+- GitHub Actions:
+  - build `frontend` image
+  - push `frontend` image to ECR
+  - build `backend` image
+  - push `backend` image to ECR
+  - SSH to EC2
+  - `docker compose pull`
+  - `docker compose up -d`
+
+## Что теперь не подходит
+
+Старый вариант:
+- `frontend build -> S3 -> CloudFront`
+
+для вашего репо **не подходит как основной deploy path**, потому что у вас frontend требует Node.js runtime и имеет `app/api/*`.
+
+## Что делать с CloudFront
+
+Теперь CloudFront можно использовать только если ты хочешь:
+- CDN/proxy перед frontend container
+- cache for static assets
+- later edge optimizations
+
+Но для MVP это уже **не обязательный первый шаг**.
+
+То есть сейчас practical scope лучше такой:
+
+**обязательно**
+- EC2
+- ECR frontend
+- ECR backend
+- S3 uploads
+- API Gateway backend
+- Secrets Manager
+- GitHub Actions deploy
+
+**опционально позже**
+- CloudFront перед frontend
+
+## Моя финальная рекомендация сейчас
+
+С учётом реального репозитория:
+
+1. **Да, container registry нужен**
+2. Причём **для backend и frontend**
+3. Лучший вариант: **AWS ECR**
+4. Деплой: **GitHub Actions -> ECR -> EC2 docker compose pull/up**
+5. `user_data` оставить только для bootstrap EC2
+6. `CloudFront + S3 frontend bucket` убрать из обязательного MVP scope
+
+## Обновлённый MVP infra scope
+
+Я бы теперь зафиксировал так:
+
+- `VPC`
+- `Public Subnet`
+- `Internet Gateway`
+- `Security Group`
+- `EC2`
+- `IAM Role + Instance Profile`
+- `ECR frontend repository`
+- `ECR backend repository`
+- `S3 uploads bucket`
+- `API Gateway HTTP API`
+- `Secrets Manager`
+- `user_data bootstrap`
+- `GitHub Actions deployment`
+
+А это убрать из первой версии:
+- `CloudFront for frontend`
+- `S3 frontend bucket`
+
+Если хочешь, следующим сообщением я могу уже **пересобрать весь AWS/Terraform scope под реальный frontend runtime** и дать тебе:
+- что удалить из старого плана
+- что добавить
+- какие exact Terraform modules теперь нужны.
+
+---
+
+_**User (2026-03-30 23:26:38Z)**_
+
+нет я хочу использовать cloudfront для d1to0rasl28a6e.cloudfront.net/ первоизначально!
+
+---
+
+_**Agent (gpt-5.4 2026-03-30 23:26:43Z)**_
+
+Проверю актуальные варианты использования CloudFront перед динамическим origin, чтобы дать тебе корректную схему именно для Next.js runtime на EC2, а не для static S3 site. Потом зафиксирую final infra recommendation под ваш случай.
+
+_**Agent (gpt-5.4 2026-03-30 23:27:04Z)**_
+
+Да, можно. Если ты **хочешь именно CloudFront URL** вроде `d1to0rasl28a6e.cloudfront.net`, это не конфликтует с тем, что frontend у тебя runtime-based Next.js.
+
+Просто в этом случае CloudFront должен смотреть **не на S3**, а на **custom origin** с твоим frontend runtime. AWS это прямо поддерживает: CloudFront может использовать **EC2 или другой HTTP origin** как custom origin, а не только S3. Источники:
+- CloudFront origin settings: https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/DownloadDistValuesOrigin.html
+- CloudFront custom origin / EC2: https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/DownloadDistS3AndCustomOrigins.html
+- `CustomOriginConfig`: https://docs.aws.amazon.com/cloudfront/latest/APIReference/API_CustomOriginConfig.html
+
+## Значит правильная схема для вас теперь такая
+
+**Frontend**
+- Next.js container
+- работает на EC2
+- CloudFront стоит **перед frontend container**
+- origin = EC2 frontend HTTP endpoint
+
+**Backend**
+- Go backend container
+- можно оставить отдельным публичным entry через **API Gateway**
+- либо тоже позже пустить через CloudFront path-based routing, но сейчас это не обязательно
+
+**Uploads**
+- S3 private bucket
+
+## Что это меняет в infra scope
+
+Теперь правильный MVP infra scope:
+
+- `VPC`
+- `Public Subnet`
+- `Internet Gateway`
+- `Security Group`
+- `EC2`
+- `IAM Role + Instance Profile`
+- `ECR frontend repository`
+- `ECR backend repository`
+- `S3 uploads bucket`
+- `CloudFront distribution for frontend`
+- `API Gateway HTTP API for backend`
+- `Secrets Manager`
+- `user_data bootstrap`
+- `GitHub Actions deployment`
+
+## Как CloudFront должен работать у вас
+
+CloudFront:
+- viewer URL: `https://d1to0rasl28a6e.cloudfront.net`
+- origin: frontend app on EC2
+- origin type: **custom origin**
+- allowed methods: лучше `GET, HEAD, OPTIONS`, а если frontend routes требуют больше, тогда расширить
+- viewer protocol policy: `redirect-to-https`
+
+Если frontend origin будет слушать, например, `http://EC2_PUBLIC_DNS:3000`, CloudFront может ходить к origin по HTTP. AWS это допускает для custom origins.  
+Источник: CloudFront custom origin protocol/ports: https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/DownloadDistValuesOrigin.html
+
+## Но тут есть важный practical момент
+
+Если у тебя **одна EC2** и на ней:
+- frontend на `3000`
+- backend на `8080`
+
+то логично сделать так:
+
+**Вариант A, самый простой**
+- CloudFront -> frontend container on EC2:3000
+- API Gateway -> backend on EC2:8080
+
+Это, на мой взгляд, сейчас лучший вариант.
+
+**Вариант B**
+- CloudFront перед frontend и backend одновременно по path routing
+- `/` -> frontend
+- `/api/*` -> backend
+
+Но это уже чуть сложнее и сейчас вам не обязательно.
+
+## Что я рекомендую окончательно
+
+Под ваш текущий реальный репозиторий и желание использовать CloudFront:
+
+- `frontend`: containerized Next.js runtime
+- `frontend`: deploy через **ECR + EC2**
+- `frontend public access`: через **CloudFront with custom origin to EC2**
+- `backend`: containerized Go app
+- `backend public access`: через **API Gateway**
+- `uploads`: private S3
+- `user_data`: only bootstrap
+- `deploy`: GitHub Actions
+
+## Что больше не нужно в старом плане
+
+Убрать старую идею:
+- `frontend bucket as main frontend hosting`
+- `CloudFront -> S3 frontend origin`
+
+Для вас теперь правильно:
+- `CloudFront -> EC2 frontend origin`
+
+## Финальная архитектура доступа
+
+- `CloudFront domain` -> frontend Next.js runtime
+- `API Gateway invoke URL` -> backend API
+- frontend знает backend URL через env, например `NEXT_PUBLIC_API_URL`
+
+## Коротко
+
+Да, **CloudFront использовать можно и нужно**, даже если frontend не static.  
+Просто origin у CloudFront должен быть **custom origin на frontend runtime**, а не S3 bucket.
+
+Если хочешь, я следующим сообщением уже **пересоберу final AWS Terraform scope полностью под эту схему**:
+- что именно создать
+- что убрать из старого S3-frontend плана
+- какие Terraform modules теперь нужны для `CloudFront -> EC2 frontend` и `API Gateway -> EC2 backend`.
+
+---
+
+_**User (2026-03-30 23:27:39Z)**_
+
+Вариант A, самый простой
+
+  - CloudFront -> frontend container on EC2:3000
+  - API Gateway -> backend on EC2:8080
+
+---
+
+_**Agent (gpt-5.4 2026-03-30 23:27:58Z)**_
+
+Да, это правильный вариант для вашего текущего MVP.
+
+Я бы зафиксировал его как **final infra approach v1**:
+
+- `CloudFront -> frontend container on EC2:3000`
+- `API Gateway HTTP API -> backend container on EC2:8080`
+
+## Почему это хороший вариант
+
+Он даёт вам:
+- простой деплой
+- один EC2 host
+- разделение frontend и backend public entrypoints
+- CloudFront URL для UI
+- API Gateway URL для backend API
+- без лишнего усложнения через ALB/ECS
+
+И при этом:
+- frontend остаётся runtime Next.js app
+- backend остаётся отдельным Go API
+- внутренние сервисы не торчат наружу
+
+## Как это должно выглядеть сетево
+
+Снаружи:
+- пользователь -> `CloudFront` -> frontend
+- frontend -> `API Gateway` -> backend
+
+На EC2:
+- `frontend` слушает `3000`
+- `backend` слушает `8080`
+- `postgres`, `rabbitmq` только во внутренней docker network
+
+## Важный нюанс по EC2 Security Group
+
+Если делаешь именно так, то для EC2 нужно открыть наружу:
+
+- `22/tcp` only your IP
+- `3000/tcp` для CloudFront origin
+- `8080/tcp` для API Gateway origin
+
+Но здесь есть нюанс:
+CloudFront и API Gateway не дают тебе такой же простой source allowlist, как “мой IP”.
+Поэтому origin на EC2 фактически будет reachable извне, если ты идёшь напрямую на EC2 public IP/DNS.
+
+Для MVP это допустимо, но надо понимать:
+- это **не идеально**
+- это **нормально для хакатона/MVP**
+- позже это лучше заменить на `ALB` или private integration patterns
+
+## Что надо сделать в frontend
+
+Во frontend env:
+- `NEXT_PUBLIC_API_URL=<your_api_gateway_url>`
+
+То есть frontend container не должен ходить на backend по `localhost:8080`.
+Он должен ходить на публичный backend entry через API Gateway.
+
+## Что надо сделать в Docker Compose на EC2
+
+Порты примерно так:
+
+- frontend: `3000:3000`
+- backend: `8080:8080`
+
+И не публиковать:
+- postgres
+- rabbitmq
+- whisper
+- llm
+
+## Что нужно в Terraform теперь
+
+Твой final MVP Terraform scope теперь такой:
+
+- `VPC`
+- `Public Subnet`
+- `Internet Gateway`
+- `Route Table`
+- `Security Group`
+- `EC2`
+- `IAM Role + Instance Profile`
+- `ECR frontend repository`
+- `ECR backend repository`
+- `S3 uploads bucket`
+- `CloudFront distribution`
+- `API Gateway HTTP API`
+- `Secrets Manager`
+
+## Что делать с CloudFront origin
+
+CloudFront origin:
+- type: custom origin
+- domain: EC2 public DNS or Elastic IP DNS target
+- origin port: `3000`
+- origin protocol policy: `http-only` или `match-viewer`
+
+Для MVP я бы делал:
+- `viewer`: HTTPS
+- `origin`: HTTP to EC2:3000
+
+## Что делать с API Gateway integration
+
+API Gateway:
+- HTTP API
+- integration URI -> `http://<ec2-public-dns>:8080`
+- routes:
+  - `ANY /api/{proxy+}`
+  - optional `/docs`
+  - optional `/docs/{proxy+}`
+
+## Что я рекомендую ещё зафиксировать
+
+Лучше сразу использовать:
+- **Elastic IP** для EC2
+
+Потому что тогда:
+- CloudFront origin не сломается
+- API Gateway integration target не сломается
+- тебе не придётся менять URI после recreate instance
+
+## Итог
+
+Да, вот это и стоит принять как ваш текущий AWS MVP design:
+
+- `CloudFront -> frontend container on EC2:3000`
+- `API Gateway -> backend container on EC2:8080`
+
+Это достаточно просто, соответствует вашему реальному стеку и не заставляет сейчас тащить ECS/ALB.
+
+Если хочешь, следующим сообщением я могу уже дать тебе **обновлённый final Terraform scope списком ресурсов**, без воды:
+- какие exact AWS resources нужны
+- какие exact Terraform modules делать
+- в каком порядке реализовывать.
+
+---
+
+_**User (2026-03-30 23:33:56Z)**_
+
+Now please read it once again and evaluate how well this should work or it's a mirage plan
+
+---
+
+_**Agent (gpt-5.4 2026-03-30 23:34:48Z)**_
+
+Это **не мираж**, а **рабочий MVP-план**, но с несколькими жёсткими оговорками.
+
+**Вердикт**
+
+План:
+
+- `CloudFront -> frontend container on EC2:3000`
+- `API Gateway HTTP API -> backend container on EC2:8080`
+
+для хакатона и MVP **должен работать**.
+
+AWS это поддерживает напрямую:
+
+- CloudFront умеет работать с **custom origin**, включая HTTP server / EC2 origin:  
+  https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/distribution-web-creating-console.html  
+  https://docs.aws.amazon.com/cloudfront/latest/APIReference/API_CustomOriginConfig.html
+- API Gateway HTTP API умеет делать **HTTP proxy integration** к **publicly routable HTTP endpoint**:  
+  https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-develop-integrations-http.html  
+  https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api.html
+- EC2 с доступом к AWS через role/profile тоже нормален:  
+  https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html
+
+**То есть концептуально план валиден.**
+
+## Где план хороший
+
+- Очень быстрый в реализации.
+- Подходит под `1 EC2 + Docker Compose`.
+- Не требует ECS/ALB/RDS.
+- Даёт тебе:
+  - CloudFront URL для frontend
+  - API Gateway URL для backend
+  - S3 для uploads
+  - Secrets Manager для runtime config
+- Хорошо соответствует вашему текущему репо и MVP-скорости.
+
+## Где план слабый
+
+Главная слабость не в том, что он “не работает”, а в том, что он **операционно хрупкий**.
+
+### 1. EC2 origin будет публично достижим
+CloudFront и API Gateway будут ходить на **publicly routable** EC2 endpoint.
+
+Это значит:
+- frontend origin можно попытаться обойти напрямую через EC2 public IP/DNS
+- backend origin тоже будет reachable напрямую, если SG откроет `8080`
+
+Это норм для MVP, но не норм как долгосрочная прод-архитектура.
+
+Для frontend это частично лечится:
+- CloudFront custom header -> origin validates header  
+  AWS это прямо рекомендует для custom origin:  
+  https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/add-origin-custom-headers.html  
+  https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-overview.html
+
+Для backend с API Gateway такой защиты “из коробки” в вашей схеме почти нет. Там самый слабый кусок именно backend-origin exposure.
+
+### 2. Next.js за CloudFront надо настроить аккуратно
+У вас frontend не static, а runtime Next.js.
+
+CloudFront по умолчанию **не форвардит** всё, что часто нужно динамическому origin:
+- cookies
+- query strings
+- нужные headers
+
+AWS docs:
+- origin request policy:  
+  https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/origin-request-understand-origin-request-policy.html
+- cache policy / what goes into cache key:  
+  https://docs.aws.amazon.com/cloudfront/latest/APIReference/API_CachePolicy.html
+
+Практически это значит:
+- для HTML/SSR и auth-sensitive routes кеш должен быть очень осторожным, иногда почти disabled
+- нужно явно продумать `OriginRequestPolicy` и `CachePolicy`
+- если frontend использует cookies/session/auth headers, это обязательно надо проставить
+
+### 3. Один EC2 = единая точка отказа
+Упадёт EC2:
+- упадёт frontend
+- упадёт backend
+- упадёт postgres
+- упадёт rabbitmq
+
+Для hackathon MVP это допустимо. Для устойчивой системы нет.
+
+### 4. EC2 public IP/DNS лучше не использовать как “плавающий” origin
+Если instance пересоздаётся, origin URI у CloudFront/API Gateway может устареть.
+
+Поэтому тут почти обязательно:
+- **Elastic IP**
+
+Иначе план будет хрупким уже даже на уровне redeploy.
+
+## Что я бы оценил как итог
+
+**Оценка**
+- как **MVP/hackathon architecture**: `8/10`
+- как **real production architecture**: `3/10`
+
+То есть:
+- **работать будет**
+- **сейчас делать можно**
+- **это не мираж**
+- но это **временная архитектура**, а не “правильный финал”
+
+## Что обязательно сделать, чтобы план не развалился
+
+### Обязательно
+- Использовать **Elastic IP** для EC2.
+- CloudFront origin = EC2 custom origin на `3000`.
+- API Gateway = HTTP proxy integration на публичный backend endpoint `:8080`.
+- Не открывать наружу:
+  - `5432`
+  - `5672`
+  - whisper ports
+  - llm ports
+- Использовать **ECR** для frontend и backend images.
+- Делать deploy через **GitHub Actions**, не через `user_data`.
+- Для CloudFront настроить корректные policies для dynamic Next.js.
+- Для frontend origin добавить **custom origin header** и проверку на origin side, чтобы уменьшить bypass.
+
+### Очень желательно
+- later заменить backend public-EC2 origin на:
+  - `ALB + API Gateway private integration`
+  или
+  - просто `ALB` перед backend
+
+## Bottom line
+
+План **реальный и рабочий**, если ты осознанно принимаешь его как:
+- дешёвый
+- быстрый
+- single-host
+- временный MVP
+
+Он становится “миражом” только если ожидать от него production-grade isolation и resilience. Для этого уровня он слишком простой.
+
+Если хочешь, я следующим сообщением могу дать тебе **final corrected AWS MVP architecture**, уже в виде:
+- `what stays`
+- `what changes`
+- `top 5 mandatory fixes before implementation`.
+
+---
+
+_**User (2026-03-30 23:36:52Z)**_
+
+да дай мне AWS MVP architecture
+
+---
+
+_**Agent (gpt-5.4 2026-03-30 23:37:22Z)**_
+
+Ниже `final corrected AWS MVP architecture` под ваш реальный стек и выбранный путь.
+
+**Scope**
+Это архитектура именно для `MVP / hackathon`, не для long-term production.
+
+## 1. Final Architecture
+
+**Public entrypoints**
+- `CloudFront` -> frontend runtime on EC2
+- `API Gateway HTTP API` -> backend runtime on EC2
+
+**Compute**
+- `1 EC2` as single runtime host
+- Docker Compose on EC2 runs:
+  - `frontend` (Next.js, port `3000`)
+  - `backend` (Go, port `8080`)
+  - `postgres`
+  - `rabbitmq`
+- `whisper` / `llm-scoring` оставить вне first deploy scope, как ты и хочешь
+
+**Storage**
+- `S3 private uploads bucket`
+
+**Secrets**
+- `Secrets Manager`
+
+**Auth to AWS**
+- `IAM Role + Instance Profile` attached to EC2
+
+**Images**
+- `ECR frontend repo`
+- `ECR backend repo`
+
+**Deploy**
+- `GitHub Actions -> ECR -> SSH to EC2 -> docker compose pull/up`
+
+## 2. AWS Resources To Create
+
+### Networking
+- `aws_vpc`
+- `aws_subnet` (`public`)
+- `aws_internet_gateway`
+- `aws_route_table`
+- `aws_route_table_association`
+
+### Security
+- `aws_security_group` for EC2
+
+### Compute
+- `aws_instance`
+- `aws_eip`
+- optional existing `key_pair`
+
+### IAM
+- `aws_iam_role`
+- `aws_iam_instance_profile`
+- IAM policy for:
+  - `ecr:GetAuthorizationToken`
+  - ECR pull actions
+  - `s3:GetObject/PutObject/ListBucket`
+  - `secretsmanager:GetSecretValue`
+
+### Registry
+- `aws_ecr_repository` for `frontend`
+- `aws_ecr_repository` for `backend`
+
+### Storage
+- `aws_s3_bucket` for uploads
+- `aws_s3_bucket_public_access_block`
+
+### Public access
+- `aws_cloudfront_distribution`
+- `aws_apigatewayv2_api`
+- `aws_apigatewayv2_integration`
+- `aws_apigatewayv2_route`
+- `aws_apigatewayv2_stage`
+
+### Secrets
+- `aws_secretsmanager_secret`
+- `aws_secretsmanager_secret_version`
+
+## 3. Traffic Flow
+
+### Frontend
+- user opens `https://<cloudfront>.cloudfront.net`
+- CloudFront forwards request to EC2 `:3000`
+- Next.js container serves app
+
+### Backend
+- frontend calls `https://<api-id>.execute-api.<region>.amazonaws.com/api/...`
+- API Gateway proxies request to EC2 `:8080`
+- Go backend handles API call
+
+### Uploads
+- backend uploads files to private S3 bucket
+- DB stores `bucket_name`, `object_key`, `etag`, etc.
+
+## 4. EC2 Runtime Layout
+
+On EC2:
+- `/opt/invisionu-ats/deploy`
+- `/opt/invisionu-ats/config`
+- `/opt/invisionu-ats/env`
+
+Compose stack:
+- `frontend`
+- `backend`
+- `postgres`
+- `rabbitmq`
+
+Ports:
+- `3000:3000`
+- `8080:8080`
+
+Do not publish:
+- `5432`
+- `5672`
+
+## 5. Security Group Rules
+
+### Inbound
+- `22/tcp` -> only your IP
+- `3000/tcp` -> for CloudFront origin
+- `8080/tcp` -> for API Gateway origin
+
+### Not exposed
+- `5432`
+- `5672`
+
+### Outbound
+- allow all
+
+## 6. Important MVP Risks
+
+### Risk 1: EC2 origin bypass
+Direct access to EC2 public IP/DNS is possible.
+
+For MVP:
+- acceptable
+
+Mitigation:
+- use CloudFront custom origin header for frontend
+- later migrate to ALB/private patterns
+
+### Risk 2: Single point of failure
+Everything is on one EC2.
+
+For MVP:
+- acceptable
+
+### Risk 3: API Gateway to public EC2 backend
+This works, but it is not ideal long-term.
+
+For MVP:
+- acceptable
+
+## 7. Mandatory Fixes
+
+These are not optional if you want the plan to behave predictably:
+
+1. Use **Elastic IP** for EC2.
+2. Use **ECR** for both frontend and backend images.
+3. Use **GitHub Actions**, not `user_data`, for application deployment.
+4. Keep `user_data` bootstrap-only.
+5. Configure CloudFront for dynamic Next.js behavior carefully.
+
+## 8. CloudFront Requirements
+
+Because frontend is Next.js runtime:
+- origin type: `custom origin`
+- origin host: EC2 public DNS or Elastic IP target
+- origin port: `3000`
+- viewer protocol: `redirect-to-https`
+
+You will likely need:
+- cookies forwarding if auth/session is used
+- query string forwarding
+- selected headers forwarding
+- conservative caching for dynamic HTML routes
+
+## 9. API Gateway Requirements
+
+- type: `HTTP API`
+- integration: `HTTP proxy`
+- backend target: `http://<elastic-ip-or-dns>:8080`
+
+Routes:
+- `ANY /api/{proxy+}`
+- optional:
+  - `GET /docs`
+  - `GET /docs/{proxy+}`
+
+## 10. Secrets Layout
+
+Minimum:
+- `invisionu/dev/backend`
+- `invisionu/dev/postgres`
+- `invisionu/dev/rabbitmq`
+- optional shared secret
+
+Backend secret should include:
+- app env
+- JWT secrets
+- DB host/user/password/name
+- S3 bucket
+- AWS region
+- RabbitMQ URL
+- SMTP settings
+
+## 11. CI/CD Model
+
+### Build
+GitHub Actions:
+- build frontend image
+- push to ECR
+- build backend image
+- push to ECR
+
+### Deploy
+GitHub Actions:
+- SSH to EC2
+- pull latest images
+- fetch secrets from Secrets Manager
+- render env/config
+- `docker compose up -d`
+
+## 12. What Is Deferred
+
+Leave for later:
+- whisper deploy
+- llm-scoring deploy
+- tg bot deploy
+- ALB
+- ECS
+- RDS
+- private subnets
+- Route53/custom domain
+- ACM
+
+## 13. Final MVP Decision
+
+This is the architecture to implement now:
+
+- `CloudFront -> frontend container on EC2:3000`
+- `API Gateway -> backend container on EC2:8080`
+- `S3 private uploads`
+- `ECR frontend/backend`
+- `Secrets Manager`
+- `1 EC2 + Docker Compose`
+- `GitHub Actions deployment`
+
+Если хочешь, следующим сообщением я могу превратить это уже в **Terraform implementation blueprint**:
+- exact modules
+- exact resource list per module
+- recommended file structure
+- order of implementation.
+
+---
+
+_**User (2026-03-30 23:38:58Z)**_
+
+сделай plan!
+
+---
+
+_**Agent (gpt-5.4 2026-03-30 23:39:05Z)**_
+
+Сначала заземлюсь в текущем `infrastructure/` и проверю, что уже есть по Terraform, чтобы план был не абстрактный, а под ваш реальный репозиторий и текущий MVP AWS scope.
+
+_**Agent (gpt-5.4 2026-03-30 23:39:05Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="shell_command"><details>
+<summary>Tool use: **shell_command** `Get-ChildItem -Force`</summary>
+```
+Exit code: 0
+Wall time: 1.8 seconds
+Output:
+
+
+    Directory: D:\Hackathons\InvisionU-ATS-decentrathon-2026\infrastructure
+
+
+Mode                 LastWriteTime         Length Name                                                            
+----                 -------------         ------ ----                                                            
+d-----         3/29/2026   3:52 PM                terraform                                                       
+-a----         3/29/2026   2:02 PM            123 README.md
+```
+</details></tool-use>
+
+_**Agent (gpt-5.4 2026-03-30 23:39:06Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="shell_command"><details>
+<summary>Tool use: **shell_command** `Get-ChildItem -Recurse -File | Select-Object -ExpandProperty FullName`</summary>
+```
+Exit code: 0
+Wall time: 1.8 seconds
+Output:
+D:\Hackathons\InvisionU-ATS-decentrathon-2026\infrastructure\README.md
+D:\Hackathons\InvisionU-ATS-decentrathon-2026\infrastructure\terraform\.gitkeep
+```
+</details></tool-use>
+
+_**Agent (gpt-5.4 2026-03-30 23:39:06Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="shell_command"><details>
+<summary>Tool use: **shell_command** `Get-Content -Raw README.md`</summary>
+```
+Exit code: 0
+Wall time: 1.7 seconds
+Output:
+# InvisionU-ATS-decentrathon-2026 (Intelligent Candidate Selection Support System) (ATS - Applicant Tracking System)
+
+Проект — это создание интеллектуальной системы поддержки отбора в inVision U.
+Продукт — это объяснимый AI-инструмент для приёмной комиссии, который анализирует данные кандидатов, выявляет лидерский потенциал, мотивацию и траекторию роста, формирует score/shortlist и помогает принимать более качественные решения.
+
+---
+
+> Техническое Задание RUS [/docs/Задача AI inDrive inVision U РУС - Decentrathon 5.0.pdf](/docs/Задача%20AI%20inDrive%20inVision%20U%20РУС%20-%20Decentrathon%205.0.pdf)
+
+> Technical Requirement ENG [/docs/Case AI inDrive inVision U ENG - Decentrathon 5.0.pdf](/docs/Case%20AI%20inDrive%20invision%20U%20ENG%20-%20Decentrathon%205.0.pdf)
+
+---
+
+## Architecture
+
+> ARCHITECTURE.md check this file for detailed architecture.
+
+### C4 Diagram (Container Diagram)
+
+![](docs/images/architecture/c4-container-diagram.png)
+
+### ERD (Entity-Relationship Diagram, of Golang Backend Postgres Database)
+
+![](docs/images/architecture/erd-database-tables-schema.png)
+
+## Monorepo Services
+
+1) Frontend
+2) Backend (Golang)
+    - Swagger/OpenAPI (docs/API-Specs.md files)
+    - (не нужно) Authorization/Authentication (Redis???)
+    - Roles: Client (Абитуриент, Школьник, Студент который падается на Грант), Moderator (Приемная Коммисия, Сотрудник, Админ панелька)
+3) PostgreSQL
+    - ERD
+4) LLM/ML (Scoring) (Groq/ChatGPT API or Local Model)
+5) Telegram Bot (RAG-based University Admission AI Chatbot) (Aiogram, Python)
+6) LLM (Telegram Bot) (Groq/ChatGPT API or Local Model)
+7) RAG (Telegram Bot) (Find Embedding Model/Database, may be PgVector package)
+8) Speech-To-Text (OpenAI Whisper vs AWS Transcribe)
+9) Infrastructure (DevOps)
+    - Yandex Cloud vs AWS
+    - Teraform, Ansible (IaC)
+    - Domen Name, Cloudflare, Traefik
+10) Security
+    - Антиплагиат (NoGPT, проверка на использование GPT и LLM моделей)
+    - Protect your ATS from AI manipulation (Prompt Injection Defense) (Hidden Text Detection) (Clean Data Guarantee)
+
+### Frontend
+
+[ ] скриншоты и demo videos
+
+![](docs/demos/demo-01-frontend-v1-28-03-2026.gif)
+
+---
+
+![](docs/demos/demo-02-frontend-v1-28-03-2026.gif)
+
+---
+
+![](docs/demos/demo-03-frontend-v1-28-03-2026.gif)
+
+### Backend
+
+[ ] описание
+
+![](docs/images/backend-api-docs-swagger.jpeg)
+
+### Infrastructure
+
+[ ] сделать
+[ ] описание
+[ ] скриншоты
+
+### LLM Scoring
+
+[ ] описание
+
+```plantuml
+Speech / video
+    ↓
+STT → текст
+    ↓
+LLM / rules evaluator
+    ↓
+Scoring engine
+    ↓
+JSON результат
+    ↓
+UI / API / баз
+```
+
+![](docs/images/llm_compare/image_score.png)
+![](docs/images/llm_compare/image.png)
+
+Мы используем **Llama-3.3-70b-versatile** (через API), потому что по результатам сравнения метрик она показала себя как самая оптимальная модель для задачи скоринга:
+- **Высокая стабильность формата (`valid_json_rate`):** Выдает 100% валидный JSON (показатель 1.00). Это критически важно для пайплайна, в отличие от некоторых других тестируемых моделей, которые допускали ошибки в структуре ответа (показатель 0.83).
+- **Высокая скорость работы (`avg_latency_sec`):** Отрабатывает в среднем за **3.19 сек**. Она является одной из самых быстрых моделей в тесте, значительно опережая другие крупные модели (которые показывали задержки от 11 до 17 секунд).
+
+- **Лучшая дифференциация кандидатов:** Наиболее точно разделяет кандидатов по качеству ответов согласно промпту:
+  - Ставит наивысшие баллы сильным кандидатам (**`good_avg_total`: 75.00**).
+  - Дает средние баллы пограничным кандидатам (**`middle_avg_total`: 56.00**).
+  - Строго оценивает откровенно слабые ответы (**`bad_avg_total`: 19.50**).
+
+### Speech-To-Text (STT)
+
+Для транскриб�
+... (truncated)
+```
+</details></tool-use>
+
+_**Agent (gpt-5.4 2026-03-30 23:39:16Z)**_
+
+Сейчас ещё проверю реальные контейнеры и compose-модель у `frontend` и `backend`, чтобы план по AWS/Terraform сразу совпадал с тем, как сервисы уже собираются и запускаются локально.
+
+_**Agent (gpt-5.4 2026-03-30 23:39:16Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="shell_command"><details>
+<summary>Tool use: **shell_command** `Get-Content -Raw docker-compose.yml`</summary>
+```
+Exit code: 0
+Wall time: 2.1 seconds
+Output:
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: invision_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: invision_user
+      POSTGRES_PASSWORD: invision_pass
+      POSTGRES_DB: invision_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U invision_user -d invision_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    container_name: invision_app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://invision_user:invision_pass@db:5432/invision_db
+      # Р•СЃР»Рё РёСЃРїРѕР»СЊР·СѓРµС‚Рµ РґСЂСѓРіРёРµ РїРµСЂРµРјРµРЅРЅС‹Рµ, РґРѕР±Р°РІСЊС‚Рµ РёС… СЃСЋРґР°
+    depends_on:
+      db:
+        condition: service_healthy
+    # Р”Р»СЏ СЂР°Р·СЂР°Р±РѕС‚РєРё РјРѕР¶РЅРѕ СЃРјРѕРЅС‚РёСЂРѕРІР°С‚СЊ РєРѕРґ (СЂР°СЃРєРѕРјРјРµРЅС‚РёСЂРѕРІР°С‚СЊ РЅРёР¶Рµ)
+    # volumes:
+    #   - .:/app
+    #   - /app/node_modules
+    #   - /app/.next
+
+volumes:
+  postgres_data:
+```
+</details></tool-use>
+
+_**Agent (gpt-5.4 2026-03-30 23:39:16Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="shell_command"><details>
+<summary>Tool use: **shell_command** `Get-Content -Raw docker-compose.yml`</summary>
+```
+Exit code: 0
+Wall time: 2 seconds
+Output:
+networks:
+  invisionu-ats-network:
+    external: true
+
+volumes:
+  go-mod-cache: {}
+  go-build-cache: {}
+
+services:
+  golang:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+    container_name: invisionu_ats_backend_dev
+    env_file:
+      - .env
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    command: ["-config=local"]
+    volumes:
+      - ./config:/app/config:ro
+    networks:
+      - invisionu-ats-network
+
+  golang-test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: test
+    container_name: invisionu_ats_backend_test
+    working_dir: /src
+    env_file:
+      - .env
+    volumes:
+      - .:/src
+      - go-mod-cache:/go/pkg/mod
+      - go-build-cache:/root/.cache/go-build
+    command: ["sh"]
+    networks:
+      - invisionu-ats-network
+```
+</details></tool-use>
+
+_**Agent (gpt-5.4 2026-03-30 23:39:16Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="shell_command"><details>
+<summary>Tool use: **shell_command** `Get-Content -Raw docker-compose.infrastructure.yml`</summary>
+```
+Exit code: 0
+Wall time: 2 seconds
+Output:
+networks:
+  invisionu-ats-network:
+    name: invisionu-ats-network
+
+volumes:
+  postgres_dev_data:
+  minio_dev_data:
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: invisionu_ats_postgres_dev
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: ${DB_DATABASE}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_DATABASE}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    ports:
+      - "5432:5432"
+    networks:
+      - invisionu-ats-network
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: invisionu_ats_rabbitmq_dev
+    restart: unless-stopped
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - invisionu-ats-network
+
+  minio:
+    image: minio/minio:RELEASE.2025-02-28T09-55-16Z
+    container_name: invisionu_ats_minio_dev
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: ${STORAGE_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${STORAGE_SECRET_KEY}
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_dev_data:/data
+    ports:
+      - "9000:9000"
+      - "9002:9001"
+    networks:
+      - invisionu-ats-network
+
+  minio-init:
+    image: minio/mc:RELEASE.2025-02-21T16-00-46Z
+    container_name: invisionu_ats_minio_init
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      until /usr/bin/mc alias set local http://minio:9000 ${STORAGE_ACCESS_KEY} ${STORAGE_SECRET_KEY}; do
+        echo 'waiting for minio...';
+        sleep 2;
+      done;
+      /usr/bin/mc mb --ignore-existing local/${STORAGE_BUCKET};
+      /usr/bin/mc anonymous set private local/${STORAGE_BUCKET};
+      exit 0;
+      "
+    networks:
+      - invisionu-ats-network
+```
+</details></tool-use>
+
+_**Agent (gpt-5.4 2026-03-30 23:39:16Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="shell_command"><details>
+<summary>Tool use: **shell_command** `Get-Content -Raw docker-compose.prod.yml`</summary>
+```
+Exit code: 0
+Wall time: 2 seconds
+Output:
+networks:
+  invisionu-ats-network:
+    external: true
+
+volumes:
+  postgres_prod-data:
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: postgres_prod
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_DATABASE}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_prod-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_DATABASE}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks:
+      - invisionu-ats-network
+
+  golang:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    #image: ${IMAGE_FULL:-golang-backend:latest}
+    container_name: golang_prod
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    command: ["-config=prod"]
+    volumes:
+      - ./config:/app/config:ro
+    labels:  # Р”РѕР±Р°РІСЊ СЌС‚РѕС‚ Р±Р»РѕРє
+      - "traefik.enable=true"
+      - "traefik.http.routers.golang.rule=Host(`api.yourdomain.com`)"  # РР»Рё PathPrefix(`/api`)
+      - "traefik.http.routers.golang.entrypoints=websecure"
+      - "traefik.http.routers.golang.tls.certresolver=myresolver"
+      - "traefik.http.services.golang.loadbalancer.server.port=8080"  # Internal РїРѕСЂС‚
+    networks:
+      - invisionu-ats-network
+```
+</details></tool-use>
+
+_**Agent (gpt-5.4 2026-03-30 23:39:30Z)**_
+
+Ещё одна важная вещь для плана: у фронтенда есть `app/api/*`, и это может влиять на AWS scope и docker topology. Проверю, насколько frontend сейчас самостоятельный runtime и не тащит ли свой Postgres как отдельную обязанность, чтобы в плане сразу зафиксировать правильный boundary.
+
+_**Agent (gpt-5.4 2026-03-30 23:39:30Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="shell_command"><details>
+<summary>Tool use: **shell_command** `Get-Content -Raw app\api\apply\route.ts`</summary>
+```
+Exit code: 0
+Wall time: 2.1 seconds
+Output:
+import { NextRequest, NextResponse } from 'next/server';
+import { query } from '@/lib/db';
+
+// РџСЂРѕСЃС‚Р°СЏ С„СѓРЅРєС†РёСЏ Р°РЅР°Р»РёР·Р° СЌСЃСЃРµ
+function analyzeEssay(essay: string) {
+  const lowerEssay = essay.toLowerCase();
+  // РљР»СЋС‡РµРІС‹Рµ СЃР»РѕРІР°
+  const motivationWords = ['motivation', 'want', 'goal', 'dream', 'aspire', 'passion', 'drive'];
+  const leadershipWords = ['lead', 'leader', 'team', 'organize', 'manage', 'initiative', 'mentor', 'coordinate'];
+  const structureScore = 50; // Р±Р°Р·РѕРІР°СЏ РѕС†РµРЅРєР° СЃС‚СЂСѓРєС‚СѓСЂС‹ (РјРѕР¶РЅРѕ СѓР»СѓС‡С€РёС‚СЊ)
+
+  let motivationCount = 0;
+  let leadershipCount = 0;
+
+  for (const word of motivationWords) {
+    if (lowerEssay.includes(word)) motivationCount++;
+  }
+  for (const word of leadershipWords) {
+    if (lowerEssay.includes(word)) leadershipCount++;
+  }
+
+  // РќРѕСЂРјРёСЂСѓРµРј Рє 100 (РјР°РєСЃРёРјСѓРј 10 СЃРѕРІРїР°РґРµРЅРёР№)
+  const motivationScore = Math.min(100, motivationCount * 10);
+  const leadershipScore = Math.min(100, leadershipCount * 10);
+  // РЎС‚СЂСѓРєС‚СѓСЂР°: РїСЂРѕРІРµСЂСЏРµРј РЅР° РЅР°Р»РёС‡РёРµ РІСЃС‚СѓРїР»РµРЅРёСЏ Рё Р·Р°РєР»СЋС‡РµРЅРёСЏ (РїСЂРѕСЃС‚Рѕ РїРѕ РЅР°Р»РёС‡РёСЋ СЃР»РѕРІ "introduction", "conclusion")
+  let structureBoost = 0;
+  if (lowerEssay.includes('introduction')) structureBoost += 20;
+  if (lowerEssay.includes('conclusion')) structureBoost += 20;
+  if (essay.split('\n').length > 3) structureBoost += 10;
+  const structureScoreFinal = Math.min(100, structureScore + structureBoost);
+
+  const overallScore = Math.round((motivationScore + leadershipScore + structureScoreFinal) / 3);
+
+  // Р¤РѕСЂРјРёСЂСѓРµРј evidence
+  const motivationEvidence = `Found keywords: ${motivationWords.filter(w => lowerEssay.includes(w)).join(', ') || 'none'}`;
+  const leadershipEvidence = `Found keywords: ${leadershipWords.filter(w => lowerEssay.includes(w)).join(', ') || 'none'}`;
+  const structureEvidence = `Essay has ${essay.split('\n').length} paragraphs; includes ${lowerEssay.includes('introduction') ? 'introduction' : 'no introduction'}, ${lowerEssay.includes('conclusion') ? 'conclusion' : 'no conclusion'}.`;
+
+  const explanation = `Your application shows ${motivationScore}% motivation based on key terms found. Leadership score ${leadershipScore}% from leadership-related terms. Structure score ${structureScoreFinal}% from essay format. Overall potential: ${overallScore}%.`;
+
+  return {
+    subscores: {
+      Motivation: motivationScore,
+      Leadership: leadershipScore,
+      Structure: structureScoreFinal,
+    },
+    overallScore,
+    evidence: {
+      Motivation: motivationEvidence,
+      Leadership: leadershipEvidence,
+      Structure: structureEvidence,
+    },
+    explanation,
+  };
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { name, email, program, essay } = body;
+
+    if (!name || !email || !program || !essay) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
+    // РџСЂРѕРІРµСЂСЏРµРј, СЃСѓС‰РµСЃС‚РІСѓРµС‚ Р»Рё РєР°РЅРґРёРґР°С‚ СЃ С‚Р°РєРёРј email
+    let candidateResult = await query('SELECT id FROM candidates WHERE email = $1', [email]);
+    let candidateId: string;
+
+    if (candidateResult.rows.length === 0) {
+      // РЎРѕР·РґР°С‘Рј РЅРѕРІРѕРіРѕ РєР°РЅРґРёРґР°С‚Р°
+      const insertResult = await query(
+        `INSERT INTO candidates (external_id, email, created_at, updated_at, data_source)
+         VALUES (gen_random_uuid(), $1, NOW(), NOW(), 'web_app')
+         RETURNING id`,
+        [email]
+      );
+      candidateId = insertResult.rows[0].id;
+      
+    } else {
+      candidateId = candidateResult.rows[0].id;
+    }
+    if (body.ielts_score) {
+  await query(`
+    UPDATE candidates 
+    SET ielts_score = $1 
+    WHERE id = $2
+  `, [body.ielts_score, candidateId]);
+}
+
+
+    // РЎРѕР·РґР°С‘Рј Р·Р°СЏРІРєСѓ
+    const structuredData = {
+      name,
+      program,
+      motivation_evidence: essay, // СЃРѕС…СЂР°РЅСЏРµРј СЌСЃСЃРµ РєР°Рє evidence
+      leadership_evidence: essay,
+      structure_evidence: essay,
+    };
+    const appResult = await query(
+      `INSERT INTO applications (candidate_id, submitted_at, structured_data, essay_text)
+       VALUES ($1, NOW(), $2, $3)
+       RETURNING id`,
+      [candidateId, structur
+... (truncated)
+```
+</details></tool-use>
+
+_**Agent (gpt-5.4 2026-03-30 23:39:30Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="shell_command"><details>
+<summary>Tool use: **shell_command** `Get-Content -Raw app\api\candidates\route.ts`</summary>
+```
+Exit code: 0
+Wall time: 2.1 seconds
+Output:
+import { NextResponse } from 'next/server';
+import { query } from '@/lib/db';
+
+export async function GET() {
+  try {
+    const result = await query(`
+      WITH last_applications AS (
+        SELECT DISTINCT ON (candidate_id) 
+          id AS application_id,
+          candidate_id,
+          structured_data,
+          submitted_at
+        FROM applications
+        ORDER BY candidate_id, submitted_at DESC
+      ),
+      last_scores AS (
+        SELECT DISTINCT ON (application_id) 
+          application_id,
+          overall_score
+        FROM scores
+        ORDER BY application_id, calculated_at DESC
+      ),
+      last_statuses AS (
+        SELECT DISTINCT ON (candidate_id) 
+          candidate_id,
+          status
+        FROM candidate_statuses
+        ORDER BY candidate_id, created_at DESC
+      ),
+      last_explanations AS (
+        SELECT DISTINCT ON (ma.application_id)
+          ma.application_id,
+          ma.analysis_json->>'explanation' AS explanation
+        FROM ml_analysis ma
+        ORDER BY ma.application_id, ma.created_at DESC
+      )
+ SELECT 
+  c.id,
+  c.external_id,
+  la.structured_data->>'name' AS name,
+  la.structured_data->>'program' AS program,
+  ls.overall_score,
+  cs.status,
+  le.explanation,
+  c.ielts_score
+FROM candidates c
+LEFT JOIN last_applications la ON la.candidate_id = c.id
+LEFT JOIN last_scores ls ON ls.application_id = la.application_id
+LEFT JOIN last_statuses cs ON cs.candidate_id = c.id
+LEFT JOIN last_explanations le ON le.application_id = la.application_id
+      ORDER BY c.created_at DESC
+    `);
+
+    // РџСЂРµРѕР±СЂР°Р·СѓРµРј РїРѕР»СЏ РІ camelCase РґР»СЏ СЃРѕРѕС‚РІРµС‚СЃС‚РІРёСЏ РёРЅС‚РµСЂС„РµР№СЃСѓ Candidate
+const candidates = result.rows.map(row => ({
+  id: row.id,
+  name: row.name,
+  program: row.program,
+  overallScore: row.overall_score,
+  status: row.status,
+  explanation: row.explanation,
+  ielts_score: row.ielts_score,
+}));
+
+    return NextResponse.json(candidates);
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: 'Failed to fetch candidates' }, { status: 500 });
+  }
+}
+```
+</details></tool-use>
+
+_**Agent (gpt-5.4 2026-03-30 23:39:30Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="shell_command"><details>
+<summary>Tool use: **shell_command** `Get-Content -Raw lib\db.ts`</summary>
+```
+Exit code: 0
+Wall time: 2.1 seconds
+Output:
+import { Pool } from 'pg';
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+});
+
+export const query = (text: string, params?: any[]) =>
+  pool.query(text, params);
+```
+</details></tool-use>
+
+_**Agent (gpt-5.4 2026-03-30 23:39:30Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="shell_command"><details>
+<summary>Tool use: **shell_command** `Get-ChildItem -Recurse -File app\api | Select-Object -ExpandProperty FullName`</summary>
+```
+Exit code: 0
+Wall time: 2.1 seconds
+Output:
+D:\Hackathons\InvisionU-ATS-decentrathon-2026\frontend\app\api\apply\route.ts
+D:\Hackathons\InvisionU-ATS-decentrathon-2026\frontend\app\api\candidates\route.ts
+D:\Hackathons\InvisionU-ATS-decentrathon-2026\frontend\app\api\candidates\[id]\route.ts
+D:\Hackathons\InvisionU-ATS-decentrathon-2026\frontend\app\api\candidates\[id]\status\route.ts
+D:\Hackathons\InvisionU-ATS-decentrathon-2026\frontend\app\api\stats\route.ts
+D:\Hackathons\InvisionU-ATS-decentrathon-2026\frontend\app\api\weights\route.ts
+```
+</details></tool-use>
+
+_**Agent (gpt-5.4 2026-03-30 23:39:40Z)**_
+
+Нашёл критичную вещь, которая меняет infra plan: текущий `frontend` не просто SSR runtime, он ещё и сам ходит в Postgres через `app/api/*` и `lib/db.ts`, причём использует свою старую схему (`candidates`, `scores`, `ml_analysis`), а не новый Go ATS backend. Это значит, что есть два разных пути AWS MVP, и без выбора план будет неполным.
+
+_**Agent (gpt-5.4 2026-03-30 23:39:43Z)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="request_user_input"><details>
+<summary>Tool use: **request_user_input**</summary>
+
+**Input:**
+
+- questions: `[map[header:Frontend mode id:frontend_mode options:[map[description:Деплоим текущий frontend как отдельный Next.js runtime на EC2 с его текущими app/api и DB access, без предварительного рефактора на Go backend. label:As-is deploy (Recommended)] map[description:Считаем, что frontend должен сначала быть переведён на Go ATS backend, и Terraform планируем уже под эту будущую целевую архитектуру. label:Backend-first] map[description:Планируем временный AWS MVP, где frontend и Go backend живут рядом, но frontend пока частично использует свои старые app/api и старую схему. label:Hybrid bridge]] question:Какой режим принять для AWS MVP инфраструктуры?]]`
+
+**Result:**
+
+</details></tool-use>
+
+---
+
+_**User (2026-03-30 23:41:45Z)**_
+
+Now please read it once again and evaluate how well this should work or it's a mirage plan! analyze the monorepo!
+
+---
+
+_**Agent (gpt-5.4 2026-03-30 23:41:56Z)**_
+
+Сделаю ещё один проход по монорепе целиком, чтобы оценка была не только по `frontend/backend`, но и по `llm`, `STT`, `tg_bot_rag` и текущему `infrastructure/`. После этого дам жёсткий verdict: что в плане реально взлетит, а что сейчас иллюзия.
+
+_**Agent (gpt-5.4 2026-03-30 23:41:56Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="shell_command"><details>
+<summary>Tool use: **shell_command** `Get-ChildItem -Force`</summary>
+```
+Exit code: 0
+Wall time: 3.6 seconds
+Output:
+
+
+    Directory: D:\Hackathons\InvisionU-ATS-decentrathon-2026
+
+
+Mode                 LastWriteTime         Length Name                                                            
+----                 -------------         ------ ----                                                            
+d--h--         3/31/2026   4:28 AM                .git                                                            
+d-----         3/27/2026   9:46 PM                .vscode                                                         
+d-----         3/31/2026   1:13 AM                AI_Detecter-service                                             
+d-----         3/29/2026   9:21 PM                backend                                                         
+d-----         3/31/2026   1:54 AM                docs                                                            
+d-----         3/31/2026   1:50 AM                frontend                                                        
+d-----         3/29/2026   1:40 PM                infrastructure                                                  
+d-----         3/31/2026   1:13 AM                llm                                                             
+d-----         3/31/2026   1:13 AM                STT                                                             
+d-----         3/29/2026   1:42 PM                tg_bot_rag                                                      
+-a----         3/28/2026   6:07 PM            121 .env.example                                                    
+-a----         3/31/2026   1:13 AM             50 .gitignore                                                      
+-a----         3/31/2026   2:32 AM           9897 AGENTS.md                                                       
+-a----         3/31/2026   2:16 AM          15290 ARCHITECTURE.md                                                 
+-a----         3/29/2026   1:46 PM              0 docker-compose.yml                                              
+-a----         3/28/2026   3:15 AM          10532 LICENSE                                                         
+-a----         3/31/2026   1:13 AM           9376 README.md
+```
+</details></tool-use>
+
+_**Agent (gpt-5.4 2026-03-30 23:41:56Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="shell_command"><details>
+<summary>Tool use: **shell_command** `Get-ChildItem -Force`</summary>
+```
+Exit code: 0
+Wall time: 4.1 seconds
+Output:
+
+
+    Directory: D:\Hackathons\InvisionU-ATS-decentrathon-2026\llm
+
+
+Mode                 LastWriteTime         Length Name                                                            
+----                 -------------         ------ ----                                                            
+d-----         3/29/2026   3:52 PM                fastApi                                                         
+d-----         3/28/2026   7:18 PM                mlflow_outputs                                                  
+d-----         3/28/2026   7:18 PM                mlruns                                                          
+d-----         3/31/2026   1:13 AM                prompts                                                         
+d-----         3/31/2026   1:13 AM                schema                                                          
+d-----         3/28/2026   7:18 PM                test_inputs                                                     
+-a----         3/28/2026   6:07 PM            121 .env.example                                                    
+-a----         3/29/2026   3:52 PM             36 .gitignore                                                      
+-a----         3/29/2026   3:52 PM            151 docker-compose.yml                                              
+-a----         3/29/2026   3:52 PM            337 Dockerfile                                                      
+-a----         3/28/2026   6:07 PM           2723 input.txt                                                       
+-a----         3/28/2026   2:57 AM           1253 input.txt.bad.example                                           
+-a----         3/28/2026   2:57 AM           2723 input.txt.good.example                                          
+-a----         3/29/2026   3:52 PM          67536 LLM.ipynb                                                       
+-a----         3/29/2026   3:52 PM           6407 main.py                                                         
+-a----         3/29/2026   3:52 PM            424 main_api.py                                                     
+-a----         3/29/2026   1:42 PM         688128 mlflow.db                                                       
+-a----         3/28/2026   2:57 AM           5087 prompt.txt                                                      
+-a----         3/31/2026   1:13 AM           3135 README.md                                                       
+-a----         3/29/2026   3:52 PM             42 requirements.txt
+```
+</details></tool-use>
+
+_**Agent (gpt-5.4 2026-03-30 23:41:56Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="shell_command"><details>
+<summary>Tool use: **shell_command** `Get-ChildItem -Force`</summary>
+```
+Exit code: 0
+Wall time: 4 seconds
+Output:
+
+
+    Directory: D:\Hackathons\InvisionU-ATS-decentrathon-2026\STT
+
+
+Mode                 LastWriteTime         Length Name                                                            
+----                 -------------         ------ ----                                                            
+-a----         3/29/2026   7:53 PM             53 .env.example                                                    
+-a----         3/29/2026   7:53 PM             18 .gitignore                                                      
+-a----         3/29/2026   7:53 PM            151 docker-compose.yml                                              
+-a----         3/29/2026   7:53 PM            335 Dockerfile                                                      
+-a----         3/29/2026   7:53 PM           1580 main.py                                                         
+-a----         3/29/2026   7:53 PM            536 main_api.py                                                     
+-a----         3/31/2026   1:13 AM           1953 README.md                                                       
+-a----         3/29/2026   7:53 PM             47 requirements.txt                                                
+-a----         3/29/2026   7:53 PM           7682 Whisper.ipynb
+```
+</details></tool-use>
+
+_**Agent (gpt-5.4 2026-03-30 23:41:56Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="shell_command"><details>
+<summary>Tool use: **shell_command** `Get-ChildItem -Force`</summary>
+```
+Exit code: 0
+Wall time: 3.5 seconds
+Output:
+
+
+    Directory: D:\Hackathons\InvisionU-ATS-decentrathon-2026\tg_bot_rag\KazRAGUNIProject
+
+
+Mode                 LastWriteTime         Length Name                                                            
+----                 -------------         ------ ----                                                            
+d-----         3/29/2026  10:55 PM                __pycache__                                                     
+-a----         3/29/2026   1:42 PM             74 .dockerignore                                                   
+-a----         3/29/2026  10:58 PM            145 .env.example                                                    
+-a----         3/29/2026  10:55 PM             11 .gitignore                                                      
+-a----         3/29/2026   1:42 PM           1140 docker-compose.yml                                              
+-a----         3/29/2026  10:55 PM            351 Dockerfile                                                      
+-a----         3/29/2026  10:55 PM          10791 main.py                                                         
+-a----         3/29/2026  10:55 PM           5106 README.md                                                       
+-a----         3/29/2026   1:42 PM            205 requirements.txt                                                
+-a----         3/29/2026   1:42 PM           3086 telegram_bot.py
+```
+</details></tool-use>
+
+_**Agent (gpt-5.4 2026-03-30 23:41:56Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="shell_command"><details>
+<summary>Tool use: **shell_command** `Get-Content -Raw ARCHITECTURE.md`</summary>
+```
+Exit code: 0
+Wall time: 2.9 seconds
+Output:
+# Architecture
+
+## Architecture Diagram
+
+## C4 Diagram (Container Diagram)
+
+![](docs/images/architecture/c4-container-diagram.png)
+
+---
+
+```plantuml
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_WITH_LEGEND()
+
+title InVisionU ATS - Overall Architecture (Container Diagram)
+
+Person(applicant, "Applicant", "Registers, verifies email, uploads files, submits application, checks status")
+Person(admin, "Admin Reviewer", "Reviews candidates, updates review stage and decision")
+
+System_Boundary(ats, "InVisionU ATS Platform") {
+  Container(frontend, "Frontend", "Next.js / Web App", "Applicant and admin UI")
+
+  Container(backend, "Backend API", "Go + Fiber", "Auth, programs, uploads, personality test, applications, candidates")
+
+  ContainerDb(postgres, "PostgreSQL", "PostgreSQL", "Users, auth_codes, refresh_sessions, programs, applications, files, tests, scoring_runs")
+
+  Container(minio, "MinIO", "S3-compatible Object Storage", "Applicant uploaded files and derived media artifacts")
+
+  Container(rabbitmq, "RabbitMQ", "AMQP Broker", "Domain events and async processing entrypoint")
+
+  Container(llm, "LLM Scoring Service", "Python / FastAPI / Workers", "Consumes application pipeline events, transcription/scoring pipeline, writes scoring results")
+}
+
+System_Ext(smtp, "SMTP Provider", "Used only in production for email verification delivery")
+
+Rel(applicant, frontend, "Uses", "HTTPS")
+Rel(admin, frontend, "Uses", "HTTPS")
+
+Rel(frontend, backend, "Calls REST API", "HTTPS / JSON")
+
+Rel(backend, postgres, "Reads/Writes domain data", "SQL")
+Rel(backend, minio, "Stores and retrieves files", "S3 API")
+Rel(backend, rabbitmq, "Publishes domain events", "AMQP")
+Rel(backend, smtp, "Sends verification emails", "SMTP (production only)")
+
+Rel(llm, rabbitmq, "Consumes and publishes async events", "AMQP")
+Rel(llm, minio, "Reads media files / writes derived artifacts", "S3 API")
+Rel(llm, postgres, "Persists scoring results and processing state", "SQL")
+
+BiRel(frontend, minio, "No direct access in current backend-first flow", "n/a")
+
+note right of backend
+Modular monolith:
+- auth
+- programs
+- uploads
+- personalitytest
+- applications
+- candidates
+
+Infrastructure adapters:
+- internal/platform/email
+- internal/platform/storage
+- internal/platform/messaging
+end note
+
+note bottom of rabbitmq
+Current event focus:
+- application.submitted
+
+Planned pipeline events:
+- application.audio_ready
+- application.transcribed
+- scoring.completed
+end note
+
+@enduml
+```
+
+## ERD (Entity Relationship Diagram)
+
+![](docs/images/architecture/erd-database-tables-schema.png)
+
+---
+
+```plantuml
+
+hide circle
+skinparam linetype ortho
+
+entity "users" as users {
+  *id : uuid <<PK>>
+  --
+  email : varchar <<UNIQUE>>
+  password_hash : varchar
+  role : varchar
+  is_email_verified : boolean
+  first_name : varchar
+  last_name : varchar
+  phone_number : varchar
+  created_at : timestamptz
+  updated_at : timestamptz
+}
+
+entity "auth_codes" as auth_codes {
+  *id : uuid <<PK>>
+  --
+  user_id : uuid <<FK>>
+  purpose : varchar
+  code_hash : varchar
+  expires_at : timestamptz
+  consumed_at : timestamptz
+  created_at : timestamptz
+}
+
+entity "programs" as programs {
+  *id : int <<PK>>
+  --
+  level : varchar
+  code : varchar <<UNIQUE>>
+  name : varchar
+  is_active : boolean
+  sort_order : int
+}
+
+entity "applications" as applications {
+  *id : uuid <<PK>>
+  --
+  user_id : uuid <<FK>>
+  program_id : int <<FK>>
+  review_stage : varchar
+  decision : varchar
+  video_file_id : uuid <<FK>>
+  video_audio_file_id : uuid <<FK>>
+  video_transcript : text
+  screening_error : text
+  submitted_at : timestamptz
+  created_at : timestamptz
+  updated_at : timestamptz
+}
+
+entity "application_files" as application_files {
+  *id : uuid <<PK>>
+  --
+  uploaded_by_user_id : uuid <<FK>>
+  application_id : uuid <<FK>> <<NULL>>
+  file_type : varchar
+  bucket_name : varchar
+  object_key : varchar
+  original_filename : varchar
+  content_type : varchar
+  size_bytes : bigint
+  etag : varchar
+  created_at : timestamptz
+}
+
+entity "personality_tests" as personality_tests {
+  *id : uuid <<PK>>
+  --
+  code : varchar <<UNIQUE>>
+  title : varchar
+  is_active : boolean
+  created_at : timestamptz
+}
+
+entity "personality_test_questions" as pt_questions {
+  *id : uuid <<PK>>
+  --
+  test_id : uuid <<FK>>
+  question_order : int
+  question_text : text
+  is_active : boolean
+}
+
+entity "personality_test_options" as pt_options {
+  *id : uuid <<PK>>
+  --
+  question_id : uuid <<FK>>
+  option_order : int
+  option_key : varchar
+  option_text : text
+}
+
+entity "application_test_answers" as app_test_answers {
+  *id : uuid <<PK>>
+  --
+  application_id : uuid <<FK>>
+  question_id : uuid <<FK>>
+  option_id : uuid <<FK>>
+  created_at : timestamptz
+}
+
+... (truncated)
+```
+</details></tool-use>
+
+_**Agent (gpt-5.4 2026-03-30 23:42:13Z)**_
+
+Провёл повторный анализ монорепы целиком. Картина стала заметно жёстче: проблема не в AWS itself, а в том, что монорепа сейчас описывает **две конкурирующие архитектуры одновременно**. Прежде чем фиксировать final infra plan, нужно выбрать, какую из них ты реально хочешь деплоить первой.
+
+_**Agent (gpt-5.4 2026-03-30 23:42:16Z)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="request_user_input"><details>
+<summary>Tool use: **request_user_input**</summary>
+
+**Input:**
+
+- questions: `[map[header:Infra target id:infra_target options:[map[description:Terraform и deploy строятся под текущее фактическое состояние: Next.js frontend со своими app/api и DB access, плюс отдельный Go backend ATS рядом. label:Current monorepo (Recommended)] map[description:Игнорируем текущее поведение frontend app/api и планируем AWS только под целевую архитектуру: frontend как UI, Go backend как единственный backend. label:ATS target only] map[description:Планируем AWS в два этапа: сначала as-is deploy текущего монорепо, затем отдельный migration phase для перевода frontend на Go ATS API. label:Two-step migration]] question:Какую архитектуру считать реальным AWS MVP target после анализа монорепы?]]`
+
+**Result:**
+
+</details></tool-use>
+
+_**Agent (gpt-5.4 2026-03-30 23:51:07Z)**_
+
+Теперь картина стала намного чище. Предыдущий план с CloudFront для frontend действительно был частично миражом именно из-за несостыкованности монорепы. Твой новый scope, наоборот, уже реалистичный: **деплоим только backend stack** и даём frontend developer публичный backend endpoint.
+
+Остался один архитектурный выбор, который сильно меняет Terraform и deploy flow: как именно публиковать backend наружу под Cloudflare-доменом.
+
+_**Agent (gpt-5.4 2026-03-30 23:51:10Z)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="request_user_input"><details>
+<summary>Tool use: **request_user_input**</summary>
+
+**Input:**
+
+- questions: `[map[header:Public entry id:public_entry options:[map[description:Самый простой путь: Cloudflare DNS/proxy указывает на EC2 public IP, backend слушает 80/443 через reverse proxy на сервере. label:Cloudflare -> EC2 (Recommended)] map[description:Более сложный путь: Cloudflare домен указывает на API Gateway custom domain, а API Gateway проксирует backend. label:Cloudflare -> API Gateway] map[description:Пока без Cloudflare proxy/custom domain, использовать временный EC2 public IP/DNS и добавить домен позже. label:EC2 direct only]] question:Какой публичный ingress принять для backend MVP?]]`
+
+**Result:**
+
+</details></tool-use>
+
+_**Agent (gpt-5.4 2026-03-30 23:52:05Z)**_
+
+Окей, значит первый AWS MVP делаем вообще без Cloudflare/API Gateway слоя: просто поднимаем backend stack на EC2 и отдаём временный public endpoint. Это ещё больше упрощает infra и убирает лишнюю магию.
+
+Последний выбор, который нужен для decision-complete плана: как именно деплоим backend stack на EC2 в первой версии.
+
+_**Agent (gpt-5.4 2026-03-30 23:52:08Z)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="request_user_input"><details>
+<summary>Tool use: **request_user_input**</summary>
+
+**Input:**
+
+- questions: `[map[header:Deploy mode id:deploy_mode options:[map[description:Самый быстрый MVP: копируем код на EC2 и запускаем общий root docker-compose.prod.yml с локальной сборкой образов на сервере. label:SSH + build on EC2 (Recommended)] map[description:CI по SSH обновляет код на EC2 и там же запускает docker compose build/up. label:GitHub Actions + EC2 build] map[description:Сразу делаем более чистый flow: CI билдит backend image, пушит в ECR, EC2 только pull/up. label:GitHub Actions + ECR]] question:Какой способ деплоя backend MVP принять сейчас?]]`
+
+**Result:**
+
+</details></tool-use>
+
+_**Agent (gpt-5.4 2026-03-30 23:53:13Z)**_
+
+После повторного анализа монорепы verdict такой: **старый план был частично миражом**, но не потому что AWS-схема плохая, а потому что она была построена вокруг неверного предположения про frontend. Реальная монорепа сейчас имеет:
+- новый Go ATS backend с ATS-схемой и event-oriented design
+- отдельный Next.js frontend, который пока ещё сам содержит `app/api/*` и прямой доступ к Postgres по старой схеме
+- отдельные `llm`, `STT`, `tg_bot_rag`, которые архитектурно существуют, но для MVP deploy пока лишние
+
+Из этого следует: **правильный первый AWS MVP сейчас — не “весь монорепо”, а только backend stack**. Это уже не мираж, а реалистичный и быстрый план.
+
+
+
+---
+
+_**User (2026-03-30 23:56:01Z)**_
+
+дай мне plantuml для AWS MVP Architecture
+
+---
+
+_**Agent (gpt-5.4 2026-03-30 23:56:10Z)**_
+
+```plantuml
+@startuml
+!theme plain
+
+title InVisionU ATS - AWS MVP Architecture (Backend-Only)
+
+actor "Frontend Developer\n(Local / Separate Frontend)" as FE
+actor "DevOps / Developer" as DEV
+actor "Applicant / Admin\n(via future frontend)" as USER
+
+cloud "AWS" {
+  frame "VPC" {
+    node "Public Subnet" {
+      node "EC2 + Elastic IP" as EC2 {
+        component "Docker Compose Stack" as COMPOSE
+        component "Golang Backend\n:8080" as BACKEND
+        database "PostgreSQL" as POSTGRES
+        queue "RabbitMQ" as RABBIT
+      }
+    }
+  }
+
+  storage "S3 Uploads Bucket\n(private)" as S3
+  rectangle "ECR Backend Repository" as ECR
+  rectangle "Secrets Manager" as SECRETS
+  rectangle "IAM Role +\nInstance Profile" as IAM
+}
+
+cloud "GitHub" {
+  rectangle "GitHub Actions CI/CD" as GHA
+  database "Monorepo" as REPO
+}
+
+DEV --> GHA : push / trigger deploy
+GHA --> REPO : build backend image
+GHA --> ECR : push Docker image
+GHA --> EC2 : SSH deploy\npull + compose up
+
+IAM --> EC2 : attached
+EC2 --> ECR : docker pull
+EC2 --> SECRETS : get secret values
+BACKEND --> S3 : upload/read files
+BACKEND --> POSTGRES : SQL
+BACKEND --> RABBIT : AMQP
+
+FE --> BACKEND : HTTP API calls\n(CORS open for MVP)
+USER --> BACKEND : via future frontend
+
+note right of EC2
+Single-host MVP runtime:
+- backend
+- postgres
+- rabbitmq
+
+Not deployed yet:
+- frontend
+- STT
+- LLM scoring
+- tg bot
+end note
+
+note bottom of GHA
+Deploy model:
+GitHub Actions + ECR + SSH
+end note
+
+note bottom of BACKEND
+Public entry:
+EC2 public IP/DNS:8080
+Cloudflare/domain later
+end note
+
+@enduml
+```
+
+---
+
+_**User (2026-03-30 23:58:52Z)**_
+
+make it pretier if it is possible to do, as and like official AWS Architecture Diagrams and styles!
+
+---
+
+_**Agent (gpt-5.4 2026-03-30 23:59:05Z)**_
+
+```plantuml
+@startuml
+!theme aws-orange
+skinparam shadowing false
+skinparam defaultTextAlignment center
+skinparam ArrowThickness 1.2
+skinparam packageStyle rectangle
+left to right direction
+
+title InVisionU ATS - AWS MVP Architecture\nBackend-Only Deployment
+
+actor "Developer / DevOps" as Dev
+actor "Frontend Developer" as FE
+actor "Future End Users" as Users
+
+cloud "GitHub" as GitHub {
+  rectangle "Monorepo" as Repo
+  rectangle "GitHub Actions\nCI/CD Pipeline" as GHA
+}
+
+cloud "AWS Account" as AWS {
+  frame "Region" {
+    frame "VPC" {
+      frame "Public Subnet" {
+        node "EC2 Instance" as EC2 {
+          rectangle "Docker Compose" as Compose
+          rectangle "Golang Backend\nPort 8080" as Backend
+          database "PostgreSQL" as Postgres
+          queue "RabbitMQ" as Rabbit
+        }
+      }
+    }
+
+    storage "Amazon S3\nPrivate Uploads Bucket" as S3
+    rectangle "Amazon ECR\nBackend Repository" as ECR
+    rectangle "AWS Secrets Manager" as Secrets
+    rectangle "IAM Role +\nInstance Profile" as IAM
+    rectangle "Elastic IP" as EIP
+  }
+}
+
+Dev --> GHA : Push / trigger deployment
+GHA --> Repo : Read source
+GHA --> ECR : Build and push\nbackend image
+GHA --> EC2 : SSH deploy
+
+IAM --> EC2 : Attach role
+EIP --> EC2 : Stable public address
+
+EC2 --> ECR : Pull backend image
+EC2 --> Secrets : Read runtime secrets
+
+Compose --> Backend
+Compose --> Postgres
+Compose --> Rabbit
+
+Backend --> Postgres : SQL
+Backend --> Rabbit : AMQP
+Backend --> S3 : Store files
+
+FE --> Backend : HTTP requests\nCORS enabled for MVP
+Users --> FE : Work through future frontend
+
+note right of EC2
+Single-host MVP runtime
+
+Deployed now:
+- backend
+- postgres
+- rabbitmq
+
+Deferred:
+- frontend deploy
+- STT
+- LLM scoring
+- tg bot
+- Cloudflare / domain
+end note
+
+note bottom of GHA
+Deployment flow
+
+1. Build image
+2. Push to ECR
+3. SSH to EC2
+4. Pull image
+5. Render config from secrets
+6. docker compose up -d
+end note
+
+note bottom of Backend
+Public backend entry:
+EC2 public IP/DNS :8080
+end note
+
+@enduml
+```
