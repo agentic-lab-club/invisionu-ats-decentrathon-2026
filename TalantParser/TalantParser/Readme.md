@@ -156,7 +156,7 @@ HTML-страница с текстом:
 
 **Пример запроса:**
 ```http
-GET http://localhost:9432/
+GET http://localhost:9432/get_news
 Accept: application/json
 ```
 
@@ -480,3 +480,33 @@ curl "http://localhost:9432/?source=Tengrinews" | jq
 
 TalantParser v2.0.0 — агрегатор талантов Казахстана
 
+
+---
+#Update
+**Пример запроса:**
+```http
+GET http://localhost:9432/get_news
+Accept: application/json
+```
+
+**Пример ответа:**
+```json
+[
+  {
+    "title": "200 школьников стали победителями Республиканской олимпиады...",
+    "link": "https://daryn.kz/blog/2025/11/29/...",
+    "source": "Daryn.kz",
+    "high_school_student_name": "Имран Кусанов",
+    "date": "29.11.2025",
+    "winner_info": "олимпиады» награжден семиклассник..."
+  },
+  {
+    "title": "Школьник из Семея, серебряный призер...",
+    "link": "https://daryn.kz/blog/2025/08/11/...",
+    "source": "Daryn.kz",
+    "high_school_student_name": "Аскар Акежан",
+    "date": "11.08.2025",
+    "winner_info": "серебряный призер международной олимпиады по информатике..."
+  }
+]
+```
