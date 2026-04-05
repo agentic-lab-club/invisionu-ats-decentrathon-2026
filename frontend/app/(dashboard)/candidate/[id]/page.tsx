@@ -5,9 +5,12 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   AudioLines,
+  Bot,
   Brain,
   CheckCircle2,
+  ChevronDown,
   ChevronLeft,
+  ChevronUp,
   FileText,
   LayoutGrid,
   MessageSquareText,
@@ -76,6 +79,34 @@ interface CandidateDetail {
   latest_scoring_run: ScoringRun | null;
   latest_personality_scoring_run: ScoringRun | null;
   latest_llm_scoring_run: ScoringRun | null;
+}
+
+
+interface InterviewScore {
+  motivation_score:    number;
+  leadership_score:    number;
+  communication_score: number;
+  structure_score:     number;
+  overall_score:       number;
+  recommendation:      string;
+  scored_by:           string;
+  scored_at:           string;
+}
+
+interface InterviewSession {
+  id:             string;
+  user_id:        string;
+  status:         string;
+  questions:      string[];
+  answers:        string[];
+  score:          InterviewScore | null;
+  expires_at:     string;
+  started_at:     string | null;
+  completed_at:   string | null;
+  llm_raw_output: string | null;
+  error_log:      string | null;
+  created_at:     string;
+  updated_at:     string;
 }
 
 const AXIS_META: Record<string, { label: string; description: string }> = {
@@ -385,6 +416,10 @@ export default function CandidatePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [openingAssetId, setOpeningAssetId] = useState<string | null>(null);
+  const [interviewSession, setInterviewSession] = useState<InterviewSession | null>(null);
+  const [interviewLoading, setInterviewLoading] = useState(false);
+  const [interviewError, setInterviewError] = useState<string | null>(null);
+  const [showAnswers, setShowAnswers] = useState(false);
 
   const fetchCandidate = async () => {
     const token = getAccessToken();
@@ -435,9 +470,34 @@ export default function CandidatePage() {
     }
   };
 
+  const fetchInterviewSession = async () => {
+    const token = getAccessToken();
+    if (!token) return;
+    setInterviewLoading(true);
+    setInterviewError(null);
+    try {
+      const res = await fetch(`/api/backend/api/v1/interview/sessions/by-application/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.status === 404) {
+        setInterviewSession(null);
+        return;
+      }
+      if (!res.ok) throw new Error('Failed to fetch interview session');
+      const json = await res.json();
+      // Backend wraps in { data: ... }
+      setInterviewSession(json.data ?? json);
+    } catch (e: any) {
+      setInterviewError(e?.message ?? 'Failed to load interview session');
+    } finally {
+      setInterviewLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (id) {
       fetchCandidate();
+      fetchInterviewSession();
     }
   }, [id]);
 
@@ -828,6 +888,198 @@ export default function CandidatePage() {
               </div>
             </div>
           )}
+
+          {/* ── AI Interview Results ───────────────────────────────────────── */}
+          {interviewLoading && (
+            <div className="overflow-hidden rounded-xl border border-gray-100 bg-white">
+              <div className="flex items-center gap-2 border-b border-gray-100 px-6 py-4">
+                <Bot className="h-3.5 w-3.5 text-gray-300 animate-pulse" />
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">AI Interview</p>
+              </div>
+              <div className="flex items-center gap-2 p-6 text-sm text-gray-400">
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-[#b5e220] border-t-transparent" />
+                Loading interview results…
+              </div>
+            </div>
+          )}
+
+          {!interviewLoading && interviewError && (
+            <div className="rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+              Could not load interview session: {interviewError}
+            </div>
+          )}
+
+          {!interviewLoading && !interviewSession && !interviewError && (
+            <div className="overflow-hidden rounded-xl border border-dashed border-gray-200 bg-white">
+              <div className="flex items-center gap-2 border-b border-gray-200 px-6 py-4">
+                <Bot className="h-3.5 w-3.5 text-gray-300" />
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">AI Interview</p>
+              </div>
+              <div className="p-6 text-sm text-gray-400">
+                No AI interview session found for this candidate.
+              </div>
+            </div>
+          )}
+
+          {!interviewLoading && interviewSession && (() => {
+            const sess = interviewSession;
+            const score = sess.score;
+            const isMock = score?.scored_by === 'mock';
+            const statusColors: Record<string, string> = {
+              completed: 'bg-[#b5e220]/10 text-[#6a8a10] border-[#b5e220]/30',
+              scored:    'bg-[#b5e220]/10 text-[#6a8a10] border-[#b5e220]/30',
+              active:    'bg-blue-50 text-blue-700 border-blue-100',
+              cancelled: 'bg-gray-100 text-gray-500 border-gray-200',
+              expired:   'bg-amber-50 text-amber-700 border-amber-100',
+              pending:   'bg-gray-50 text-gray-400 border-gray-200',
+            };
+            const statusColor = statusColors[sess.status] ?? 'bg-gray-50 text-gray-400 border-gray-200';
+            const scoreItems = score ? [
+              { label: 'Motivation',    value: score.motivation_score },
+              { label: 'Leadership',    value: score.leadership_score },
+              { label: 'Communication', value: score.communication_score },
+              { label: 'Structure',     value: score.structure_score },
+            ] : [];
+
+            return (
+              <div className="overflow-hidden rounded-xl border border-gray-100 bg-white">
+                {/* Header */}
+                <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-6 py-4">
+                  <div className="flex items-center gap-2">
+                    <Bot className="h-3.5 w-3.5 text-[#8aaa18]" />
+                    <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">AI Interview — AIYA</p>
+                  </div>
+                  <span className={`rounded-full border px-2.5 py-0.5 text-[11px] font-semibold capitalize ${statusColor}`}>
+                    {sess.status}
+                  </span>
+                </div>
+
+                <div className="space-y-5 p-5">
+                  {/* Meta info */}
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">Questions</p>
+                      <p className="mt-1 text-lg font-semibold text-gray-900">{sess.questions.length}</p>
+                    </div>
+                    <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">Answered</p>
+                      <p className="mt-1 text-lg font-semibold text-gray-900">{sess.answers.length}</p>
+                    </div>
+                    {sess.completed_at && (
+                      <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
+                        <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">Completed</p>
+                        <p className="mt-1 text-sm font-semibold text-gray-700">
+                          {new Date(sess.completed_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Score */}
+                  {score && (
+                    <div className="space-y-3">
+                      {isMock && (
+                        <div className="rounded-lg border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                          ⚡ Preliminary mock score — final ML scoring will follow
+                        </div>
+                      )}
+                      <div className="flex items-center justify-between">
+                        <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">Interview score</p>
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-2xl font-bold text-gray-900 tabular-nums">{score.overall_score}</span>
+                          <span className="text-sm text-gray-400">/100</span>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        {scoreItems.map(({ label, value }) => (
+                          <div key={label}>
+                            <div className="mb-1 flex justify-between text-xs">
+                              <span className="text-gray-500">{label}</span>
+                              <span className="font-semibold text-gray-700 tabular-nums">{value}</span>
+                            </div>
+                            <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
+                              <div className="h-full rounded-full bg-[#b5e220] transition-all duration-500" style={{ width: `${value}%` }} />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      {score.recommendation && (
+                        <div className="flex items-center gap-2 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2">
+                          <CheckCircle2 className="h-3.5 w-3.5 flex-shrink-0 text-[#8aaa18]" />
+                          <span className="text-xs text-gray-500">Recommendation:</span>
+                          <span className="text-xs font-semibold capitalize text-gray-800">{score.recommendation.replace(/_/g, ' ')}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Questions & Answers toggle */}
+                  {sess.questions.length > 0 && (
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() => setShowAnswers(v => !v)}
+                        className="flex w-full items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-100"
+                      >
+                        <span className="flex items-center gap-2">
+                          <MessageSquareText className="h-3.5 w-3.5 text-gray-400" />
+                          Questions & Answers ({sess.answers.length}/{sess.questions.length})
+                        </span>
+                        {showAnswers
+                          ? <ChevronUp className="h-4 w-4 text-gray-400" />
+                          : <ChevronDown className="h-4 w-4 text-gray-400" />}
+                      </button>
+
+                      {showAnswers && (
+                        <div className="mt-3 space-y-4">
+                          {sess.questions.map((q, i) => (
+                            <div key={i} className="rounded-xl border border-gray-100 bg-white p-4">
+                              <div className="mb-2 flex items-start gap-2">
+                                <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-[#b5e220]/20 text-[10px] font-bold text-[#6a8a10]">
+                                  {i + 1}
+                                </span>
+                                <p className="text-sm font-medium text-gray-800 leading-relaxed">{q}</p>
+                              </div>
+                              {sess.answers[i] ? (
+                                <div className="ml-7 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2.5">
+                                  <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-1.5">Candidate answer</p>
+                                  <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">{sess.answers[i]}</p>
+                                </div>
+                              ) : (
+                                <div className="ml-7 rounded-lg border border-dashed border-gray-200 px-3 py-2 text-xs text-gray-400">
+                                  No answer recorded
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* LLM raw output (debug) */}
+                  {sess.llm_raw_output && (
+                    <details className="rounded-lg border border-gray-100">
+                      <summary className="cursor-pointer px-4 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-gray-400 hover:bg-gray-50">
+                        LLM Raw Output
+                      </summary>
+                      <pre className="overflow-auto p-4 text-[11px] text-gray-500 leading-relaxed max-h-60">
+                        {sess.llm_raw_output}
+                      </pre>
+                    </details>
+                  )}
+
+                  {/* Error log */}
+                  {sess.error_log && (
+                    <div className="rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-xs text-red-600">
+                      <p className="mb-1 font-semibold">Error log</p>
+                      <p className="whitespace-pre-wrap">{sess.error_log}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
 
           {candidate.screening_error && (
             <div className="rounded-xl border border-red-100 bg-red-50 p-4 text-sm text-red-600">
