@@ -40,7 +40,7 @@ Import flow:
 2. Frontend calls `POST /talents/sync` on backend.
 3. Backend calls `TalentParser /status`.
 4. If scraper cache is empty, backend returns an error instead of accidentally triggering a scrape.
-5. Backend calls `TalentParser /`.
+5. Backend calls `TalentParser /get_news`.
 6. Backend normalizes dates, keeps the raw payload, and upserts rows into `talent_leads` by `link`.
 7. Frontend reads saved rows from `GET /talents`.
 

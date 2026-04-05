@@ -24,6 +24,21 @@ export interface AuthTokens {
   user: AuthUser;
 }
 
+export interface RegisterResponse {
+  message: string;
+  requires_email_verification: boolean;
+}
+
+const DASHBOARD_ROLES = new Set(['admin', 'committee']);
+
+function normalizeRole(role?: string | null) {
+  return role?.trim().toLowerCase() ?? '';
+}
+
+export function isDashboardRole(role?: string | null) {
+  return DASHBOARD_ROLES.has(normalizeRole(role));
+}
+
 // ── Storage ──────────────────────────────────────────────────────────────────
 export function saveTokens(tokens: AuthTokens) {
   localStorage.setItem('access_token',  tokens.access_token);
@@ -69,7 +84,7 @@ async function apiPost<T>(path: string, body: object, token?: string): Promise<T
 
 export const authApi = {
   register:    (email: string, password: string) =>
-    apiPost<{ message: string }>('/auth/register', { email, password }),
+    apiPost<RegisterResponse>('/auth/register', { email, password }),
 
   verifyEmail: (email: string, code: string) =>
     apiPost<{ message: string }>('/auth/verify-email', { email, code }),

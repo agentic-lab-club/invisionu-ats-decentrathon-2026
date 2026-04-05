@@ -51,6 +51,7 @@ type Detail struct {
 	LatestScoringRun            *ScoringResult `json:"latest_scoring_run,omitempty"`
 	LatestPersonalityScoringRun *ScoringResult `json:"latest_personality_scoring_run,omitempty"`
 	LatestLLMScoringRun         *ScoringResult `json:"latest_llm_scoring_run,omitempty"`
+	OverallScore                *float64       `json:"overall_score,omitempty"`
 
 	// Optional scores populated from external sources / scoring runs.
 	// These were referenced in repository.go but missing from the struct.
@@ -71,7 +72,7 @@ type ScoringResult struct {
 	ID             uuid.UUID       `db:"id"             json:"id"`
 	ModelName      string          `db:"model_name"     json:"model_name"`
 	Recommendation *string         `db:"recommendation" json:"recommendation"`
-	ResultJSON     json.RawMessage `db:"result_json"    json:"result_json"`
+	ResultJSON     json.RawMessage `db:"result_json"    json:"result_json" swaggertype:"object"`
 	CreatedAt      time.Time       `db:"created_at"     json:"created_at"`
 }
 
@@ -112,18 +113,18 @@ type AdvancedFilterResponse struct {
 
 // SmartFilter preset identifiers — must match frontend PRESETS[].id values.
 const (
-	PresetHighPotentialLowEnglish    = "high_potential_low_english"
-	PresetStrongMotivationWeakSoft   = "strong_motivation_weak_soft"
+	PresetHighPotentialLowEnglish     = "high_potential_low_english"
+	PresetStrongMotivationWeakSoft    = "strong_motivation_weak_soft"
 	PresetLowMotivationHighBackground = "low_motivation_high_background"
-	PresetTop10Percent               = "top10_percent"
+	PresetTop10Percent                = "top10_percent"
 )
 
 // ValidSmartFilterPresets is the full set of allowed preset values.
 var ValidSmartFilterPresets = map[string]struct{}{
-	PresetHighPotentialLowEnglish:    {},
-	PresetStrongMotivationWeakSoft:   {},
+	PresetHighPotentialLowEnglish:     {},
+	PresetStrongMotivationWeakSoft:    {},
 	PresetLowMotivationHighBackground: {},
-	PresetTop10Percent:               {},
+	PresetTop10Percent:                {},
 }
 
 // SmartFilterResponse wraps the result list for the smart-filter endpoint.
@@ -148,6 +149,7 @@ type detailRow struct {
 	Decision        string    `db:"decision"`
 	VideoTranscript *string   `db:"video_transcript"`
 	ScreeningError  *string   `db:"screening_error"`
+	OverallScore    *float64  `db:"overall_score"`
 
 	// Optional scored fields from JOIN with scoring_runs (may be NULL).
 	AIProbability *float64 `db:"ai_probability"`

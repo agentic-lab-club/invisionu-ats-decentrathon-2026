@@ -61,15 +61,9 @@ func (s *Service) Upload(ctx context.Context, userID uuid.UUID, fileType string,
 }
 
 func (s *Service) GetAsset(ctx context.Context, requesterID uuid.UUID, requesterRole string, assetID uuid.UUID) (*AssetContent, error) {
-	record, err := s.repo.FindByID(assetID)
+	record, err := s.loadAccessibleAsset(ctx, requesterID, requesterRole, assetID)
 	if err != nil {
 		return nil, err
-	}
-	if record == nil {
-		return nil, fmt.Errorf("asset not found")
-	}
-	if requesterRole != "admin" && record.UploadedByUserID != requesterID {
-		return nil, fmt.Errorf("forbidden")
 	}
 
 	object, err := s.storage.Download(ctx, record.BucketName, record.ObjectKey)
@@ -85,4 +79,19 @@ func (s *Service) GetAsset(ctx context.Context, requesterID uuid.UUID, requester
 		FileRecord: *record,
 		Reader:     object.Reader,
 	}, nil
+}
+
+func (s *Service) loadAccessibleAsset(ctx context.Context, requesterID uuid.UUID, requesterRole string, assetID uuid.UUID) (*FileRecord, error) {
+	record, err := s.repo.FindByID(assetID)
+	if err != nil {
+		return nil, err
+	}
+	if record == nil {
+		return nil, fmt.Errorf("asset not found")
+	}
+	if requesterRole != "admin" && record.UploadedByUserID != requesterID {
+		return nil, fmt.Errorf("forbidden")
+	}
+
+	return record, nil
 }

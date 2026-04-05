@@ -19,22 +19,27 @@ func NewHandler(service *Service) *Handler {
 
 // Register godoc
 // @Summary Register applicant account
-// @Description Creates a new user account and issues an email verification code.
+// @Description Creates a new user account and conditionally issues an email verification code.
 // @Tags @auth
 // @Accept json
 // @Produce json
 // @Param request body RegisterRequest true "Registration payload"
-// @Success 201 {object} MessageResponse
+// @Success 201 {object} RegisterResponse
 // @Failure 400 {object} map[string]interface{}
 // @Router /auth/register [post]
 func (h *Handler) Register(c fiber.Ctx) error {
 	req := c.Locals("body").(RegisterRequest)
 	l := c.Locals("log").(*zerolog.Logger)
-	if err := h.service.Register(c.Context(), req); err != nil {
+	requiresVerification, err := h.service.Register(c.Context(), req)
+	if err != nil {
 		l.Warn().Err(err).Str("event", "auth_register_failed").Int("http_status", fiber.StatusBadRequest).Msg("failed to register")
 		return respond.ErrorStatus(c, err, fiber.StatusBadRequest)
 	}
-	return respond.Created(c, MessageResponse{Message: "Verification code sent"}, nil)
+	message := "Verification code sent"
+	if !requiresVerification {
+		message = "Account created"
+	}
+	return respond.Created(c, RegisterResponse{Message: message, RequiresEmailVerification: requiresVerification}, nil)
 }
 
 // VerifyEmail godoc
@@ -59,7 +64,7 @@ func (h *Handler) VerifyEmail(c fiber.Ctx) error {
 
 // Login godoc
 // @Summary Login with email and password
-// @Description Authenticates a verified user and returns access and refresh tokens.
+// @Description Authenticates a user and returns access and refresh tokens. When email verification is enabled, the user must be verified.
 // @Tags @auth
 // @Accept json
 // @Produce json

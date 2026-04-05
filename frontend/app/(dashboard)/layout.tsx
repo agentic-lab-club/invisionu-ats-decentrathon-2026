@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-full flex flex-col">
-      <AuthGuard>
+      <AuthGuard requireDashboardRole>
         <DashboardNav>
           {children}
         </DashboardNav>

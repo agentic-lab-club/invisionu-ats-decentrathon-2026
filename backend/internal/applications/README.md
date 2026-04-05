@@ -136,7 +136,7 @@ Success example:
 ### Submission flow
 
 1. Load current user.
-2. Require `is_email_verified = true`.
+2. Require `is_email_verified = true` only when `email.enabled = true`.
 3. Count active applications for the user.
 4. Reject if there is already an application with `decision = pending`.
 5. Resolve `program_code` and require active program.

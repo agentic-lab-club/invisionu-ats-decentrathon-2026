@@ -30,6 +30,15 @@ func TestLoadApplicantSeedDocuments(t *testing.T) {
 		if doc.def.Email == "" {
 			t.Fatal("expected applicant email")
 		}
+		if doc.def.AIProbability <= 0 {
+			t.Fatalf("expected ai_probability for %s", doc.def.Email)
+		}
+		if doc.def.IELTSScore <= 0 {
+			t.Fatalf("expected ielts_score for %s", doc.def.Email)
+		}
+		if doc.def.ENTScore <= 0 {
+			t.Fatalf("expected ent_score for %s", doc.def.Email)
+		}
 		if len(doc.llmResultJSON) == 0 {
 			t.Fatalf("expected llm result json for %s", doc.def.Email)
 		}

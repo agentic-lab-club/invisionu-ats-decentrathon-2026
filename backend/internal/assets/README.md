@@ -24,7 +24,7 @@ This module is the backend contract for:
 - Public or anonymous asset access.
 - Asset search/list endpoints.
 - MIME normalization, antivirus scanning, transcoding, or content inspection.
-- Signed URLs or CDN distribution.
+- CDN distribution.
 
 ## Domain Concepts / Entities
 
@@ -248,7 +248,6 @@ Notes:
 Unknown / not implemented here:
 - malware scanning
 - content hashing beyond storage `ETag`
-- signed URL expiration
 - audit logging specific to asset access
 
 ## Frontend Integration Notes

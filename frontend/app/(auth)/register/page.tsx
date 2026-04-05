@@ -37,8 +37,14 @@ export default function RegisterPage() {
     setLoading(true);
     setError('');
     try {
-      await authApi.register(email, password);
-      setStep('verify');
+      const result = await authApi.register(email, password);
+      if (result.requires_email_verification) {
+        setStep('verify');
+      } else {
+        const tokens = await authApi.login(email, password);
+        saveTokens(tokens);
+        router.push('/apply');
+      }
     } catch (err: any) {
       setError(err.message || 'Registration failed.');
     } finally {

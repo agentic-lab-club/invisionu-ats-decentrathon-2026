@@ -16,7 +16,7 @@ SELECT
     sr.recommendation,
     a.ai_probability,
     a.ielts_score,
-    a.ent_score
+    a.ent_score,
 
     -- Individual axes (0-100), NULL when not scored yet
     LEAST(100, ROUND(((sr.result_json -> 'aggregated_metrics' ->> 'Motivation')::float    * (SELECT factor FROM axis_scale))::numeric, 1)) AS axis_m,

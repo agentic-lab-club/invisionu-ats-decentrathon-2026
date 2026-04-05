@@ -1,11 +1,13 @@
 import logging as log
+import time
+from pathlib import Path
 from typing import Dict
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import torch
 import torch.nn as nn
 from transformers import AutoTokenizer, AutoConfig, AutoModel
-from huggingface_hub import hf_hub_download
+from huggingface_hub import snapshot_download
 from safetensors.torch import load_file
 
 app = FastAPI(
@@ -44,26 +46,87 @@ class DesklibAIDetectionModel(nn.Module):
 # Настраиваем логирование
 log.basicConfig(level=log.INFO)
 model_name = "desklib/ai-text-detector-v1.01"
+model_snapshot_dir: Path | None = None
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-tokenizer = AutoTokenizer.from_pretrained(model_name)
+tokenizer = None
+model = None
 
-# 2. ИНИЦИАЛИЗАЦИЯ И РУЧНАЯ ЗАГРУЗКА ВЕСОВ
-config = AutoConfig.from_pretrained(model_name)
-model = DesklibAIDetectionModel(config)
 
-log.info("Скачиваем и применяем оригинальные веса (safetensors)...")
-# Безопасно скачиваем файл весов напрямую с серверов HuggingFace
-weights_path = hf_hub_download(repo_id=model_name, filename="model.safetensors")
-# Загружаем веса в память
-state_dict = load_file(weights_path)
-# Вставляем веса в нашу архитектуру
-model.load_state_dict(state_dict, strict=False)
+def _find_weights_file(snapshot_dir: Path) -> Path:
+    weights_candidates = sorted(snapshot_dir.glob("*.safetensors"))
+    if weights_candidates:
+        return weights_candidates[0]
 
-model.to(device)
-model.eval()
+    raise FileNotFoundError(
+        f"Не найден файл весов модели в {snapshot_dir}. Ожидался *.safetensors."
+    )
 
-log.info(f"Модель успешно загружена на устройство: {device}")
+
+def _download_model_snapshot(repo_id: str, retries: int = 3, retry_delay_seconds: int = 5) -> str:
+    last_error: Exception | None = None
+
+    for attempt in range(1, retries + 1):
+        try:
+            cached_path = snapshot_download(repo_id=repo_id, local_files_only=True)
+            log.info("Используем локальный cache Hugging Face: %s", cached_path)
+            return cached_path
+        except Exception as cache_error:
+            last_error = cache_error
+            log.info("Локальный cache модели не найден, пробуем скачать snapshot: %s", cache_error)
+
+        try:
+            downloaded_path = snapshot_download(repo_id=repo_id)
+            log.info("Snapshot модели успешно скачан: %s", downloaded_path)
+            return downloaded_path
+        except Exception as download_error:
+            last_error = download_error
+            if attempt < retries:
+                wait_seconds = retry_delay_seconds * attempt
+                log.warning(
+                    "Не удалось скачать модель (попытка %s/%s). Повтор через %s сек.: %s",
+                    attempt,
+                    retries,
+                    wait_seconds,
+                    download_error,
+                )
+                time.sleep(wait_seconds)
+            else:
+                break
+
+    raise RuntimeError(
+        "Не удалось загрузить модель desklib/ai-text-detector-v1.01 "
+        "ни из локального cache, ни с Hugging Face. "
+        "Проверьте доступ к huggingface.co, наличие токена или предварительно заполненный cache."
+    ) from last_error
+
+
+def initialize_model() -> None:
+    global tokenizer, model, model_snapshot_dir
+
+    if tokenizer is not None and model is not None and model_snapshot_dir is not None:
+        return
+
+    log.info("Инициализируем AI detection модель %s", model_name)
+    snapshot_path = Path(_download_model_snapshot(model_name))
+    config = AutoConfig.from_pretrained(snapshot_path, local_files_only=True)
+    tokenizer = AutoTokenizer.from_pretrained(snapshot_path, local_files_only=True)
+    model = DesklibAIDetectionModel(config)
+
+    log.info("Скачиваем и применяем оригинальные веса (safetensors)...")
+    weights_path = _find_weights_file(snapshot_path)
+    state_dict = load_file(weights_path)
+    model.load_state_dict(state_dict, strict=False)
+
+    model.to(device)
+    model.eval()
+    model_snapshot_dir = snapshot_path
+    log.info("Модель успешно загружена на устройство: %s", device)
+
+
+@app.on_event("startup")
+def startup_event() -> None:
+    initialize_model()
 
 
 def smart_chunking(text: str, max_chars: int = 1500) -> list[str]:
@@ -106,6 +169,9 @@ async def detect(request: TextInput) -> Dict:
         raise HTTPException(status_code=400, detail="Текст слишком короткий. Минимум 50 символов.")
 
     try:
+        if tokenizer is None or model is None:
+            raise RuntimeError("Модель не инициализирована")
+
         chunks = smart_chunking(text)
         if not chunks:
             chunks = [text]

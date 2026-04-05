@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/url"
 	"path/filepath"
 	"strings"
@@ -14,9 +15,18 @@ import (
 	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
+type minioClient interface {
+	BucketExists(ctx context.Context, bucketName string) (bool, error)
+	MakeBucket(ctx context.Context, bucketName string, opts minio.MakeBucketOptions) error
+	PutObject(ctx context.Context, bucketName string, objectName string, reader io.Reader, objectSize int64, opts minio.PutObjectOptions) (minio.UploadInfo, error)
+	GetObject(ctx context.Context, bucketName string, objectName string, opts minio.GetObjectOptions) (*minio.Object, error)
+	PresignedGetObject(ctx context.Context, bucketName string, objectName string, expires time.Duration, reqParams url.Values) (*url.URL, error)
+}
+
 type MinIOStorage struct {
-	client *minio.Client
+	client minioClient
 	bucket string
+	region string
 }
 
 func NewMinIOStorage(cfg config.StorageConfig) (*MinIOStorage, error) {
@@ -32,7 +42,24 @@ func NewMinIOStorage(cfg config.StorageConfig) (*MinIOStorage, error) {
 	return &MinIOStorage{
 		client: client,
 		bucket: cfg.Bucket,
+		region: cfg.Region,
 	}, nil
+}
+
+func (s *MinIOStorage) EnsureBucket(ctx context.Context) error {
+	exists, err := s.client.BucketExists(ctx, s.bucket)
+	if err != nil {
+		return fmt.Errorf("failed to check bucket existence: %w", err)
+	}
+	if exists {
+		return nil
+	}
+
+	if err := s.client.MakeBucket(ctx, s.bucket, minio.MakeBucketOptions{Region: s.region}); err != nil {
+		return fmt.Errorf("failed to create bucket: %w", err)
+	}
+
+	return nil
 }
 
 func (s *MinIOStorage) Upload(ctx context.Context, input UploadInput) (*UploadResult, error) {
