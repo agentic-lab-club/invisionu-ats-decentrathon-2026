@@ -170,7 +170,7 @@ function StageStep({
 function TelegramCTA() {
   return (
     <a
-      href="https://t.me/invisionu_bot"
+      href="https://t.me/InVisionAssistentHelper_bot"
       target="_blank"
       rel="noopener noreferrer"
       className="group block rounded-2xl overflow-hidden transition-all duration-200 hover:-translate-y-0.5"
