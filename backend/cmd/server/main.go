@@ -33,7 +33,9 @@ import (
 	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/assets"
 	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/auth"
 	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/candidates"
+	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/favorites"
 	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/healthcheck"
+	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/interview"
 	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/personalitytest"
 	platformEmail "github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/platform/email"
 	platformMessaging "github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/platform/messaging"
@@ -41,6 +43,7 @@ import (
 	platformStorage "github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/platform/storage"
 	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/programs"
 	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/seeder"
+	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/talents"
 	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/pkg/config"
 	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/pkg/database"
 	md "github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/pkg/http/middlewares"
@@ -50,8 +53,6 @@ import (
 	"github.com/gofiber/fiber/v3/middleware/cors"
 	"github.com/gofiber/fiber/v3/middleware/recover"
 	"github.com/rs/zerolog/log"
-	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/favorites"
-	"github.com/agentic-lab-club/invisionu-ats-decentrathon-2026/backend/internal/interview"
 )
 
 func main() {
@@ -140,6 +141,7 @@ func main() {
 	applications.Init(server, trackedDB, cfg, accessManager, messageBus, objectStorage)
 	candidates.Init(server, trackedDB, accessManager)
 	favorites.Init(server, trackedDB, accessManager)
+	talents.Init(server, trackedDB, cfg, accessManager)
 	interview.Init(server, trackedDB, accessManager)
 	log.Info().Str("event", "init_http_server_success").Int("port", cfg.Server.Port).Msg("HTTP server initialized successfully")
 

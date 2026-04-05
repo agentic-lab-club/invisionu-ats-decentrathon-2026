@@ -125,6 +125,11 @@ type ScreeningConfig struct {
 	PresignTTLSeconds  int    `mapstructure:"presign_ttl_seconds"`
 }
 
+type TalentParserConfig struct {
+	BaseURL            string `mapstructure:"base_url"`
+	RequestTimeoutSecs int    `mapstructure:"request_timeout_seconds"`
+}
+
 // Config is the root configuration.
 type Config struct {
 	Server        HttpConfig          `mapstructure:"server"`
@@ -142,6 +147,7 @@ type Config struct {
 	LLMAssessment LLMAssessmentConfig `mapstructure:"llm_assessment"`
 	Assessment    AssessmentConfig    `mapstructure:"assessment"`
 	Screening     ScreeningConfig     `mapstructure:"screening"`
+	TalentParser  TalentParserConfig  `mapstructure:"talent_parser"`
 }
 
 func Load() (cfg *Config, err error) {
@@ -258,6 +264,12 @@ func Load() (cfg *Config, err error) {
 	}
 	if cfg.Screening.ParserBaseURL == "" {
 		cfg.Screening.ParserBaseURL = "http://parserapi:8001"
+	}
+	if cfg.TalentParser.BaseURL == "" {
+		cfg.TalentParser.BaseURL = "http://scraper:9432"
+	}
+	if cfg.TalentParser.RequestTimeoutSecs == 0 {
+		cfg.TalentParser.RequestTimeoutSecs = 30
 	}
 	if cfg.Screening.RequestTimeoutSecs == 0 {
 		cfg.Screening.RequestTimeoutSecs = 180

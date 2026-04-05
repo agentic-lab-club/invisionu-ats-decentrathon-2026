@@ -77,6 +77,10 @@ screening:
   request_timeout_seconds: 180
   presign_ttl_seconds: 900
 
+talent_parser:
+  base_url: "http://scraper:9432"
+  request_timeout_seconds: 30
+
 # =========================
 # Modules and Services on internal/
 # =========================
