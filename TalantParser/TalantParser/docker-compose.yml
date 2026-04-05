@@ -1,0 +1,14 @@
+
+services:
+  app:
+    build: .
+    container_name: webCrawler
+    deploy:
+        resources:
+            limits:
+              cpus: '0.5'
+              memory: 512M
+    ports:
+      - "9432:9432"
+    restart: unless-stopped
+

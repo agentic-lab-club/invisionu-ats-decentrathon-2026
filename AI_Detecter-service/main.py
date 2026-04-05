@@ -44,7 +44,6 @@ class DesklibAIDetectionModel(nn.Module):
 # Настраиваем логирование
 log.basicConfig(level=log.INFO)
 model_name = "desklib/ai-text-detector-v1.01"
-log.info(f"Загружаем архитектуру модели {model_name}...")
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 tokenizer = AutoTokenizer.from_pretrained(model_name)
