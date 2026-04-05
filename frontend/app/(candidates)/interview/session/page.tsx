@@ -210,6 +210,9 @@ export default function InterviewSessionPage() {
   const [error,           setError]      = useState('');
   const [currentAnswer,   setAnswer]     = useState('');
   const [score,           setScore]      = useState<InterviewScore | null>(null);
+  // FIX: track initialisation state locally so the loading screen is controlled
+  // by the init useEffect, not by the context's sessionData which updates async.
+  const [isInitialising,  setInitialising] = useState(true);
   const totalSecsRef = useRef(0);
 
   // ── Step 1: Load API session on mount ─────────────────────────────────────
@@ -227,17 +230,23 @@ export default function InterviewSessionPage() {
         streamRef.current = s;
       }
 
-      // Start or resume backend session
+      // Start or resume backend session.
+      // sessionData comes from the intro page (/interview) if the user went through it.
+      // If the user navigates directly to /interview/session, we call startSession().
       const data = sessionData ?? await startSession();
       if (!data) {
         setError('Could not start interview session. Please go back and try again.');
         setPhase('error');
+        setInitialising(false);
         return;
       }
+
       setSessionId(data.session_id);
       setQuestions(data.questions);
+      setInitialising(false);
       setPhase('connecting');
     };
+
     init();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -342,7 +351,12 @@ export default function InterviewSessionPage() {
 
     // Submit answer to backend (use currentAnswer state, fallback to placeholder)
     const answerText = currentAnswer.trim() || '[No transcription — voice answer recorded]';
-    await submitAnswer(sessionId, currentIdx, answerText);
+    const ok = await submitAnswer(sessionId, currentIdx, answerText);
+
+    if (!ok) {
+      // Non-fatal: log and continue — we don't want to block the user
+      console.warn(`Answer ${currentIdx} submission failed, continuing.`);
+    }
 
     const nextIdx = currentIdx + 1;
     if (nextIdx < questions.length) {
@@ -395,16 +409,18 @@ export default function InterviewSessionPage() {
   }
 
   // ── Init / loading state ───────────────────────────────────────────────────
+  // FIX: use local `isInitialising` flag instead of `sessionLoading || !sessionData`
+  // to avoid the race where sessionData context state hasn't updated yet.
 
-if (sessionLoading || !sessionData) {
-  return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="flex flex-col items-center gap-3">
-        <div className="w-10 h-10 rounded-full border-2 border-gray-200 border-t-[#b5e220] animate-spin" />
-        <p className="text-gray-400 text-sm">Preparing your interview session…</p>
+  if (isInitialising || sessionLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 rounded-full border-2 border-gray-200 border-t-[#b5e220] animate-spin" />
+          <p className="text-gray-400 text-sm">Preparing your interview session…</p>
+        </div>
       </div>
-    </div>
-  )
+    );
   }
 
   // ── Main render ────────────────────────────────────────────────────────────

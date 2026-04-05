@@ -40,6 +40,18 @@ export interface SessionData {
   timeout_minutes: number;
 }
 
+export interface SessionStatus {
+  session_id:             string;
+  status:                 string;
+  questions:              string[];
+  answered_count:         number;
+  total_count:            number;
+  time_remaining_seconds: number;
+  score?:                 InterviewScore;
+  started_at?:            string;
+  completed_at?:          string;
+}
+
 interface InterviewContextValue {
   // Camera
   stream:      MediaStream | null;
@@ -55,13 +67,14 @@ interface InterviewContextValue {
   ttsSupported: boolean;
 
   // API session
-  sessionData:     SessionData | null;
-  sessionLoading:  boolean;
-  sessionError:    string | null;
-  startSession:    (programCode?: string) => Promise<SessionData | null>;
-  submitAnswer:    (sessionId: string, questionIndex: number, answer: string) => Promise<boolean>;
-  completeSession: (sessionId: string, durationSeconds: number) => Promise<InterviewScore | null>;
-  cancelSession:   (sessionId: string) => Promise<void>;
+  sessionData:       SessionData | null;
+  sessionLoading:    boolean;
+  sessionError:      string | null;
+  startSession:      (programCode?: string) => Promise<SessionData | null>;
+  getSessionStatus:  (sessionId: string) => Promise<SessionStatus | null>;
+  submitAnswer:      (sessionId: string, questionIndex: number, answer: string) => Promise<boolean>;
+  completeSession:   (sessionId: string, durationSeconds: number) => Promise<InterviewScore | null>;
+  cancelSession:     (sessionId: string) => Promise<void>;
 }
 
 // ── Context ───────────────────────────────────────────────────────────────────
@@ -85,15 +98,15 @@ function getBestVoice(): SpeechSynthesisVoice | null {
 
 // ── API helpers ───────────────────────────────────────────────────────────────
 
-async function apiPost<T>(path: string, body?: object): Promise<T> {
+async function apiRequest<T>(path: string, method: 'GET' | 'POST', body?: object): Promise<T> {
   const token = getAccessToken();
   const res = await fetch(`/api/backend${path}`, {
-    method: 'POST',
+    method,
     headers: {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
-    body: body ? JSON.stringify(body) : undefined,
+    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
@@ -102,10 +115,18 @@ async function apiPost<T>(path: string, body?: object): Promise<T> {
   return res.json();
 }
 
+async function apiPost<T>(path: string, body?: object): Promise<T> {
+  return apiRequest<T>(path, 'POST', body);
+}
+
+async function apiGet<T>(path: string): Promise<T> {
+  return apiRequest<T>(path, 'GET');
+}
+
 // ── Provider ──────────────────────────────────────────────────────────────────
 
 export function InterviewProvider({ children }: { children: ReactNode }) {
-  const streamRef    = useRef<MediaStream | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   const [stream,         setStream]         = useState<MediaStream | null>(null);
   const [camReady,       setCamReady]       = useState(false);
@@ -177,7 +198,7 @@ export function InterviewProvider({ children }: { children: ReactNode }) {
     setSessionLoading(true);
     setSessionError(null);
     try {
-      const data = await apiPost<SessionData>('/v1/interview/sessions', {
+      const data = await apiPost<SessionData>('/api/v1/interview/sessions', {
         program_code: programCode ?? '',
       });
       setSessionData(data);
@@ -190,6 +211,20 @@ export function InterviewProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // ── API: getSessionStatus ────────────────────────────────────────────────────
+  // NOTE: GET /api/v1/interview/sessions/:id is an ADMIN-only endpoint.
+  // Regular users use the session data returned from startSession.
+  // This is provided for completeness / admin use.
+
+  const getSessionStatus = useCallback(async (sessionId: string): Promise<SessionStatus | null> => {
+    try {
+      return await apiGet<SessionStatus>(`/api/v1/interview/sessions/${sessionId}`);
+    } catch (e: any) {
+      console.error('getSessionStatus error:', e?.message);
+      return null;
+    }
+  }, []);
+
   // ── API: submitAnswer ────────────────────────────────────────────────────────
 
   const submitAnswer = useCallback(async (
@@ -198,7 +233,7 @@ export function InterviewProvider({ children }: { children: ReactNode }) {
     answer: string,
   ): Promise<boolean> => {
     try {
-      await apiPost(`/v1/interview/sessions/${sessionId}/answers`, {
+      await apiPost(`/api/v1/interview/sessions/${sessionId}/answers`, {
         question_index: questionIndex,
         answer,
       });
@@ -217,7 +252,7 @@ export function InterviewProvider({ children }: { children: ReactNode }) {
   ): Promise<InterviewScore | null> => {
     try {
       const resp = await apiPost<{ score?: InterviewScore }>(
-        `/v1/interview/sessions/${sessionId}/complete`,
+        `/api/v1/interview/sessions/${sessionId}/complete`,
         { total_duration_seconds: durationSeconds },
       );
       return resp.score ?? null;
@@ -231,7 +266,7 @@ export function InterviewProvider({ children }: { children: ReactNode }) {
 
   const cancelSession = useCallback(async (sessionId: string): Promise<void> => {
     try {
-      await apiPost(`/v1/interview/sessions/${sessionId}/cancel`);
+      await apiPost(`/api/v1/interview/sessions/${sessionId}/cancel`);
     } catch {
       // best-effort — don't block UI
     }
@@ -251,7 +286,7 @@ export function InterviewProvider({ children }: { children: ReactNode }) {
       stream, camReady, camError, startCamera, stopCamera,
       speak, stopSpeaking, isSpeaking, ttsSupported,
       sessionData, sessionLoading, sessionError,
-      startSession, submitAnswer, completeSession, cancelSession,
+      startSession, getSessionStatus, submitAnswer, completeSession, cancelSession,
     }}>
       {children}
     </InterviewContext.Provider>

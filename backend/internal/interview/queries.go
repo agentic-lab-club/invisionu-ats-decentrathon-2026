@@ -19,3 +19,6 @@ var saveScoreQuery string
 
 //go:embed queries/find_active_session_by_user.sql
 var findActiveSessionByUserQuery string
+
+//go:embed queries/get_full_session_by_id.sql
+var GetFullSessionById string

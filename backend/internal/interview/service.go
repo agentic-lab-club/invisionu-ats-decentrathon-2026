@@ -29,9 +29,9 @@ type SessionRepo interface {
 	AppendAnswer(id uuid.UUID, answerText string) error
 	SaveScore(id uuid.UUID, score InterviewScore, completedAt time.Time) error
 	UpdateStatus(id uuid.UUID, status string) error
+	GetFullSessionById(id uuid.UUID) (*FullInterviewSession, error)
 }
 
-// Service contains all business logic for interview sessions.
 type Service struct {
 	repo SessionRepo
 }
@@ -42,17 +42,12 @@ func NewService(repo SessionRepo) *Service {
 
 // ── StartSession ──────────────────────────────────────────────────────────────
 
-// StartSession creates a fresh interview session for the user.
-// If the user already has a pending/active session, that session is returned
-// instead of creating a duplicate (idempotent).
 func (s *Service) StartSession(userID uuid.UUID, req StartSessionRequest) (*StartSessionResponse, error) {
-	// Idempotency: reuse existing active/pending session.
 	existing, err := s.repo.FindActiveByUser(userID)
 	if err != nil {
 		return nil, fmt.Errorf("interview: start session lookup: %w", err)
 	}
 	if existing != nil {
-		// Refresh expiry check.
 		if timekit.NowUTC().After(existing.ExpiresAt) {
 			if err := s.repo.UpdateStatus(existing.ID, StatusExpired); err != nil {
 				return nil, err
@@ -64,16 +59,12 @@ func (s *Service) StartSession(userID uuid.UUID, req StartSessionRequest) (*Star
 	}
 
 	questions := DefaultQuestions
-	// TODO: when ML team delivers dynamic question generation wired to
-	// req.ProgramCode, replace DefaultQuestions with a call to the ML service.
-
 	expiresAt := timekit.NowUTC().Add(SessionTimeoutMinutes * time.Minute)
 	session, err := s.repo.CreateSession(userID, questions, expiresAt)
 	if err != nil {
 		return nil, fmt.Errorf("interview: create session: %w", err)
 	}
 
-	// Mark immediately as active so the timer begins on the client side.
 	if err := s.repo.SetActive(session.ID); err != nil {
 		return nil, fmt.Errorf("interview: activate session: %w", err)
 	}
@@ -84,7 +75,6 @@ func (s *Service) StartSession(userID uuid.UUID, req StartSessionRequest) (*Star
 
 // ── GetStatus ─────────────────────────────────────────────────────────────────
 
-// GetStatus returns the current state of a session owned by the user.
 func (s *Service) GetStatus(userID uuid.UUID, sessionID uuid.UUID) (*SessionStatusResponse, error) {
 	session, err := s.loadOwned(userID, sessionID)
 	if err != nil {
@@ -110,8 +100,6 @@ func (s *Service) GetStatus(userID uuid.UUID, sessionID uuid.UUID) (*SessionStat
 
 // ── SubmitAnswer ──────────────────────────────────────────────────────────────
 
-// SubmitAnswer appends a single answer to the session.
-// The frontend calls this once per question, immediately after the user finishes speaking.
 func (s *Service) SubmitAnswer(userID uuid.UUID, sessionID uuid.UUID, req SubmitAnswerRequest) (*SubmitAnswerResponse, error) {
 	session, err := s.loadOwned(userID, sessionID)
 	if err != nil {
@@ -139,7 +127,7 @@ func (s *Service) SubmitAnswer(userID uuid.UUID, sessionID uuid.UUID, req Submit
 		}, nil
 	}
 
-	// Enforce sequential answering: frontend must not skip questions.
+	// Enforce sequential answering.
 	if req.QuestionIndex != len(session.Answers) {
 		return nil, fmt.Errorf(
 			"%w: expected index %d, got %d",
@@ -169,9 +157,6 @@ func (s *Service) SubmitAnswer(userID uuid.UUID, sessionID uuid.UUID, req Submit
 
 // ── CompleteSession ───────────────────────────────────────────────────────────
 
-// CompleteSession marks the session finished, generates a mock score, and
-// persists it.  When the ML team is ready they replace mockScore() with a
-// real call.
 func (s *Service) CompleteSession(userID uuid.UUID, sessionID uuid.UUID, req CompleteSessionRequest) (*CompleteSessionResponse, error) {
 	session, err := s.loadOwned(userID, sessionID)
 	if err != nil {
@@ -192,8 +177,7 @@ func (s *Service) CompleteSession(userID uuid.UUID, sessionID uuid.UUID, req Com
 		return nil, err
 	}
 
-	// Re-fetch to get the latest answers (AppendAnswer may have been called
-	// after we loaded the session above).
+	// Re-fetch to get the latest answers.
 	fresh, err := s.repo.FindByID(sessionID)
 	if err != nil || fresh == nil {
 		return nil, fmt.Errorf("interview: reload session: %w", err)
@@ -216,7 +200,6 @@ func (s *Service) CompleteSession(userID uuid.UUID, sessionID uuid.UUID, req Com
 
 // ── CancelSession ─────────────────────────────────────────────────────────────
 
-// CancelSession allows the user to end a session early (e.g. "End interview" button).
 func (s *Service) CancelSession(userID uuid.UUID, sessionID uuid.UUID) error {
 	session, err := s.loadOwned(userID, sessionID)
 	if err != nil {
@@ -231,6 +214,12 @@ func (s *Service) CancelSession(userID uuid.UUID, sessionID uuid.UUID) error {
 	}
 
 	return s.repo.UpdateStatus(sessionID, StatusCancelled)
+}
+
+// ── GetFullSession — для администраторов ──────────────────────────────────────
+
+func (s *Service) GetFullSession(id uuid.UUID) (*FullInterviewSession, error) {
+	return s.repo.GetFullSessionById(id)
 }
 
 // ── Internal helpers ──────────────────────────────────────────────────────────
@@ -279,7 +268,6 @@ func (s *Service) maybeExpire(session *InterviewSession) {
 	}
 }
 
-// buildStartResponse converts a session into a StartSessionResponse.
 func buildStartResponse(s *InterviewSession) *StartSessionResponse {
 	return &StartSessionResponse{
 		SessionID:      s.ID,
@@ -291,9 +279,6 @@ func buildStartResponse(s *InterviewSession) *StartSessionResponse {
 }
 
 // ── Mock scoring ──────────────────────────────────────────────────────────────
-// mockScore generates a deterministic-ish preliminary score based on answer
-// length heuristics.  Replace this function body with an ML service call once
-// the ML team's API is ready — the signature stays the same.
 
 func mockScore(session *InterviewSession) InterviewScore {
 	totalWords := 0
@@ -301,8 +286,6 @@ func mockScore(session *InterviewSession) InterviewScore {
 		totalWords += len(strings.Fields(a))
 	}
 
-	// Simple heuristic: more words → higher preliminary scores, capped at 85
-	// to make clear these are not final ML scores.
 	base := min(totalWords/10, 70) + 15
 
 	return InterviewScore{

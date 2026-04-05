@@ -20,6 +20,18 @@ func NewHandler(service *Service) *Handler {
 	return &Handler{service: service}
 }
 
+// GetSession — только для администраторов
+func (h *Handler) GetSession(c fiber.Ctx) error {
+	sessionID := c.Locals("id").(uuid.UUID)
+
+	session, err := h.service.GetFullSession(sessionID)
+	if err != nil {
+		return respond.ErrorStatus(c, fmt.Errorf("failed to get interview session: %w", err), fiber.StatusNotFound)
+	}
+
+	return respond.OK(c, session, nil)
+}
+
 // ── StartSession ──────────────────────────────────────────────────────────────
 
 // StartSession godoc
@@ -209,6 +221,8 @@ func (h *Handler) CancelSession(c fiber.Ctx) error {
 	}
 	return respond.EmptyOK(c, nil)
 }
+
+
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
