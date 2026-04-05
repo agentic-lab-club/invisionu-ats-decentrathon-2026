@@ -7,6 +7,7 @@ Own idempotent seeding of backend reference data required for startup.
 Current seeded domains:
 - `programs`
 - current `personality test`
+- 1 admin reviewer for the admissions committee
 - 6 demo applicants with completed applications and scoring artifacts
 
 ## Responsibilities
@@ -15,6 +16,7 @@ Current seeded domains:
 - Upsert programs by `code`.
 - Upsert one named personality test by `code`.
 - Mark other personality tests inactive when seeding the current one.
+- Upsert one fixed admin account with role `admin`.
 - Run safely on repeated service restarts without duplicating seeded rows.
 
 ## Out Of Scope
@@ -57,6 +59,16 @@ Seeded records per applicant:
 - `application_test_answers`
 - `scoring_runs` for both `personality_test` and `llmscoring`
 
+### Admin reviewer seed
+
+Seeded reviewer record:
+- `users`
+
+Current seeded login:
+- email: `admin@gmail.com`
+- password: `TestPassword123`
+- role: `admin`
+
 ## Endpoint Overview
 
 - No HTTP endpoints.
@@ -88,8 +100,9 @@ Behavior:
 5. Seeded personality test is inserted or updated.
 6. Questions are inserted or updated by `(test_id, question_order)`.
 7. Options are inserted or updated by `(question_id, option_order)`.
-8. Demo applicants are upserted by deterministic ids.
-9. Each demo applicant gets a completed application with attached files, personality answers, transcript, and two scoring runs.
+8. One admissions committee admin user is upserted by a deterministic id.
+9. Demo applicants are upserted by deterministic ids.
+10. Each demo applicant gets a completed application with attached files, personality answers, transcript, and two scoring runs.
 
 ## Validation Rules
 
@@ -125,6 +138,12 @@ Important limitation:
 - applications are seeded as `decision = pending`
 - screening data is seeded as `screening_status = completed`
 
+### Admin reviewer lifecycle under seeder
+
+- the admin reviewer is kept in sync by a fixed UUID
+- the reviewer is always seeded with `role = admin`
+- email verification is forced to `TRUE`
+
 ## Error Handling
 
 Representative failures:
@@ -140,6 +159,7 @@ Representative failures:
 - `failed to upsert option <n> for question <n>`
 - `failed to commit seed transaction`
 - `failed to begin mock applicant seed transaction`
+- `failed to upsert seeded admin user <email>`
 - `failed to upsert mock applicant user <email>`
 - `failed to upsert mock application <id>`
 
@@ -160,7 +180,7 @@ Representative failures:
 - No standalone manual reseed command in current code.
 - No cleanup for removed questions/options.
 - Startup fails hard if seeding fails.
-- Demo applicants currently use one shared precomputed password hash; the module does not issue auth codes or refresh sessions.
+- The seeded admin user has a fixed password `TestPassword123`; demo applicants use a separate precomputed bcrypt hash, and the module does not issue auth codes or refresh sessions.
 
 ## Related Files / Modules
 

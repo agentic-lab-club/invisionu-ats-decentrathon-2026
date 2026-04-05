@@ -38,3 +38,18 @@ func TestLoadApplicantSeedDocuments(t *testing.T) {
 		}
 	}
 }
+
+func TestSeededAdminUserDefinition(t *testing.T) {
+	if seededAdminUser.Email == "" {
+		t.Fatal("expected seeded admin email")
+	}
+	if seededAdminUser.UserID == "" {
+		t.Fatal("expected seeded admin id")
+	}
+	if seededAdminUser.FirstName == "" || seededAdminUser.LastName == "" {
+		t.Fatal("expected seeded admin display name")
+	}
+	if adminSeedPasswordHash == "" {
+		t.Fatal("expected seeded admin password hash")
+	}
+}

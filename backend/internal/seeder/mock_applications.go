@@ -13,7 +13,19 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-const demoUserPasswordHash = "$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy"
+const (
+	adminSeedPasswordHash     = "$2a$10$1BZBTWq3ZfJPeATm0QMhAum3.AmWE4SCvRtChd972./MTCyMHYrGe"
+	applicantSeedPasswordHash = "$2a$10$0zhS5SgSIVlsyanL89TJEeHMFE9jUaQ9mpvGcAansHn6tZH/9ppS6"
+)
+
+type adminSeedDefinition struct {
+	UserID      string
+	Email       string
+	FirstName   string
+	LastName    string
+	PhoneNumber string
+	CreatedAt   time.Time
+}
 
 type applicantSeedDefinition struct {
 	UserID                  string
@@ -60,6 +72,15 @@ type personalityOptionSeed struct {
 type personalityScorePayload struct {
 	resultJSON     map[string]interface{}
 	recommendation string
+}
+
+var seededAdminUser = adminSeedDefinition{
+	UserID:      "00000000-0000-0000-0000-000000000001",
+	Email:       "admin@gmail.com",
+	FirstName:   "Admissions",
+	LastName:    "Admin",
+	PhoneNumber: "+77001000001",
+	CreatedAt:   time.Date(2026, time.March, 25, 9, 0, 0, 0, time.UTC),
 }
 
 var applicantSeedDefinitions = []applicantSeedDefinition{
@@ -221,6 +242,10 @@ func seedMockApplicants(db *sqlx.DB) error {
 
 	questions, err := loadPersonalityQuestions(tx, "personality_v1")
 	if err != nil {
+		return err
+	}
+
+	if err := upsertAdminUser(tx, seededAdminUser); err != nil {
 		return err
 	}
 
@@ -522,6 +547,114 @@ func computeLLMRecommendation(resultJSON map[string]interface{}) string {
 	}
 }
 
+func upsertAdminUser(tx *sqlx.Tx, def adminSeedDefinition) error {
+	if _, err := tx.Exec(`
+		DELETE FROM users
+		WHERE id = $1
+		  AND email <> $2
+		  AND EXISTS (
+		      SELECT 1
+		      FROM users existing_admin
+		      WHERE existing_admin.email = $2
+		        AND existing_admin.id <> $1
+		  )
+	`, def.UserID, def.Email); err != nil {
+		return fmt.Errorf("failed to clean legacy seeded admin user %s: %w", def.Email, err)
+	}
+
+	result, err := tx.Exec(`
+		UPDATE users
+		SET email = $1,
+		    password_hash = $2,
+		    role = 'admin',
+		    is_email_verified = TRUE,
+		    first_name = $3,
+		    last_name = $4,
+		    phone_number = $5,
+		    updated_at = $6
+		WHERE email = $1
+	`,
+		def.Email,
+		adminSeedPasswordHash,
+		def.FirstName,
+		def.LastName,
+		def.PhoneNumber,
+		def.CreatedAt,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to upsert seeded admin user %s: %w", def.Email, err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to inspect seeded admin user upsert result %s: %w", def.Email, err)
+	}
+	if rowsAffected > 0 {
+		return nil
+	}
+
+	result, err = tx.Exec(`
+		UPDATE users
+		SET email = $2,
+		    password_hash = $3,
+		    role = 'admin',
+		    is_email_verified = TRUE,
+		    first_name = $4,
+		    last_name = $5,
+		    phone_number = $6,
+		    updated_at = $7
+		WHERE id = $1
+	`,
+		def.UserID,
+		def.Email,
+		adminSeedPasswordHash,
+		def.FirstName,
+		def.LastName,
+		def.PhoneNumber,
+		def.CreatedAt,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to update seeded admin user by id %s: %w", def.Email, err)
+	}
+
+	rowsAffected, err = result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to inspect seeded admin user update-by-id result %s: %w", def.Email, err)
+	}
+	if rowsAffected > 0 {
+		return nil
+	}
+
+	_, err = tx.Exec(`
+		INSERT INTO users (
+			id,
+			email,
+			password_hash,
+			role,
+			is_email_verified,
+			first_name,
+			last_name,
+			phone_number,
+			created_at,
+			updated_at
+		)
+		VALUES ($1, $2, $3, 'admin', TRUE, $4, $5, $6, $7, $7)
+	`,
+		def.UserID,
+		def.Email,
+		adminSeedPasswordHash,
+		def.FirstName,
+		def.LastName,
+		def.PhoneNumber,
+		def.CreatedAt,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to insert seeded admin user %s: %w", def.Email, err)
+	}
+
+	return nil
+}
+
 func upsertSeedUser(tx *sqlx.Tx, def applicantSeedDefinition) error {
 	_, err := tx.Exec(`
 		INSERT INTO users (
@@ -549,7 +682,7 @@ func upsertSeedUser(tx *sqlx.Tx, def applicantSeedDefinition) error {
 	`,
 		def.UserID,
 		def.Email,
-		demoUserPasswordHash,
+		applicantSeedPasswordHash,
 		def.FirstName,
 		def.LastName,
 		def.PhoneNumber,
