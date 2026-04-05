@@ -22,7 +22,9 @@ interface Candidate {
   backendDecision?: string;
   uiStatus: string;
   recommendation?: string;
+  ai_probability?: number;
   ielts_score?: number;
+  ent_score?: number;
 }
 
 interface CandidatesTableProps {
@@ -65,14 +67,6 @@ function hashString(value: string) {
 
 function buildMockPotential(applicationId: string) {
   return 45 + (hashString(applicationId) % 51);
-}
-
-function buildMockIELTS(applicationId: string) {
-  const base = hashString(`ielts:${applicationId}`);
-  const minBand = 5.0;
-  const maxBand = 8.5;
-  const steps = Math.round((maxBand - minBand) / 0.5);
-  return Number((minBand + (base % (steps + 1)) * 0.5).toFixed(1));
 }
 
 // ── Shortlist helpers ─────────────────────────────────────────────────────────
@@ -137,6 +131,10 @@ function RecommendationBadge({ value }: { value?: string }) {
       {style.label}
     </span>
   );
+}
+
+function formatAIProbability(value?: number) {
+  return value != null ? `${value.toFixed(1)}%` : '—';
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -285,9 +283,9 @@ export default function CandidatesTable({ preset, advancedFilter, showFavorites 
             backendDecision,
             uiStatus,
             recommendation: item.recommendation,
-            ielts_score: item.ielts_score != null
-              ? item.ielts_score
-              : buildMockIELTS(item.application_id),
+            ai_probability: item.ai_probability ?? undefined,
+            ielts_score: item.ielts_score ?? undefined,
+            ent_score: item.ent_score ?? undefined,
           };
         });
         setCandidates(mapped);
@@ -472,7 +470,13 @@ export default function CandidatesTable({ preset, advancedFilter, showFavorites 
                 </div>
               </th>
               <th className="px-6 py-3 text-left">
+                <span className="text-[10px] uppercase tracking-widest text-gray-400 font-semibold">AI Probability</span>
+              </th>
+              <th className="px-6 py-3 text-left">
                 <span className="text-[10px] uppercase tracking-widest text-gray-400 font-semibold">IELTS</span>
+              </th>
+              <th className="px-6 py-3 text-left">
+                <span className="text-[10px] uppercase tracking-widest text-gray-400 font-semibold">ENT</span>
               </th>
               <th className="px-6 py-3 text-left">
                 <span className="text-[10px] uppercase tracking-widest text-gray-400 font-semibold">Status</span>
@@ -484,7 +488,7 @@ export default function CandidatesTable({ preset, advancedFilter, showFavorites 
           <tbody className="divide-y divide-gray-50">
             {paginatedCandidates.length === 0 ? (
               <tr>
-                <td colSpan={showFavorites ? 7 + (isShortlistMode ? 1 : 0) : 6 + (isShortlistMode ? 1 : 0)} className="px-6 py-16 text-center">
+                <td colSpan={showFavorites ? 9 + (isShortlistMode ? 1 : 0) : 8 + (isShortlistMode ? 1 : 0)} className="px-6 py-16 text-center">
                   <div className="flex flex-col items-center gap-2">
                     <UserCircle2 className="w-8 h-8 text-gray-200" />
                     <p className="text-sm text-gray-400">No candidates match this filter</p>
@@ -556,6 +560,26 @@ export default function CandidatesTable({ preset, advancedFilter, showFavorites 
                       <ScoreBar score={candidate.overall_score ?? 0} />
                     </td>
 
+                    {/* AI probability */}
+                    <td className="px-6 py-3.5 whitespace-nowrap">
+                      {candidate.ai_probability != null ? (
+                        <span
+                          className="text-xs font-semibold tabular-nums px-2 py-1 rounded-md"
+                          style={
+                            candidate.ai_probability >= 50
+                              ? { background: '#fef2f2', color: '#dc2626' }
+                              : candidate.ai_probability >= 20
+                              ? { background: '#fffbeb', color: '#d97706' }
+                              : { background: '#eff6ff', color: '#2563eb' }
+                          }
+                        >
+                          {formatAIProbability(candidate.ai_probability)}
+                        </span>
+                      ) : (
+                        <span className="text-sm text-gray-300">—</span>
+                      )}
+                    </td>
+
                     {/* IELTS */}
                     <td className="px-6 py-3.5 whitespace-nowrap">
                       {candidate.ielts_score != null ? (
@@ -570,6 +594,20 @@ export default function CandidatesTable({ preset, advancedFilter, showFavorites 
                           }
                         >
                           {candidate.ielts_score.toFixed(1)}
+                        </span>
+                      ) : (
+                        <span className="text-sm text-gray-300">—</span>
+                      )}
+                    </td>
+
+                    {/* ENT */}
+                    <td className="px-6 py-3.5 whitespace-nowrap">
+                      {candidate.ent_score != null ? (
+                        <span
+                          className="text-xs font-semibold tabular-nums px-2 py-1 rounded-md"
+                          style={{ background: '#f3f4f6', color: '#374151' }}
+                        >
+                          {candidate.ent_score}
                         </span>
                       ) : (
                         <span className="text-sm text-gray-300">—</span>

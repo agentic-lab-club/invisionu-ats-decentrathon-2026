@@ -30,6 +30,9 @@ Fields:
 - `review_stage`
 - `decision`
 - optional `recommendation`
+- optional `ai_probability`
+- optional `ielts_score`
+- optional `ent_score`
 
 ### `Detail`
 
@@ -76,7 +79,10 @@ Success example:
       "program_name": "Tech (Innovative IT Product Design and Development)",
       "review_stage": "initial_screening",
       "decision": "pending",
-      "recommendation": null
+      "recommendation": null,
+      "ai_probability": 34.4,
+      "ielts_score": 6.5,
+      "ent_score": 42
     }
   ]
 }
@@ -195,6 +201,7 @@ Status mapping:
 ## Frontend Integration Notes
 
 - Use list endpoint for reviewer dashboard filters.
+- Candidate list payload may include `ai_probability`, `ielts_score`, and `ent_score` when screening enrichment is available.
 - Use detail endpoint when the reviewer opens a candidate profile.
 - Do not assume `latest_scoring_run` is always present.
 - Treat `result_json` as opaque payload bytes.

@@ -15,7 +15,9 @@ type ListItem struct {
 	ReviewStage    string    `db:"review_stage" json:"review_stage"`
 	Decision       string    `db:"decision" json:"decision"`
 	Recommendation *string   `db:"recommendation" json:"recommendation"`
+	AIProbability  *float64  `db:"ai_probability" json:"ai_probability,omitempty"`
 	IELTSScore     *float64  `db:"ielts_score" json:"ielts_score,omitempty"`
+	ENTScore       *int      `db:"ent_score" json:"ent_score,omitempty"`
 }
 
 type ListResponse struct {

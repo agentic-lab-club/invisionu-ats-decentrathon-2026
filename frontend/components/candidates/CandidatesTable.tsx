@@ -20,7 +20,9 @@ interface Candidate {
   backendDecision?: string;     // original backend field: 'pending', 'accepted', 'rejected'
   uiStatus: string;             // mapped UI status: 'new', 'review', 'recommended', 'rejected'
   recommendation?: string;
+  ai_probability?: number;
   ielts_score?: number;
+  ent_score?: number;
 }
 
 interface CandidatesTableProps {
@@ -63,14 +65,6 @@ function buildMockPotential(applicationId: string) {
   return 45 + (hashString(applicationId) % 51);
 }
 
-function buildMockIELTS(applicationId: string) {
-  const base = hashString(`ielts:${applicationId}`);
-  const minBand = 5.0;
-  const maxBand = 8.5;
-  const steps = Math.round((maxBand - minBand) / 0.5);
-  return Number((minBand + (base % (steps + 1)) * 0.5).toFixed(1));
-}
-
 function ScoreBar({ score }: { score: number }) {
   const pct = Math.min(100, Math.max(0, score));
   const color = pct >= 75 ? '#b5e220' : pct >= 50 ? '#f59e0b' : '#f87171';
@@ -110,6 +104,10 @@ function TableSkeleton() {
       </div>
     </div>
   );
+}
+
+function formatAIProbability(value?: number) {
+  return value != null ? `${value.toFixed(1)}%` : '—';
 }
 
 // ================== Main Component ==================
@@ -171,9 +169,9 @@ export default function CandidatesTable({ preset }: CandidatesTableProps) {
             backendDecision,
             uiStatus,
             recommendation: item.recommendation,
-            ielts_score: item.ielts_score != null
-              ? item.ielts_score
-              : buildMockIELTS(item.application_id),
+            ai_probability: item.ai_probability ?? undefined,
+            ielts_score: item.ielts_score ?? undefined,
+            ent_score: item.ent_score ?? undefined,
           };
         });
         setCandidates(mapped);
@@ -309,14 +307,16 @@ export default function CandidatesTable({ preset }: CandidatesTableProps) {
               <th className="px-6 py-3 text-left cursor-pointer select-none group" onClick={() => handleSort('overall_score')}>
                 <div className="flex items-center gap-1"><span className="text-[10px] uppercase tracking-widest text-gray-400 font-semibold">Potential</span><ChevronsUpDown className="w-3 h-3" /></div>
               </th>
+              <th className="px-6 py-3 text-left"><span className="text-[10px] uppercase tracking-widest text-gray-400 font-semibold">AI Probability</span></th>
               <th className="px-6 py-3 text-left"><span className="text-[10px] uppercase tracking-widest text-gray-400 font-semibold">IELTS</span></th>
+              <th className="px-6 py-3 text-left"><span className="text-[10px] uppercase tracking-widest text-gray-400 font-semibold">ENT</span></th>
               <th className="px-6 py-3 text-left"><span className="text-[10px] uppercase tracking-widest text-gray-400 font-semibold">Status</span></th>
               <th className="px-6 py-3" />
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
             {sorted.length === 0 ? (
-              <tr><td colSpan={6} className="px-6 py-16 text-center"><div className="flex flex-col items-center gap-2"><UserCircle2 className="w-8 h-8 text-gray-200" /><p className="text-sm text-gray-400">No candidates match this filter</p><button onClick={() => setFilterStatus('all')} className="text-xs text-[#8aaa18] hover:underline mt-1">Clear filter</button></div></td></tr>
+              <tr><td colSpan={8} className="px-6 py-16 text-center"><div className="flex flex-col items-center gap-2"><UserCircle2 className="w-8 h-8 text-gray-200" /><p className="text-sm text-gray-400">No candidates match this filter</p><button onClick={() => setFilterStatus('all')} className="text-xs text-[#8aaa18] hover:underline mt-1">Clear filter</button></div></td></tr>
             ) : (
               sorted.map(candidate => (
                 <tr key={candidate.application_id} className="hover:bg-gray-50/70 transition-colors group">
@@ -324,8 +324,22 @@ export default function CandidatesTable({ preset }: CandidatesTableProps) {
                   <td className="px-6 py-3.5 whitespace-nowrap"><span className="text-xs text-gray-500 bg-gray-50 border border-gray-100 px-2 py-1 rounded-md">{candidate.program_name}</span></td>
                   <td className="px-6 py-3.5 whitespace-nowrap"><ScoreBar score={candidate.overall_score ?? 0} /></td>
                   <td className="px-6 py-3.5 whitespace-nowrap">
+                    {candidate.ai_probability != null ? (
+                      <span className="text-xs font-semibold tabular-nums px-2 py-1 rounded-md" style={candidate.ai_probability >= 50 ? { background: '#fef2f2', color: '#dc2626' } : candidate.ai_probability >= 20 ? { background: '#fffbeb', color: '#d97706' } : { background: '#eff6ff', color: '#2563eb' }}>
+                        {formatAIProbability(candidate.ai_probability)}
+                      </span>
+                    ) : <span className="text-sm text-gray-300">—</span>}
+                  </td>
+                  <td className="px-6 py-3.5 whitespace-nowrap">
                     {candidate.ielts_score != null ? (
                       <span className="text-xs font-semibold tabular-nums px-2 py-1 rounded-md" style={candidate.ielts_score >= 6.5 ? { background: '#f7fde8', color: '#4d7c0f' } : candidate.ielts_score >= 5.5 ? { background: '#fffbeb', color: '#d97706' } : { background: '#fef2f2', color: '#dc2626' }}>{candidate.ielts_score.toFixed(1)}</span>
+                    ) : <span className="text-sm text-gray-300">—</span>}
+                  </td>
+                  <td className="px-6 py-3.5 whitespace-nowrap">
+                    {candidate.ent_score != null ? (
+                      <span className="text-xs font-semibold tabular-nums px-2 py-1 rounded-md" style={{ background: '#f3f4f6', color: '#374151' }}>
+                        {candidate.ent_score}
+                      </span>
                     ) : <span className="text-sm text-gray-300">—</span>}
                   </td>
                   <td className="px-6 py-3.5 whitespace-nowrap">

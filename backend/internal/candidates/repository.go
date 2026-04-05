@@ -157,7 +157,9 @@ SELECT
     a.review_stage,
     a.decision,
     sr.recommendation,
-    a.ielts_score
+    a.ai_probability,
+    a.ielts_score,
+    a.ent_score
 FROM applications a
 JOIN users u ON u.id = a.user_id
 JOIN programs p ON p.id = a.program_id

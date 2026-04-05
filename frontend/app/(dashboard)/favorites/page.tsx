@@ -24,7 +24,9 @@ interface Candidate {
   backendDecision?: string;
   uiStatus: string;
   recommendation?: string;
-  ielts_score: number;
+  ai_probability?: number;
+  ielts_score?: number;
+  ent_score?: number;
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -54,11 +56,6 @@ function getInitials(name: string) {
 }
 
 function buildMockPotential(id: string) { return 45 + (hashString(id) % 51); }
-function buildMockIELTS(id: string) {
-  const base = hashString(`ielts:${id}`);
-  return Number((5.0 + (base % 8) * 0.5).toFixed(1));
-}
-
 const reviewStageMapping: Record<string, string> = {
   initial_screening: 'new',
   application_review: 'review',
@@ -87,8 +84,14 @@ function mapCandidate(item: any): Candidate {
     backendDecision,
     uiStatus,
     recommendation: item.recommendation,
-    ielts_score: item.ielts_score ?? buildMockIELTS(item.application_id),
+    ai_probability: item.ai_probability ?? undefined,
+    ielts_score: item.ielts_score ?? undefined,
+    ent_score: item.ent_score ?? undefined,
   };
+}
+
+function formatAIProbability(value?: number) {
+  return value != null ? `${value.toFixed(1)}%` : '—';
 }
 
 // ── Sub-components ─────────────────────────────────────────────────────────
@@ -364,7 +367,13 @@ export default function FavoritesPage() {
                     </div>
                   </th>
                   <th className="px-6 py-3 text-left">
+                    <span className="text-[10px] uppercase tracking-widest text-gray-400 font-semibold">AI Probability</span>
+                  </th>
+                  <th className="px-6 py-3 text-left">
                     <span className="text-[10px] uppercase tracking-widest text-gray-400 font-semibold">IELTS</span>
+                  </th>
+                  <th className="px-6 py-3 text-left">
+                    <span className="text-[10px] uppercase tracking-widest text-gray-400 font-semibold">ENT</span>
                   </th>
                   <th className="px-6 py-3 text-left">
                     <span className="text-[10px] uppercase tracking-widest text-gray-400 font-semibold">Status</span>
@@ -376,7 +385,7 @@ export default function FavoritesPage() {
               <tbody className="divide-y divide-gray-50">
                 {sorted.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-16 text-center">
+                    <td colSpan={9} className="px-6 py-16 text-center">
                       <div className="flex flex-col items-center gap-2">
                         <UserCircle2 className="w-8 h-8 text-gray-200" />
                         <p className="text-sm text-gray-400">No candidates match this filter</p>
@@ -415,18 +424,52 @@ export default function FavoritesPage() {
                         <ScoreBar score={c.overall_score} />
                       </td>
                       <td className="px-6 py-3.5 whitespace-nowrap">
-                        <span
-                          className="text-xs font-semibold tabular-nums px-2 py-1 rounded-md"
-                          style={
-                            c.ielts_score >= 6.5
-                              ? { background: '#f7fde8', color: '#4d7c0f' }
-                              : c.ielts_score >= 5.5
-                              ? { background: '#fffbeb', color: '#d97706' }
-                              : { background: '#fef2f2', color: '#dc2626' }
-                          }
-                        >
-                          {c.ielts_score.toFixed(1)}
-                        </span>
+                        {c.ai_probability != null ? (
+                          <span
+                            className="text-xs font-semibold tabular-nums px-2 py-1 rounded-md"
+                            style={
+                              c.ai_probability >= 50
+                                ? { background: '#fef2f2', color: '#dc2626' }
+                                : c.ai_probability >= 20
+                                ? { background: '#fffbeb', color: '#d97706' }
+                                : { background: '#eff6ff', color: '#2563eb' }
+                            }
+                          >
+                            {formatAIProbability(c.ai_probability)}
+                          </span>
+                        ) : (
+                          <span className="text-sm text-gray-300">—</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-3.5 whitespace-nowrap">
+                        {c.ielts_score != null ? (
+                          <span
+                            className="text-xs font-semibold tabular-nums px-2 py-1 rounded-md"
+                            style={
+                              c.ielts_score >= 6.5
+                                ? { background: '#f7fde8', color: '#4d7c0f' }
+                                : c.ielts_score >= 5.5
+                                ? { background: '#fffbeb', color: '#d97706' }
+                                : { background: '#fef2f2', color: '#dc2626' }
+                            }
+                          >
+                            {c.ielts_score.toFixed(1)}
+                          </span>
+                        ) : (
+                          <span className="text-sm text-gray-300">—</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-3.5 whitespace-nowrap">
+                        {c.ent_score != null ? (
+                          <span
+                            className="text-xs font-semibold tabular-nums px-2 py-1 rounded-md"
+                            style={{ background: '#f3f4f6', color: '#374151' }}
+                          >
+                            {c.ent_score}
+                          </span>
+                        ) : (
+                          <span className="text-sm text-gray-300">—</span>
+                        )}
                       </td>
                       <td className="px-6 py-3.5 whitespace-nowrap">
                         <StatusBadge

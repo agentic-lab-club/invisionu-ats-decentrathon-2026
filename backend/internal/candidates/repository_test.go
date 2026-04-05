@@ -11,7 +11,7 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-func TestRepositoryListReturnsIELTSScore(t *testing.T) {
+func TestRepositoryListReturnsEnrichmentFields(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatalf("sqlmock.New returned error: %v", err)
@@ -28,7 +28,9 @@ func TestRepositoryListReturnsIELTSScore(t *testing.T) {
 		"review_stage",
 		"decision",
 		"recommendation",
+		"ai_probability",
 		"ielts_score",
+		"ent_score",
 	}).AddRow(
 		testUUID,
 		"Ada Lovelace",
@@ -36,7 +38,9 @@ func TestRepositoryListReturnsIELTSScore(t *testing.T) {
 		"initial_screening",
 		"pending",
 		"recommend",
+		34.4,
 		6.5,
+		42,
 	)
 
 	mock.ExpectQuery(regexp.QuoteMeta(listCandidatesQuery + "\n ORDER BY a.created_at DESC")).
@@ -49,8 +53,14 @@ func TestRepositoryListReturnsIELTSScore(t *testing.T) {
 	if len(items) != 1 {
 		t.Fatalf("expected 1 item, got %d", len(items))
 	}
+	if items[0].AIProbability == nil || *items[0].AIProbability != 34.4 {
+		t.Fatalf("expected ai_probability=34.4, got %#v", items[0].AIProbability)
+	}
 	if items[0].IELTSScore == nil || *items[0].IELTSScore != 6.5 {
 		t.Fatalf("expected ielts_score=6.5, got %#v", items[0].IELTSScore)
+	}
+	if items[0].ENTScore == nil || *items[0].ENTScore != 42 {
+		t.Fatalf("expected ent_score=42, got %#v", items[0].ENTScore)
 	}
 
 	if err := mock.ExpectationsWereMet(); err != nil {
