@@ -190,6 +190,7 @@ export default function InterviewSessionPage() {
     speak, stopSpeaking, isSpeaking, ttsSupported,
     sessionData, sessionLoading, sessionError,
     startSession, submitAnswer, completeSession, cancelSession,
+    camError, 
   } = useInterview();
 
   const videoRef   = useRef<HTMLVideoElement>(null);
@@ -217,40 +218,45 @@ export default function InterviewSessionPage() {
 
   // ── Step 1: Load API session on mount ─────────────────────────────────────
 
-  useEffect(() => {
-    const init = async () => {
-      // Attach camera (pre-warmed from InterviewProvider)
-      let s = stream;
-      if (!s) {
-        await startCamera();
-        s = stream;
-      }
-      if (s && videoRef.current) {
-        videoRef.current.srcObject = s;
-        streamRef.current = s;
-      }
+// Инициализация сессии и камеры
+useEffect(() => {
+  let mounted = true;
 
-      // Start or resume backend session.
-      // sessionData comes from the intro page (/interview) if the user went through it.
-      // If the user navigates directly to /interview/session, we call startSession().
-      const data = sessionData ?? await startSession();
-      if (!data) {
-        setError('Could not start interview session. Please go back and try again.');
-        setPhase('error');
-        setInitialising(false);
-        return;
-      }
+  const init = async () => {
+    // 1. Запрашиваем камеру и получаем реальный MediaStream
+    const mediaStream = await startCamera();
+    if (!mounted) return;
 
-      setSessionId(data.session_id);
-      setQuestions(data.questions);
+    // 2. Прикрепляем поток к видео (если есть)
+    if (mediaStream && videoRef.current) {
+      videoRef.current.srcObject = mediaStream;
+      streamRef.current = mediaStream;
+    } else if (!mediaStream) {
+      setError('Не удалось получить доступ к камере и микрофону');
+      setPhase('error');
       setInitialising(false);
-      setPhase('connecting');
-    };
+      return;
+    }
 
-    init();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    // 3. Получаем данные сессии (если ещё нет)
+    const data = sessionData ?? await startSession();
+    if (!mounted) return;
+    if (!data) {
+      setError('Could not start interview session. Please go back and try again.');
+      setPhase('error');
+      setInitialising(false);
+      return;
+    }
 
+    setSessionId(data.session_id);
+    setQuestions(data.questions);
+    setInitialising(false);
+    setPhase('connecting');
+  };
+
+  init();
+  return () => { mounted = false; };
+}, [startCamera, startSession, sessionData]);
   // Re-attach stream when context updates
   useEffect(() => {
     if (stream && videoRef.current) {
@@ -392,21 +398,23 @@ export default function InterviewSessionPage() {
 
   // ── Error state ────────────────────────────────────────────────────────────
 
-  if (phase === 'error') {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 max-w-sm w-full text-center">
-          <AlertCircle className="w-10 h-10 text-red-400 mx-auto mb-3" />
-          <h2 className="text-gray-900 font-semibold mb-2">Session Error</h2>
-          <p className="text-gray-400 text-sm mb-6">{error || sessionError}</p>
-          <button onClick={() => router.push('/interview')}
-            className="px-5 py-2.5 bg-[#b5e220] text-gray-900 rounded-xl text-sm font-semibold hover:bg-[#a3cc1a]">
-            Go back
-          </button>
-        </div>
+if (phase === 'error') {
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 max-w-sm w-full text-center">
+        <AlertCircle className="w-10 h-10 text-red-400 mx-auto mb-3" />
+        <h2 className="text-gray-900 font-semibold mb-2">Session Error</h2>
+        <p className="text-gray-400 text-sm mb-6">
+          {camError || error || sessionError || 'Unknown error'}
+        </p>
+        <button onClick={() => router.push('/interview')}
+          className="px-5 py-2.5 bg-[#b5e220] text-gray-900 rounded-xl text-sm font-semibold">
+          Go back
+        </button>
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   // ── Init / loading state ───────────────────────────────────────────────────
   // FIX: use local `isInitialising` flag instead of `sessionLoading || !sessionData`
@@ -478,15 +486,7 @@ export default function InterviewSessionPage() {
             </div>
           )}
 
-          {/* Saving overlay */}
-          {(phase === 'saving' || phase === 'completing') && (
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-gray-200 shadow-sm">
-              <Loader2 className="w-3.5 h-3.5 text-[#8aaa18] animate-spin" />
-              <span className="text-gray-500 text-xs">
-                {phase === 'saving' ? 'Saving your answer…' : 'Generating your score…'}
-              </span>
-            </div>
-          )}
+
 
           {/* Avatar */}
           <div className="relative z-10 w-[260px] h-[320px]">
@@ -559,33 +559,6 @@ export default function InterviewSessionPage() {
             </div>
           </div>
 
-          {/* Current question text */}
-          {phase !== 'completed' && questions[currentIdx] && (
-            <div className="px-5 py-4 border-b border-gray-100">
-              <p className="text-[10px] uppercase tracking-widest text-gray-400 font-semibold mb-1.5">
-                Question {currentIdx + 1}
-              </p>
-              <p className="text-xs text-gray-500 leading-relaxed line-clamp-4">
-                {questions[currentIdx]}
-              </p>
-            </div>
-          )}
-
-          {/* Answer text area — visible during recording so user can type/review */}
-          {phase === 'recording' && (
-            <div className="px-5 py-3 border-b border-gray-100">
-              <p className="text-[10px] uppercase tracking-widest text-gray-400 font-semibold mb-1.5">
-                Your answer <span className="normal-case tracking-normal text-gray-300">(optional — type or speak)</span>
-              </p>
-              <textarea
-                value={currentAnswer}
-                onChange={e => setAnswer(e.target.value)}
-                placeholder="Type your answer here, or just speak — AIYA is listening…"
-                rows={3}
-                className="w-full text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:border-[#b5e220] focus:ring-1 focus:ring-[#b5e220]/30 placeholder:text-gray-300"
-              />
-            </div>
-          )}
 
           {/* User video */}
           <div className="px-5 py-4 flex-1 flex flex-col">
@@ -614,18 +587,6 @@ export default function InterviewSessionPage() {
 
           {/* Controls */}
           <div className="px-5 py-5 border-t border-gray-100 space-y-3">
-            <div className="flex gap-2">
-              <button onClick={toggleMic}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-medium border transition-all ${micOn ? 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100' : 'bg-red-50 text-red-500 border-red-200'}`}>
-                {micOn ? <Mic className="w-3.5 h-3.5" /> : <MicOff className="w-3.5 h-3.5" />}
-                {micOn ? 'Mic on' : 'Mic off'}
-              </button>
-              <button onClick={toggleCam}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-medium border transition-all ${camOn ? 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100' : 'bg-red-50 text-red-500 border-red-200'}`}>
-                {camOn ? <Video className="w-3.5 h-3.5" /> : <VideoOff className="w-3.5 h-3.5" />}
-                {camOn ? 'Cam on' : 'Cam off'}
-              </button>
-            </div>
 
             {phase === 'recording' && (
               <button onClick={handleDone}
@@ -649,12 +610,6 @@ export default function InterviewSessionPage() {
                 {phase === 'saving' ? 'Saving answer…' : phase === 'completing' ? 'Scoring…' : 'Please wait for AIYA…'}
               </div>
             )}
-
-            <button onClick={handleEnd}
-              className="w-full flex items-center justify-center gap-2 py-2.5 text-red-500 border border-red-200 bg-red-50 rounded-xl text-xs font-medium hover:bg-red-100 transition-colors">
-              <Phone className="w-3.5 h-3.5 rotate-[135deg]" />
-              End interview
-            </button>
           </div>
         </div>
       </div>

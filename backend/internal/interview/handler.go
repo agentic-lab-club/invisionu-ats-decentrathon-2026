@@ -32,6 +32,21 @@ func (h *Handler) GetSession(c fiber.Ctx) error {
 	return respond.OK(c, session, nil)
 }
 
+// GetSessionByApplication — только для администраторов, поиск по application_id кандидата
+func (h *Handler) GetSessionByApplication(c fiber.Ctx) error {
+	applicationID := c.Locals("application_id").(uuid.UUID)
+
+	session, err := h.service.GetFullSessionByApplicationID(applicationID)
+	if err != nil {
+		return respond.ErrorStatus(c, fmt.Errorf("failed to get interview session: %w", err), fiber.StatusInternalServerError)
+	}
+	if session == nil {
+		return respond.ErrorStatus(c, fmt.Errorf("no interview session found for this candidate"), fiber.StatusNotFound)
+	}
+
+	return respond.OK(c, session, nil)
+}
+
 // ── StartSession ──────────────────────────────────────────────────────────────
 
 // StartSession godoc
