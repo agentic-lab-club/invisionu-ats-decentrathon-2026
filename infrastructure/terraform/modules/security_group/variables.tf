@@ -13,6 +13,16 @@ variable "backend_port" {
   type        = number
 }
 
+variable "frontend_port" {
+  description = "Public frontend port."
+  type        = number
+}
+
+variable "scraper_public_port" {
+  description = "Public scraper port."
+  type        = number
+}
+
 variable "ssh_allowed_cidrs" {
   description = "CIDR blocks allowed to reach SSH."
   type        = list(string)

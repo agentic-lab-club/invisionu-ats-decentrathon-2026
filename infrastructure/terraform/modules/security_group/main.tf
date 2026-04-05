@@ -19,6 +19,22 @@ resource "aws_security_group" "this" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  ingress {
+    description = "Public frontend app / CloudFront origin"
+    from_port   = var.frontend_port
+    to_port     = var.frontend_port
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "Public scraper API"
+    from_port   = var.scraper_public_port
+    to_port     = var.scraper_public_port
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   egress {
     description      = "Allow all outbound traffic"
     from_port        = 0

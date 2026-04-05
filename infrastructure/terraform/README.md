@@ -1,6 +1,6 @@
 # Terraform AWS Baseline
 
-This directory contains the Terraform implementation for the backend-only AWS MVP baseline.
+This directory contains the Terraform implementation for the EC2-based demo environment.
 
 Layout:
 
@@ -12,11 +12,15 @@ Layout:
 - `modules/ecr`
 - `modules/s3`
 - `modules/secrets`
+- `modules/cloudfront_frontend`
 - `modules/local_s3_access`
 
 Notes:
 
 - Terraform state is local for now.
-- Secrets Manager secret values are intentionally not managed by Terraform.
-- Exception: local dev S3 access credentials are managed via Terraform and stored in Secrets Manager for local backend development.
-- This layer provisions infrastructure only; it does not make the backend deployable by itself.
+- Terraform creates two deploy-time runtime secret containers:
+  - root `.env.prod`
+  - `backend/config/config.prod.yaml`
+- Terraform does not write real production secret values into those secrets.
+- CloudFront uses the EC2 frontend service as the origin and returns a generic `*.cloudfront.net` URL.
+- This layer provisions infrastructure and deploy prerequisites; the actual container deploy is done by scripts in `infrastructure/scripts`.

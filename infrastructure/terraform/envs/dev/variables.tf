@@ -4,6 +4,12 @@ variable "project_name" {
   default     = "invisionu-ats"
 }
 
+variable "application_name" {
+  description = "AWS Application tag used to group all project resources."
+  type        = string
+  default     = "invisionu-platform"
+}
+
 variable "environment" {
   description = "Deployment environment."
   type        = string
@@ -38,10 +44,22 @@ variable "backend_port" {
   default     = 8080
 }
 
+variable "frontend_port" {
+  description = "Public frontend port and CloudFront origin port."
+  type        = number
+  default     = 3000
+}
+
+variable "scraper_public_port" {
+  description = "Public scraper port on the EC2 host."
+  type        = number
+  default     = 9432
+}
+
 variable "instance_type" {
   description = "EC2 instance type."
   type        = string
-  default     = "t3.micro"
+  default     = "m7i-flex.large"
 }
 
 variable "key_pair_name" {
@@ -65,22 +83,16 @@ variable "backend_ecr_repo_name" {
   default     = "invisionu-ats/backend"
 }
 
-variable "backend_secret_name" {
-  description = "Secrets Manager name for backend runtime config."
+variable "compose_env_secret_name" {
+  description = "Secrets Manager name for the root .env.prod runtime file."
   type        = string
-  default     = "invisionu/dev/backend"
+  default     = "invisionu/dev/.env.prod"
 }
 
-variable "postgres_secret_name" {
-  description = "Secrets Manager name for Postgres runtime config."
+variable "backend_config_secret_name" {
+  description = "Secrets Manager name for backend/config/config.prod.yaml."
   type        = string
-  default     = "invisionu/dev/postgres"
-}
-
-variable "rabbitmq_secret_name" {
-  description = "Secrets Manager name for RabbitMQ runtime config."
-  type        = string
-  default     = "invisionu/dev/rabbitmq"
+  default     = "invisionu/dev/backend/config.prod.yaml"
 }
 
 variable "local_s3_access_secret_name" {

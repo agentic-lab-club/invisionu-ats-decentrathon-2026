@@ -1,92 +1,44 @@
 # Infrastructure Plan
 
-This folder is the source of truth for AWS infrastructure planning and implementation.
-
-We intentionally split the work into two phases to avoid mirage plans:
-
-- Phase A: Terraform AWS baseline
-- Phase B: app deploy readiness after Terraform
+This folder is the source of truth for the current AWS demo deployment shape.
 
 ## Current Reality
 
-- The current deploy scope is backend-only.
-- `frontend/` is out of deploy scope and is not yet aligned with the Go backend as a single production runtime.
-- The current backend is not fully AWS-runtime-ready yet:
-  - object storage is still wired through the MinIO adapter path
-  - production-like compose orchestration is not yet defined at monorepo root
-  - deploy automation and runtime secret rendering are not yet implemented
+- The AWS target is one EC2 host for the full demo stack.
+- Runtime orchestration is the root `docker-compose.prod.yml`.
+- The frontend is available through both:
+  - direct EC2 access on port `3000`
+  - a generated CloudFront URL
+- Runtime configuration is rendered from two Secrets Manager secrets into files on EC2.
 
-## Phase A: Terraform Baseline
+## Provisioning Scope
 
-Phase A is implemented entirely inside `infrastructure/terraform`.
-
-Deliverables:
+Terraform in `infrastructure/terraform` provisions:
 
 - VPC with one public subnet
 - Internet Gateway and public routing
-- Security group
+- security group
 - EC2 instance with Elastic IP
 - IAM role and instance profile
-- Private S3 uploads bucket
-- Backend ECR repository
-- Secrets Manager secret containers without secret values
-- Dev-only local S3 access secret for local backend development
+- private S3 uploads bucket
+- backend ECR repository
+- CloudFront distribution for the frontend
+- Secrets Manager secret containers for:
+  - root `.env.prod`
+  - `backend/config/config.prod.yaml`
+- dev-only local S3 access secret for local backend development
 
-Acceptance criteria:
+## Deployment Scope
 
-- `terraform fmt -check` passes
-- `terraform validate` passes in `terraform/envs/dev`
-- `terraform plan` can render a backend-only AWS baseline
-- SSH is limited to explicit CIDR allowlist
-- Port `8080` is public
-- Ports `5432`, `5672`, and `15672` are not public
+Deployment from EC2 is handled by scripts in `infrastructure/scripts`:
 
-Out of scope:
+1. fetch `.env.prod` from Secrets Manager
+2. fetch `backend/config/config.prod.yaml` from Secrets Manager
+3. write both files into `/opt/invisionu-ats/runtime`
+4. run `docker compose -f docker-compose.prod.yml up -d --build`
 
-- frontend deploy
-- Route53 / ACM / CloudFront
-- API Gateway
-- deploy scripts
-- GitHub Actions deploy flow
-- backend runtime code changes
+## Accepted Risks
 
-## Phase B: App Deploy Readiness
-
-Phase B is intentionally separate from Terraform.
-
-Required follow-up changes outside `infrastructure/`:
-
-1. Define a root-level `docker-compose.prod.yml` as the production-like source of truth for:
-   - backend
-   - postgres
-   - rabbitmq
-2. Add a production-ready backend config path for AWS runtime.
-3. Replace hardcoded MinIO storage construction with provider-aware storage initialization so AWS S3 is a real runtime path.
-4. Define a deploy script contract for:
-   - pulling backend image from ECR
-   - fetching runtime secrets from Secrets Manager
-   - rendering env/config on EC2
-   - running `docker compose -f docker-compose.prod.yml up -d`
-5. Add GitHub Actions build/push/deploy workflow.
-6. Re-check backend runtime CORS policy against the public EC2 endpoint.
-
-Definition of done for Phase B:
-
-- Backend can be deployed to EC2 from ECR.
-- Backend can read secrets at deploy/runtime.
-- Backend can use AWS S3 successfully.
-- Backend is reachable on the EC2 public endpoint.
-- Postgres and RabbitMQ remain internal-only.
-
-## Mirage Risks
-
-These are the main risks we are explicitly avoiding:
-
-- S3 bucket exists, but backend still only behaves like MinIO runtime.
-- RabbitMQ is provisioned, but application code does not actually use it in the intended MVP path.
-- EC2 is bootstrapped, but no deploy automation exists yet.
-- Public endpoint exists, but runtime config and CORS are not aligned.
-
-Additional accepted risk for the local dev S3 helper path:
-
-- IAM access key material for the local backend is stored via Terraform-managed Secrets Manager secret version and therefore still exists in Terraform state.
+- The stack is still a single-host demo deployment.
+- CloudFront fronts the EC2 frontend origin directly and is not locked down behind a private origin yet.
+- Real CI/CD is still out of scope.

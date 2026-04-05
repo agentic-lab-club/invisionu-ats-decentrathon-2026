@@ -2,10 +2,11 @@ locals {
   name_prefix = "${var.project_name}-${var.environment}"
 
   common_tags = {
+    Application = var.application_name
     Project     = var.project_name
     Environment = var.environment
     ManagedBy   = "terraform"
-    Scope       = "backend-only-mvp"
+    Scope       = "ec2-compose-platform"
   }
 }
 
@@ -22,11 +23,13 @@ module "vpc" {
 module "security_group" {
   source = "../../modules/security_group"
 
-  name_prefix       = local.name_prefix
-  vpc_id            = module.vpc.vpc_id
-  backend_port      = var.backend_port
-  ssh_allowed_cidrs = var.ssh_allowed_cidrs
-  tags              = local.common_tags
+  name_prefix         = local.name_prefix
+  vpc_id              = module.vpc.vpc_id
+  backend_port        = var.backend_port
+  frontend_port       = var.frontend_port
+  scraper_public_port = var.scraper_public_port
+  ssh_allowed_cidrs   = var.ssh_allowed_cidrs
+  tags                = local.common_tags
 }
 
 module "s3" {
@@ -46,11 +49,10 @@ module "ecr" {
 module "secrets" {
   source = "../../modules/secrets"
 
-  name_prefix          = local.name_prefix
-  backend_secret_name  = var.backend_secret_name
-  postgres_secret_name = var.postgres_secret_name
-  rabbitmq_secret_name = var.rabbitmq_secret_name
-  tags                 = local.common_tags
+  name_prefix                = local.name_prefix
+  compose_env_secret_name    = var.compose_env_secret_name
+  backend_config_secret_name = var.backend_config_secret_name
+  tags                       = local.common_tags
 }
 
 module "iam" {
@@ -59,10 +61,11 @@ module "iam" {
   name_prefix         = local.name_prefix
   ecr_repository_arn  = module.ecr.repository_arn
   uploads_bucket_arn  = module.s3.bucket_arn
-  backend_secret_arn  = module.secrets.backend_secret_arn
-  postgres_secret_arn = module.secrets.postgres_secret_arn
-  rabbitmq_secret_arn = module.secrets.rabbitmq_secret_arn
-  tags                = local.common_tags
+  runtime_secret_arns = [
+    module.secrets.compose_env_secret_arn,
+    module.secrets.backend_config_secret_arn,
+  ]
+  tags = local.common_tags
 }
 
 module "local_s3_access" {
@@ -88,4 +91,13 @@ module "ec2" {
   backend_port          = var.backend_port
   aws_region            = var.aws_region
   tags                  = local.common_tags
+}
+
+module "cloudfront_frontend" {
+  source = "../../modules/cloudfront_frontend"
+
+  name_prefix        = local.name_prefix
+  origin_domain_name = module.ec2.public_dns
+  origin_http_port  = var.frontend_port
+  tags              = local.common_tags
 }

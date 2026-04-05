@@ -41,11 +41,7 @@ data "aws_iam_policy_document" "ec2_runtime" {
       "secretsmanager:GetSecretValue",
       "secretsmanager:DescribeSecret",
     ]
-    resources = [
-      var.backend_secret_arn,
-      var.postgres_secret_arn,
-      var.rabbitmq_secret_arn,
-    ]
+    resources = var.runtime_secret_arns
   }
 
   statement {

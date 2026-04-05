@@ -11,4 +11,14 @@ terraform {
 
 provider "aws" {
   region = var.aws_region
+
+  default_tags {
+    tags = {
+      Application = var.application_name
+      Project     = var.project_name
+      Environment = var.environment
+      ManagedBy   = "terraform"
+      Scope       = "ec2-compose-platform"
+    }
+  }
 }

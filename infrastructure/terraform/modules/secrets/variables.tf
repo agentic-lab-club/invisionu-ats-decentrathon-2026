@@ -3,18 +3,13 @@ variable "name_prefix" {
   type        = string
 }
 
-variable "backend_secret_name" {
-  description = "Secrets Manager name for backend runtime configuration."
+variable "compose_env_secret_name" {
+  description = "Secrets Manager name for the rendered root .env.prod runtime file."
   type        = string
 }
 
-variable "postgres_secret_name" {
-  description = "Secrets Manager name for Postgres runtime configuration."
-  type        = string
-}
-
-variable "rabbitmq_secret_name" {
-  description = "Secrets Manager name for RabbitMQ runtime configuration."
+variable "backend_config_secret_name" {
+  description = "Secrets Manager name for the rendered backend config.prod.yaml runtime file."
   type        = string
 }
 

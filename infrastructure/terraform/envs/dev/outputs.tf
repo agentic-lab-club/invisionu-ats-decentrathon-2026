@@ -14,8 +14,28 @@ output "ec2_public_dns" {
 }
 
 output "backend_public_url" {
-  description = "Public backend endpoint placeholder."
+  description = "Public backend endpoint."
   value       = "http://${module.ec2.public_ip}:${var.backend_port}"
+}
+
+output "frontend_origin_public_url" {
+  description = "Direct frontend origin on the EC2 host."
+  value       = "http://${module.ec2.public_ip}:${var.frontend_port}"
+}
+
+output "frontend_cloudfront_domain_name" {
+  description = "CloudFront distribution domain for the frontend."
+  value       = module.cloudfront_frontend.domain_name
+}
+
+output "frontend_cloudfront_url" {
+  description = "CloudFront URL for the frontend."
+  value       = "https://${module.cloudfront_frontend.domain_name}"
+}
+
+output "scraper_public_url" {
+  description = "Public scraper endpoint on the EC2 host."
+  value       = "http://${module.ec2.public_ip}:${var.scraper_public_port}"
 }
 
 output "uploads_bucket_name" {
@@ -38,19 +58,14 @@ output "backend_ecr_repository_url" {
   value       = module.ecr.repository_url
 }
 
-output "backend_secret_name" {
-  description = "Backend Secrets Manager secret name."
-  value       = module.secrets.backend_secret_name
+output "compose_env_secret_name" {
+  description = "Secrets Manager secret name containing the root .env.prod runtime file."
+  value       = module.secrets.compose_env_secret_name
 }
 
-output "postgres_secret_name" {
-  description = "Postgres Secrets Manager secret name."
-  value       = module.secrets.postgres_secret_name
-}
-
-output "rabbitmq_secret_name" {
-  description = "RabbitMQ Secrets Manager secret name."
-  value       = module.secrets.rabbitmq_secret_name
+output "backend_config_secret_name" {
+  description = "Secrets Manager secret name containing backend/config/config.prod.yaml."
+  value       = module.secrets.backend_config_secret_name
 }
 
 output "local_s3_access_secret_name" {

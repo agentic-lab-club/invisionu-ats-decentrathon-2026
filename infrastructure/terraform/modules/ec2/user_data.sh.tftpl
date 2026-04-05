@@ -1,25 +1,66 @@
 #!/bin/bash
 set -euxo pipefail
 
+exec > >(tee /var/log/invisionu-bootstrap.log | logger -t invisionu-user-data -s 2>/dev/console) 2>&1
+
 export DEBIAN_FRONTEND=noninteractive
 
+retry() {
+  local attempts="$1"
+  shift
+  local count=1
+
+  until "$@"; do
+    if [ "$count" -ge "$attempts" ]; then
+      return 1
+    fi
+    count=$((count + 1))
+    sleep 5
+  done
+}
+
 apt-get update
-apt-get install -y ca-certificates curl gnupg lsb-release unzip jq awscli
+retry 3 apt-get install -y ca-certificates curl git jq unzip awscli zsh sudo
 
-install -m 0755 -d /etc/apt/keyrings
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
-chmod a+r /etc/apt/keyrings/docker.asc
+if ! command -v docker >/dev/null 2>&1; then
+  curl -fsSL https://get.docker.com -o /tmp/get-docker.sh
+  sh /tmp/get-docker.sh
+fi
 
-echo \
-  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
-  $(. /etc/os-release && echo "$${VERSION_CODENAME}") stable" | \
-  tee /etc/apt/sources.list.d/docker.list > /dev/null
+if ! docker compose version >/dev/null 2>&1; then
+  retry 3 apt-get update
+  retry 3 apt-get install -y docker-compose-plugin
+fi
 
-apt-get update
-apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+systemctl enable --now docker
+usermod -aG docker ubuntu || true
+usermod -aG docker root || true
 
-systemctl enable docker
-systemctl start docker
+install_oh_my_zsh() {
+  local user_name="$1"
+  local home_dir
+
+  home_dir="$(getent passwd "$user_name" | cut -d: -f6 || true)"
+  if [ -z "$home_dir" ] || [ ! -d "$home_dir" ]; then
+    return 0
+  fi
+
+  if [ ! -d "$home_dir/.oh-my-zsh" ]; then
+    sudo -u "$user_name" HOME="$home_dir" RUNZSH=no CHSH=no KEEP_ZSHRC=yes \
+      sh -c 'curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh | sh -s -- --unattended'
+  fi
+
+  chsh -s /usr/bin/zsh "$user_name" || true
+}
+
+install_oh_my_zsh ubuntu
+install_oh_my_zsh root
+
+cat >/usr/local/bin/ohmyzsh <<'EOF'
+#!/bin/sh
+exec zsh "$@"
+EOF
+chmod +x /usr/local/bin/ohmyzsh
 
 mkdir -p /opt/invisionu-ats
 mkdir -p /opt/invisionu-ats/bin
@@ -29,8 +70,9 @@ mkdir -p /opt/invisionu-ats/runtime/config
 mkdir -p /opt/invisionu-ats/runtime/logs
 
 cat >/etc/motd <<EOF
-${name_prefix} backend host
+${name_prefix} compose host
 Region: ${aws_region}
 Public backend port: ${backend_port}
-This instance is bootstrapped for image pull + deploy, not for automatic app deployment.
+Docker, docker compose, git, zsh, and oh-my-zsh are bootstrapped.
+Runtime files belong under /opt/invisionu-ats/runtime.
 EOF

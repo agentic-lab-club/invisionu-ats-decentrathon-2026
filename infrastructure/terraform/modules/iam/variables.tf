@@ -13,19 +13,9 @@ variable "uploads_bucket_arn" {
   type        = string
 }
 
-variable "backend_secret_arn" {
-  description = "Backend secret ARN."
-  type        = string
-}
-
-variable "postgres_secret_arn" {
-  description = "Postgres secret ARN."
-  type        = string
-}
-
-variable "rabbitmq_secret_arn" {
-  description = "RabbitMQ secret ARN."
-  type        = string
+variable "runtime_secret_arns" {
+  description = "Secrets Manager ARNs the EC2 runtime can read."
+  type        = list(string)
 }
 
 variable "tags" {
