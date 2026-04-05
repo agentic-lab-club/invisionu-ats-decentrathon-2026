@@ -53,10 +53,15 @@ async function apiPost<T>(path: string, body: object, token?: string): Promise<T
     },
     body: JSON.stringify(body),
   });
-  const data = await res.json();
+  const contentType = res.headers.get('content-type') || '';
+  const data = contentType.includes('application/json')
+    ? await res.json()
+    : await res.text();
   if (!res.ok) {
-    const msg = data?.error || data?.message
-      || (typeof data === 'object' ? Object.values(data).join(', ') : 'Request failed');
+    const msg = typeof data === 'string'
+      ? `Request failed with status ${res.status}`
+      : data?.error || data?.message
+        || (typeof data === 'object' ? Object.values(data).join(', ') : 'Request failed');
     throw new Error(msg);
   }
   return data as T;
@@ -86,8 +91,16 @@ export const authApi = {
     const res = await fetch(`${API_URL}/auth/me`, {
       headers: { Authorization: `Bearer ${token}` },
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data?.error || 'Unauthorized');
+    const contentType = res.headers.get('content-type') || '';
+    const data = contentType.includes('application/json')
+      ? await res.json()
+      : await res.text();
+    if (!res.ok) {
+      const msg = typeof data === 'string'
+        ? `Request failed with status ${res.status}`
+        : data?.error || 'Unauthorized';
+      throw new Error(msg);
+    }
     return data;
   },
 };
