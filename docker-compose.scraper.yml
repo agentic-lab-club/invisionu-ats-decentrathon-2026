@@ -1,0 +1,14 @@
+services:
+  app:
+    build:
+      context: ./TalantParser/TalantParser
+      dockerfile: Dockerfile
+    container_name: webCrawler
+    deploy:
+        resources:
+            limits:
+              cpus: '0.5'
+              memory: 512M
+    ports:
+      - "9432:9432"
+    restart: unless-stopped
