@@ -43,7 +43,7 @@ install_aws_cli() {
       ;;
   esac
 
-  curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-${arch}.zip" -o /tmp/awscliv2.zip
+  curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-$${arch}.zip" -o /tmp/awscliv2.zip
   rm -rf /tmp/aws /usr/local/aws-cli /usr/local/bin/aws
   unzip -q /tmp/awscliv2.zip -d /tmp
   /tmp/aws/install --update
