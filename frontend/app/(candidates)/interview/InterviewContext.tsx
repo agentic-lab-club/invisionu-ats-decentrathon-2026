@@ -57,7 +57,7 @@ interface InterviewContextValue {
   stream:      MediaStream | null;
   camReady:    boolean;
   camError:    string | null;
-  startCamera: () => Promise<void>;
+  startCamera: () => Promise<MediaStream | null>;
   stopCamera:  () => void;
 
   // TTS
@@ -149,19 +149,22 @@ export function InterviewProvider({ children }: { children: ReactNode }) {
 
   // ── Camera ──────────────────────────────────────────────────────────────────
 
-  const startCamera = useCallback(async () => {
-    if (streamRef.current) return;
-    try {
-      const s = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      streamRef.current = s;
-      setStream(s);
-      setCamReady(true);
-      setCamError(null);
-    } catch (e: any) {
-      setCamError(e?.message ?? 'Camera access denied');
-      setCamReady(false);
-    }
-  }, []);
+const startCamera = useCallback(async (): Promise<MediaStream | null> => {
+  if (streamRef.current) return streamRef.current;
+  try {
+    const s = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    streamRef.current = s;
+    setStream(s);
+    setCamReady(true);
+    setCamError(null);
+    return s;
+  } catch (e: any) {
+    setCamError(e?.message ?? 'Camera access denied');
+    setCamReady(false);
+    return null;
+  }
+}, []);
+
 
   const stopCamera = useCallback(() => {
     streamRef.current?.getTracks().forEach(t => t.stop());

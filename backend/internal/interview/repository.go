@@ -80,3 +80,16 @@ func (r *Repository) GetFullSessionById(id uuid.UUID) (*FullInterviewSession, er
 	}
 	return &session, nil
 }
+
+// GetFullSessionByApplicationID — получить последнюю сессию кандидата по application_id (для админов).
+func (r *Repository) GetFullSessionByApplicationID(applicationID uuid.UUID) (*FullInterviewSession, error) {
+	var session FullInterviewSession
+	err := r.db.Get(&session, r.db.Rebind(getFullSessionByApplicationID), applicationID)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get interview session by application: %w", err)
+	}
+	return &session, nil
+}

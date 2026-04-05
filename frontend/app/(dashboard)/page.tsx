@@ -1,7 +1,7 @@
 'use client';
 
 import { Suspense, useState } from 'react';
-import { Users, Play } from 'lucide-react';
+import { Users, Play, Star } from 'lucide-react';
 import CandidatesTable from '@/components/candidates/CandidatesTableWithFavorites';
 import CandidateFilters from '@/components/candidates/CandidateFilters';
 import CandidateAdvancedFilters from '@/components/candidates/CandidateAdvancedFilters';
@@ -86,6 +86,21 @@ export default function CandidatesPage() {
         <div data-tour="filters">
           <CandidateFilters onSelectPreset={handlePreset} activePreset={activePreset} />
         </div>
+
+        {/* Shortlist mode banner */}
+        {activePreset === 'top10_percent' && (
+          <div className="flex items-center gap-3 px-4 py-3 bg-[#b5e220]/10 rounded-xl border border-[#b5e220]/30">
+            <div className="w-7 h-7 rounded-lg bg-[#b5e220]/20 flex items-center justify-center flex-shrink-0">
+              <Star className="w-3.5 h-3.5 text-[#4d7c0f]" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-[#4d7c0f]">Shortlist mode</p>
+              <p className="text-[11px] text-[#6a8a10] mt-0.5">
+                Candidates ranked #1 to #N by AI composite score. Each row shows the key factors behind the recommendation.
+              </p>
+            </div>
+          </div>
+        )}
 
         <div data-tour="table">
           <Suspense fallback={<TableSkeleton />}>

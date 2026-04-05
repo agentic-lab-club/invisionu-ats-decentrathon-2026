@@ -22,3 +22,6 @@ var findActiveSessionByUserQuery string
 
 //go:embed queries/get_full_session_by_id.sql
 var GetFullSessionById string
+
+//go:embed queries/get_full_session_by_application_id.sql
+var getFullSessionByApplicationID string

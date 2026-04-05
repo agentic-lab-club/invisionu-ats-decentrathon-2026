@@ -23,11 +23,12 @@ const (
 // ── Fixed interview questions (used until ML team delivers dynamic generation) ─
 
 var DefaultQuestions = []string{
-	"Tell me a little about yourself — your background, interests, and what led you to apply to inVision University.",
-	"Describe a significant challenge you have faced and how you overcame it. What did you learn from that experience?",
-	"Why are you interested in this particular program, and how does it align with your long-term goals?",
-	"Tell me about a time you showed leadership or took initiative in a group or project.",
-	"Is there anything else you would like us to know about you that is not covered in your application?",
+	"Why are you applying to inVision U?",
+	"Which program are you interested in and why?",
+	"What major challenge have you overcome, and what helped you through it?",
+	"What are your long-term goals, and how will this program help you reach them? What motivates you in your life?",
+	"What does being a leader mean to you? Could you share an example of a time you showed leadership?",
+	"Does your family support your decision to join inVision U? Who is your biggest source of encouragement?",
 }
 
 // SessionTimeoutMinutes is the max duration a session may stay active.

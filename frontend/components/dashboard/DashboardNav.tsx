@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import {
-  Menu, X, LogOut, Settings, ChevronRight, Users, BarChart2, Heart
+  Menu, X, LogOut, Settings, ChevronRight, Users, BarChart2, Heart, Info
 } from 'lucide-react';
 
 export interface NavItem {
@@ -55,30 +55,48 @@ export default function DashboardNav({ children, activeTab }: DashboardNavProps)
   const displayName = user?.profile?.full_name || user?.email || '';
 
   const SidebarContent = () => (
-    <nav className="p-4 space-y-0.5 flex-1">
-      {navigationItems.map((item) => {
-        const active = isActive(item);
-        return (
-          <Link
-            key={item.id}
-            href={item.href}
-            onClick={() => setSidebarOpen(false)}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 text-left ${
-              active
-                ? 'bg-[#b5e220]/10 text-gray-900'
-                : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
-            }`}
-          >
-            <span className={`flex-shrink-0 transition-colors ${active ? 'text-[#8aaa18]' : 'text-gray-400'}`}>
-              {item.icon}
-            </span>
-            <span className={`flex-1 text-sm ${active ? 'font-medium' : 'font-normal'}`}>
-              {item.label}
-            </span>
-            {active && <ChevronRight className="w-3.5 h-3.5 flex-shrink-0 text-[#8aaa18]" />}
-          </Link>
-        );
-      })}
+    <nav className="p-4 flex-1 flex flex-col">
+      <div className="flex-1 space-y-0.5">
+        {navigationItems.map((item) => {
+          const active = isActive(item);
+          return (
+            <Link
+              key={item.id}
+              href={item.href}
+              onClick={() => setSidebarOpen(false)}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 text-left ${
+                active
+                  ? 'bg-[#b5e220]/10 text-gray-900'
+                  : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
+              }`}
+            >
+              <span className={`flex-shrink-0 transition-colors ${active ? 'text-[#8aaa18]' : 'text-gray-400'}`}>
+                {item.icon}
+              </span>
+              <span className={`flex-1 text-sm ${active ? 'font-medium' : 'font-normal'}`}>
+                {item.label}
+              </span>
+              {active && <ChevronRight className="w-3.5 h-3.5 flex-shrink-0 text-[#8aaa18]" />}
+            </Link>
+          );
+        })}
+      </div>
+
+      {/* About — bottom of sidebar, unobtrusive */}
+      <div className="pt-3 mt-3 border-t border-gray-100">
+        <Link
+          href="/about"
+          onClick={() => setSidebarOpen(false)}
+          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all duration-150 text-left ${
+            pathname === '/about'
+              ? 'bg-[#b5e220]/10 text-gray-700'
+              : 'text-gray-400 hover:bg-gray-50 hover:text-gray-500'
+          }`}
+        >
+          <Info className={`w-3.5 h-3.5 flex-shrink-0 ${pathname === '/about' ? 'text-[#8aaa18]' : 'text-gray-300'}`} />
+          <span className="text-xs font-normal">About</span>
+        </Link>
+      </div>
     </nav>
   );
 
@@ -133,7 +151,7 @@ export default function DashboardNav({ children, activeTab }: DashboardNavProps)
       {/* Body */}
       <div className="flex flex-1 overflow-hidden">
         {/* Desktop sidebar */}
-        <aside className="hidden lg:flex lg:flex-col w-56 bg-white border-r border-gray-100 flex-shrink-0 overflow-y-auto pt-2">
+        <aside className="hidden lg:flex lg:flex-col w-56 bg-white border-r border-gray-100 flex-shrink-0 overflow-y-auto pt-2 min-h-0">
           <SidebarContent />
         </aside>
 

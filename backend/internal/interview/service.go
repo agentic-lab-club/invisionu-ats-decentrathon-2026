@@ -30,6 +30,7 @@ type SessionRepo interface {
 	SaveScore(id uuid.UUID, score InterviewScore, completedAt time.Time) error
 	UpdateStatus(id uuid.UUID, status string) error
 	GetFullSessionById(id uuid.UUID) (*FullInterviewSession, error)
+	GetFullSessionByApplicationID(applicationID uuid.UUID) (*FullInterviewSession, error)
 }
 
 type Service struct {
@@ -220,6 +221,11 @@ func (s *Service) CancelSession(userID uuid.UUID, sessionID uuid.UUID) error {
 
 func (s *Service) GetFullSession(id uuid.UUID) (*FullInterviewSession, error) {
 	return s.repo.GetFullSessionById(id)
+}
+
+// GetFullSessionByApplicationID — для администраторов (поиск по application_id кандидата)
+func (s *Service) GetFullSessionByApplicationID(applicationID uuid.UUID) (*FullInterviewSession, error) {
+	return s.repo.GetFullSessionByApplicationID(applicationID)
 }
 
 // ── Internal helpers ──────────────────────────────────────────────────────────

@@ -38,7 +38,15 @@ func Init(server *fiber.App, db *database.TrackedDB, accessManager *pkgAuth.Toke
 		md.ValidateParam[uuid.UUID]("id"),
 		handler.CancelSession)
 
-	// Admin route — full session details
+	// Admin route — latest interview session by candidate application_id
+	// IMPORTANT: must be registered BEFORE /sessions/:id to avoid Fiber matching
+	// "by-application" as the :id parameter value.
+	api.Get("/sessions/by-application/:application_id",
+		md.AuthRole(accessManager, md.RoleAdmin),
+		md.ValidateParam[uuid.UUID]("application_id"),
+		handler.GetSessionByApplication)
+
+	// Admin route — full session details by session ID
 	api.Get("/sessions/:id",
 		md.AuthRole(accessManager, md.RoleAdmin),
 		md.ValidateParam[uuid.UUID]("id"),
