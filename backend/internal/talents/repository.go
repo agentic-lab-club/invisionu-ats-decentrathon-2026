@@ -59,7 +59,7 @@ func (r *RepositoryImpl) ExistingLinks(links []string) (map[string]struct{}, err
 		return result, nil
 	}
 
-	query, args, err := sqlx.In(strings.TrimSpace(existingTalentLinksQuery), toAnySlice(links)...)
+	query, args, err := sqlx.In(strings.TrimSpace(existingTalentLinksQuery), links)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build existing talent links query: %w", err)
 	}
@@ -120,12 +120,4 @@ func buildTalentFilters(params ListParams) (string, []any) {
 	}
 
 	return " WHERE " + strings.Join(conditions, " AND "), args
-}
-
-func toAnySlice(values []string) []any {
-	items := make([]any, len(values))
-	for i, value := range values {
-		items[i] = value
-	}
-	return items
 }

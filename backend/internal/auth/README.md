@@ -6,7 +6,7 @@ Own user registration, email verification, login, refresh rotation, logout, rese
 
 This module is the source of truth for:
 - applicant/admin bearer token issuance
-- email verification gating before login
+- email verification gating before login when email verification is enabled
 - role delivery to frontend via `login`, `refresh`, and `me`
 
 ## Responsibilities
@@ -55,7 +55,7 @@ Refresh token session:
 
 ### `POST /auth/register`
 
-Create a new unverified user and issue a verification code.
+Create a new user. When email verification is enabled, the user is created unverified and a verification code is issued. When `email.enabled = false`, the user is created already verified and no code is sent.
 
 Request example:
 
@@ -70,13 +70,25 @@ Success:
 
 ```json
 {
-  "message": "Verification code sent"
+  "message": "Verification code sent",
+  "requires_email_verification": true
+}
+```
+
+When `email.enabled = false`:
+
+```json
+{
+  "message": "Account created",
+  "requires_email_verification": false
 }
 ```
 
 ### `POST /auth/verify-email`
 
 Verify the latest active email verification code.
+
+This endpoint returns `email verification is disabled` when `email.enabled = false`.
 
 Request example:
 
@@ -90,6 +102,7 @@ Request example:
 ### `POST /auth/login`
 
 Authenticate a verified user.
+When email verification is disabled, the login flow does not require `is_email_verified = true`.
 
 Success example:
 
@@ -129,6 +142,7 @@ Revoke the provided refresh token session if it exists.
 ### `POST /auth/resend-code`
 
 Issue a new verification code for an existing unverified user.
+This endpoint returns `email verification is disabled` when `email.enabled = false`.
 
 ### `GET /auth/me`
 
@@ -175,9 +189,10 @@ Success example:
 2. Apply in-memory rate limit: 3 registration attempts per 60 seconds per email.
 3. Reject if user already exists.
 4. Hash password and create user with role `user`.
-5. Generate a 6-digit verification code.
-6. Store only the hashed verification code.
-7. Send the plaintext code via configured `email.Sender`.
+5. If `email.enabled = false`, store the user as already verified and stop.
+6. Otherwise generate a 6-digit verification code.
+7. Store only the hashed verification code.
+8. Send the plaintext code via configured `email.Sender`.
 
 ### Email verification flow
 
@@ -190,7 +205,7 @@ Success example:
 
 ### Login / refresh flow
 
-1. `login` checks credentials and requires `is_email_verified = true`.
+1. `login` checks credentials and requires `is_email_verified = true` only when email verification is enabled.
 2. `refresh` looks up refresh session by token hash.
 3. Refresh revokes the current session before issuing a new one.
 4. Both flows create a fresh refresh session and return access + refresh tokens.

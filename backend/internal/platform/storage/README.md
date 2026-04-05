@@ -9,14 +9,15 @@ Provide object storage upload/download primitives used by feature modules, curre
 - Define the `ObjectStorage` interface.
 - Provide a MinIO-backed implementation.
 - Return metadata needed by business modules to persist and serve files.
+- Ensure the configured bucket exists before the backend serves upload requests.
+- Support presigned GET URLs for downstream services.
 
 ## Out Of Scope
 
 - Asset authorization.
 - DB metadata persistence.
-- Signed URLs or public object access.
 - Object deletion.
-- Bucket provisioning or lifecycle policies.
+- Bucket lifecycle policies.
 
 ## Domain Concepts / Entities
 
@@ -50,7 +51,7 @@ Interface:
 ```go
 Upload(ctx context.Context, input UploadInput) (*UploadResult, error)
 Download(ctx context.Context, bucket string, objectKey string) (*DownloadResult, error)
-PresignGet(ctx context.Context, bucket string, objectKey string, expiry time.Duration) (string, error)
+PresignGet(ctx context.Context, bucket string, objectKey string, expiry time.Duration, reqParams url.Values) (string, error)
 ```
 
 ## Endpoint Overview
@@ -90,12 +91,14 @@ PresignGet(ctx context.Context, bucket string, objectKey string, expiry time.Dur
 
 ## Lifecycle / State Transitions
 
+- Bucket is ensured during backend startup.
 - Objects are created on upload.
 - This module does not implement update, copy, or delete transitions.
 
 ## Error Handling
 
 - constructor wraps MinIO client init failure
+- bucket-ensure flow wraps bucket existence and creation failures
 - upload wraps object put failure
 - download wraps:
   - object fetch failure
@@ -108,6 +111,7 @@ On download stat failure, opened object reader is closed before returning the er
 - Access credentials come from backend config.
 - Object keys are randomized UUID-based names rather than raw user filenames.
 - Original filename is not used as storage key, only its extension is preserved.
+- Presigned URLs are generated server-side and remain time-limited.
 
 ## Frontend Integration Notes
 
@@ -117,8 +121,6 @@ On download stat failure, opened object reader is closed before returning the er
 ## Known Limitations / TODO
 
 - No delete API.
-- No signed URL support.
-- No bucket existence check in this package.
 - No checksum verification beyond stored ETag returned by the provider.
 
 ## Related Files / Modules

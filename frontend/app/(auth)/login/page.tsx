@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Mail, Lock, Loader2, AlertCircle, Eye, EyeOff } from 'lucide-react';
-import { authApi, saveTokens } from '@/lib/auth';
+import { authApi, isDashboardRole, saveTokens } from '@/lib/auth';
 
 const inputClass =
   'w-full bg-white border border-gray-200 rounded-lg pl-9 pr-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none focus:border-[#b5e220] focus:ring-2 focus:ring-[#b5e220]/20 transition-all duration-150';
@@ -26,7 +26,7 @@ export default function LoginPage() {
       const tokens = await authApi.login(email, password);
       saveTokens(tokens);
       // Redirect based on role
-      router.push(tokens.user.role === 'admin' ? '/' : '/apply');
+      router.push(isDashboardRole(tokens.user.role) ? '/' : '/apply');
     } catch (err: any) {
       setError(err.message || 'Invalid email or password.');
     } finally {

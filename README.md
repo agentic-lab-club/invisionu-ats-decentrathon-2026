@@ -8,6 +8,7 @@ AI-платформа для приёмной комиссии inVision U: си�
 ## Содержание
 
 - [Quickstart](#quickstart)
+- [Роли и Доступ](#роли-и-доступ)
 - [О проекте](#о-проекте)
 - [Безопасность данных пользователей](#безопасность-данных-пользователей)
 - [Технические требования кейса](#технические-требования-кейса)
@@ -27,7 +28,7 @@ AI-платформа для приёмной комиссии inVision U: си�
 ### Локальный запуск
 
 1. Заполните корневой `.env` по примеру `.env.example`.
-2. Также заполните `backend/config/config.prod.yaml` по примеру `config.example.yaml` и вашего `.env`.
+2. Также заполните `backend/config/config.prod.yaml` по примеру `backend/config/config.example.yaml` и вашего `.env`.
 3. Поднимите ATS стек:
 
 ```bash
@@ -38,6 +39,19 @@ docker compose up -d --build
 
 ```bash
 docker compose -f docker-compose.bot.yml up -d --build
+```
+
+также нужно прописать комманду (индексацию данных сайта в Chroma):
+```bash
+curl -X POST http://localhost:8000/ingest \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "start_url": "https://www.invisionu.education/ru",
+    "max_pages": 30,
+    "max_depth": 2,
+    "request_timeout": 10,
+    "restrict_to_start_path": false
+  }'
 ```
 
 5. Поднимите scraper отдельно, если он нужен локально:
@@ -67,6 +81,24 @@ export BACKEND_CONFIG_SECRET_NAME="invisionu/dev/backend/config.prod.yaml"
 5. Заберите `frontend_cloudfront_url` из Terraform outputs. Это и будет generic CloudFront URL для фронтенда.
 
 ---
+
+## Роли И Доступ
+
+В системе предусмотрены 2 роли:
+
+- `Applicant` — абитуриент, который проходит этапы поступления, тестирование и интервью.
+- `Admin` — роль приёмной комиссии, которая просматривает кандидатов, аналитику и принимает решения.
+
+Прод-frontend доступен по ссылке:
+
+- https://d1fwa62fmryv66.cloudfront.net/
+
+Тестовый `admin` пользователь для приёмной комиссии:
+
+```sql
+'admin@gmail.com',                 -- email нового пользователя
+crypt('TestPassword123', gen_salt('bf')),  -- хешированный пароль
+```
 
 ## О проекте
 
@@ -114,7 +146,7 @@ InvisionU ATS объединяет несколько модулей в един
 
 ### C4 Container Diagram
 
-![](docs/images/architecture/c4-container-diagram.png)
+![](docs/images/architecture/c4-container-diagram-v2.png)
 
 ### ERD (Backend/PostgreSQL)
 
@@ -132,6 +164,9 @@ InvisionU ATS объединяет несколько модулей в един
 | `STT/` | Транскрибация аудио/видео интервью | Whisper |
 | `tg_bot_rag/` | Телеграм-бот с retrieval-поиском | Python, Aiogram, RAG |
 | `infrastructure/` | IaC и облачная инфраструктура | Terraform, DevOps stack |
+| `AI_Detecter-service/` | Детекция AI-сгенерированного текста | Python, FastAPI, Transformers, PyTorch |
+| `TalantParser/` | Агрегатор и парсер новостей о победах школьников/студентов | Python, FastAPI, httpx, Playwright |
+| `parser/` | Извлечение `ENT` / `IELTS` score из PDF | Python, FastAPI |
 
 ---
 

@@ -75,6 +75,10 @@ interface CandidateDetail {
   decision: string;
   video_transcript?: string | null;
   screening_error: string | null;
+  overall_score?: number | null;
+  ai_probability?: number | null;
+  ielts_score?: number | null;
+  ent_score?: number | null;
   files: CandidateFile[];
   latest_scoring_run: ScoringRun | null;
   latest_personality_scoring_run: ScoringRun | null;
@@ -210,6 +214,17 @@ function normalizedFromFivePointScale(value: number) {
   return clamp((value / 3) * 100, 0, 100);
 }
 
+function isVideoPresentationAsset(file: CandidateFile) {
+  return (
+    file.file_type === 'video_presentation' ||
+    file.content_type.toLowerCase().startsWith('video/') ||
+    file.original_filename.toLowerCase().endsWith('.mp4') ||
+    file.original_filename.toLowerCase().endsWith('.mov') ||
+    file.original_filename.toLowerCase().endsWith('.m4v') ||
+    file.original_filename.toLowerCase().endsWith('.webm')
+  );
+}
+
 function derivePersonalityScoresFromLLM(result: LLMScoringResult | null): PersonalityScores | null {
   if (!result) return null;
 
@@ -279,6 +294,18 @@ function formatBytes(size: number) {
   return `${value.toFixed(value >= 10 || unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
 }
 
+function formatAIProbability(value?: number | null) {
+  return value != null ? `${value.toFixed(1)}%` : '—';
+}
+
+function formatIELTSScore(value?: number | null) {
+  return value != null ? value.toFixed(1) : '—';
+}
+
+function formatENTScore(value?: number | null) {
+  return value != null ? Math.round(value).toString() : '—';
+}
+
 function hashString(value: string) {
   let hash = 0;
 
@@ -287,6 +314,10 @@ function hashString(value: string) {
   }
 
   return hash;
+}
+
+function buildMockPotential(applicationId: string) {
+  return 45 + (hashString(applicationId) % 51);
 }
 
 function toHalfBand(seed: number, minBand: number, maxBand: number) {
@@ -580,10 +611,17 @@ const enrichedLLMScores = enrichLLMScoringResult(llmScores);
     return derivePersonalityScoresFromLLM(llmScores);
   }, [llmScores, nativeScores]);
 
-  const overallScore = useMemo(() => {
-    if (!scores) return 0;
-    return Math.round(Object.values(scores.axis_norm).reduce((sum, value) => sum + value, 0) / 5);
-  }, [scores]);
+  const displayedOverallScore = useMemo(() => {
+    if (candidate?.overall_score != null && candidate.overall_score > 0) {
+      return candidate.overall_score;
+    }
+
+    if (candidate?.application_id) {
+      return buildMockPotential(candidate.application_id);
+    }
+
+    return 0;
+  }, [candidate?.application_id, candidate?.overall_score]);
 
   const radarData = useMemo(() => (scores ? buildRadarData(scores.axis_norm) : {}), [scores]);
   const primaryVideoFile = useMemo(
@@ -610,6 +648,21 @@ const enrichedLLMScores = enrichLLMScoringResult(llmScores);
       return;
     }
 
+    const previewWindow = window.open('about:blank', '_blank');
+    if (previewWindow) {
+      try {
+        previewWindow.opener = null;
+      } catch {
+        // Some browsers may prevent setting opener on a just-opened window.
+      }
+      previewWindow.document.title = 'Loading file...';
+      previewWindow.document.body.innerHTML = `
+        <div style="font-family:system-ui,sans-serif;padding:24px;color:#374151">
+          Loading file...
+        </div>
+      `;
+    }
+
     try {
       setOpeningAssetId(file.id);
 
@@ -623,8 +676,92 @@ const enrichedLLMScores = enrichLLMScoringResult(llmScores);
 
       const blob = await response.blob();
       const objectUrl = URL.createObjectURL(blob);
-      window.open(objectUrl, '_blank', 'noopener,noreferrer');
-      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+      const revokeObjectUrl = () => URL.revokeObjectURL(objectUrl);
+
+      if (previewWindow && !previewWindow.closed) {
+        previewWindow.addEventListener('beforeunload', revokeObjectUrl, { once: true });
+        if (isVideoPresentationAsset(file)) {
+          const doc = previewWindow.document;
+          doc.open();
+          doc.write(`<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Video preview</title>
+  <style>
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      background: #000;
+      overflow: hidden;
+    }
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    video {
+      width: 100vw;
+      height: 100vh;
+      max-width: 100vw;
+      max-height: 100vh;
+      object-fit: contain;
+      background: #000;
+    }
+  </style>
+</head>
+<body>
+  <video controls autoplay playsinline preload="metadata" src="${objectUrl}"></video>
+</body>
+</html>`);
+          doc.close();
+        } else {
+          previewWindow.location.replace(objectUrl);
+        }
+      } else {
+        if (isVideoPresentationAsset(file)) {
+          document.open();
+          document.write(`<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Video preview</title>
+  <style>
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      background: #000;
+      overflow: hidden;
+    }
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    video {
+      width: 100vw;
+      height: 100vh;
+      max-width: 100vw;
+      max-height: 100vh;
+      object-fit: contain;
+      background: #000;
+    }
+  </style>
+</head>
+<body>
+  <video controls autoplay playsinline preload="metadata" src="${objectUrl}"></video>
+</body>
+</html>`);
+          document.close();
+        } else {
+          window.location.assign(objectUrl);
+        }
+      }
+      window.setTimeout(revokeObjectUrl, 10 * 60_000);
     } catch (assetError) {
       console.error(assetError);
       setError('Failed to open candidate file');
@@ -679,19 +816,22 @@ const enrichedLLMScores = enrichLLMScoringResult(llmScores);
             <p className="text-sm text-gray-400">{candidate.program_name}</p>
           </div>
 
-          {scores && (
+          {candidate.application_id && (
             <div className="flex flex-shrink-0 flex-col items-center gap-1">
-              <ScoreRing score={overallScore} />
+              <ScoreRing score={displayedOverallScore} />
               <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">Potential</p>
             </div>
           )}
         </div>
 
         <div className="mt-5 grid grid-cols-1 gap-3 border-t border-gray-100 pt-5 sm:grid-cols-2 xl:grid-cols-4">
-          {candidate.email && <InfoCard title="Email" value={candidate.email} />}
-          {candidate.phone_number && <InfoCard title="Phone" value={candidate.phone_number} />}
+          <InfoCard title="Email" value={candidate.email || '—'} />
+          <InfoCard title="Phone" value={candidate.phone_number || '—'} />
           <InfoCard title="Review Stage" value={formatLabel(candidate.review_stage)} />
           <InfoCard title="Decision" value={formatLabel(candidate.decision)} />
+          <InfoCard title="AI Probability" value={formatAIProbability(candidate.ai_probability)} />
+          <InfoCard title="IELTS" value={formatIELTSScore(candidate.ielts_score)} />
+          <InfoCard title="ENT" value={formatENTScore(candidate.ent_score)} />
         </div>
 
         {scores && (
@@ -847,7 +987,7 @@ const enrichedLLMScores = enrichLLMScoringResult(llmScores);
             </div>
           )}
 
-          {!englishResultFile && mockIELTSScore && (
+          {candidate.ielts_score == null && !englishResultFile && mockIELTSScore && (
             <div className="overflow-hidden rounded-xl border border-blue-100 bg-white">
               <div className="flex items-center justify-between gap-3 border-b border-blue-100 bg-blue-50/60 px-6 py-4">
                 <div>

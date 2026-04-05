@@ -16,7 +16,7 @@ SELECT
     sr.recommendation,
     a.ai_probability,
     a.ielts_score,
-    a.ent_score
+    a.ent_score,
     -- Axis scores (0-100) and Potential — same formula as list_candidates.sql
     LEAST(100, ROUND(((sr.result_json -> 'aggregated_metrics' ->> 'Motivation')::float    * (100.0/5.0))::numeric, 1)) AS axis_m,
     LEAST(100, ROUND(((sr.result_json -> 'aggregated_metrics' ->> 'Planning')::float      * (100.0/5.0))::numeric, 1)) AS axis_p,

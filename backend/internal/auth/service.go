@@ -35,34 +35,47 @@ func NewService(repo *Repository, cfg *config.Config, accessManager *pkgAuth.Tok
 	}
 }
 
-func (s *Service) Register(ctx context.Context, req RegisterRequest) error {
+func (s *Service) Register(ctx context.Context, req RegisterRequest) (bool, error) {
+	requiresVerification := s.emailVerificationRequired()
 	email := normalizeEmail(req.Email)
 	if limit := s.registerLimit.Check("auth_register", email, 3, 60); !limit.OK {
-		return fmt.Errorf("register rate limit exceeded")
+		return false, fmt.Errorf("register rate limit exceeded")
 	}
 
 	existingUser, err := s.repo.FindUserByEmail(email)
 	if err != nil {
-		return err
+		return false, err
 	}
 	if existingUser != nil {
-		return fmt.Errorf("user already exists")
+		return false, fmt.Errorf("user already exists")
 	}
 
 	passwordHash, err := pkgAuth.HashPassword(req.Password)
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	user, err := s.repo.CreateUser(email, passwordHash, RoleUser)
+	user, err := s.repo.CreateUser(email, passwordHash, RoleUser, !requiresVerification)
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	return s.issueVerificationCode(ctx, user.ID, user.Email)
+	if !requiresVerification {
+		return false, nil
+	}
+
+	if err := s.issueVerificationCode(ctx, user.ID, user.Email); err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
 
 func (s *Service) VerifyEmail(ctx context.Context, req VerifyEmailRequest) error {
+	if !s.emailVerificationRequired() {
+		return fmt.Errorf("email verification is disabled")
+	}
+
 	email := normalizeEmail(req.Email)
 	if limit := s.verifyLimit.Check("auth_verify_email", email, 5, 300); !limit.OK {
 		return fmt.Errorf("verification rate limit exceeded")
@@ -111,7 +124,7 @@ func (s *Service) Login(ctx context.Context, req LoginRequest, userAgent string,
 	if err := pkgAuth.ComparePassword(user.PasswordHash, req.Password); err != nil {
 		return nil, fmt.Errorf("invalid credentials")
 	}
-	if !user.IsEmailVerified {
+	if s.emailVerificationRequired() && !user.IsEmailVerified {
 		return nil, fmt.Errorf("email is not verified")
 	}
 
@@ -160,6 +173,10 @@ func (s *Service) Logout(_ context.Context, refreshToken string) error {
 }
 
 func (s *Service) ResendCode(ctx context.Context, email string) error {
+	if !s.emailVerificationRequired() {
+		return fmt.Errorf("email verification is disabled")
+	}
+
 	user, err := s.repo.FindUserByEmail(normalizeEmail(email))
 	if err != nil {
 		return err
@@ -229,6 +246,10 @@ func (s *Service) createTokenResponse(_ context.Context, user *User, userAgent s
 
 func (s *Service) accessCodeTTL() time.Duration {
 	return time.Duration(s.cfg.Auth.EmailVerificationCodeTTLSeconds) * time.Second
+}
+
+func (s *Service) emailVerificationRequired() bool {
+	return s.cfg != nil && s.cfg.Email.Enabled
 }
 
 func normalizeEmail(email string) string {

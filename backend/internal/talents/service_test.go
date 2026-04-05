@@ -3,6 +3,8 @@ package talents
 import (
 	"context"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 )
@@ -155,5 +157,39 @@ func TestServiceMapScraperItemPreservesRawDateWhenParsingFails(t *testing.T) {
 	}
 	if mapped.PublishedDateRaw == nil || *mapped.PublishedDateRaw != "непонятная дата" {
 		t.Fatalf("PublishedDateRaw = %#v; want original value", mapped.PublishedDateRaw)
+	}
+}
+
+func TestHTTPClientNewsUsesGetNewsEndpoint(t *testing.T) {
+	t.Helper()
+
+	var requestedPath string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestedPath = r.URL.Path
+		if r.Method != http.MethodGet {
+			t.Fatalf("unexpected method: %s", r.Method)
+		}
+
+		switch r.URL.Path {
+		case "/get_news":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`[]`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+
+	client := &HTTPClient{baseURL: srv.URL, httpClient: srv.Client()}
+
+	items, err := client.News(context.Background())
+	if err != nil {
+		t.Fatalf("News() error = %v", err)
+	}
+	if len(items) != 0 {
+		t.Fatalf("News() returned %d items; want 0", len(items))
+	}
+	if requestedPath != "/get_news" {
+		t.Fatalf("News() called %q; want /get_news", requestedPath)
 	}
 }
