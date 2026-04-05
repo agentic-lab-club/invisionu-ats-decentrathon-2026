@@ -12,9 +12,11 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
+    env_file:
+      - .env
     environment:
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - CHROMA_URL=http://chroma:8000
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      CHROMA_URL: ${CHROMA_URL:-http://chroma:8000}
     depends_on:
       chroma:
         condition: service_healthy
@@ -29,9 +31,6 @@ services:
 
   chroma:
     image: ghcr.io/chroma-core/chroma:latest
-    container_name: chroma
-    ports:
-      - "8001:8000"
     volumes:
       - chroma_data:/chroma/chroma
     healthcheck:
@@ -48,10 +47,12 @@ services:
       context: ./tg_bot_rag/KazRAGUNIProject
       dockerfile: Dockerfile
     command: ["python", "telegram_bot.py"]
+    env_file:
+      - .env
     environment:
-      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
-      - RAG_INVOKE_URL=http://app:8000/rag/invoke
-      - RAG_TIMEOUT_SECONDS=60
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      RAG_INVOKE_URL: ${RAG_INVOKE_URL:-http://rag-app:8000/rag/invoke}
+      RAG_TIMEOUT_SECONDS: ${RAG_TIMEOUT_SECONDS:-60}
     depends_on:
       rag-app:
         condition: service_healthy

@@ -5,6 +5,7 @@ networks:
 volumes:
   postgres_data:
   chroma_data:
+  hf_cache:
 
 services:
   # ------------
@@ -90,6 +91,7 @@ services:
     networks:
       - invisionu-aws
 
+  # Security: Guadrails + PII (Microsoft Presidio)
   sttwhisper:
     build:
       context: ./STT
@@ -105,16 +107,35 @@ services:
     networks:
       - invisionu-aws
 
+  # Anticheat, Detector of ChatGPT Usage (desklib/ai-text-detector-v1.01)
   aidetect:
     build:
       context: ./AI_Detecter-service
       dockerfile: Dockerfile
+    volumes:
+      - hf_cache:/root/.cache/huggingface
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9873/health"]
       interval: 30s
       timeout: 10s
       retries: 4
+    networks:
+      - invisionu-aws
+
+  # Parsing of IELTS/ENT result scores
+  parserapi:
+    build:
+      context: ./parser
+      dockerfile: Dockerfile
+    ports:
+      - "8002:8001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 4
+    restart: unless-stopped
     networks:
       - invisionu-aws
 
@@ -142,6 +163,7 @@ services:
     networks:
       - invisionu-aws
 
+  # RAG Database
   chroma:
     image: ghcr.io/chroma-core/chroma:latest
     restart: unless-stopped
@@ -176,15 +198,16 @@ services:
   # Outbound Flow: The Proactive Scraper
   # Goal: Find talent before they apply.
   # ------------
+  # CRON Job every 24 hours
   scraper:
     build:
       context: ./TalantParser/TalantParser
       dockerfile: Dockerfile
     restart: unless-stopped
     ports:
-      - "${SCRAPER_HOST_PORT:-9432}:8000"
+      - "${SCRAPER_HOST_PORT:-9432}:9432"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:9432/health"]
       interval: 30s
       timeout: 10s
       retries: 4

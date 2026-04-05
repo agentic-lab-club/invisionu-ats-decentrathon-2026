@@ -4,6 +4,11 @@ networks:
 
 volumes:
   postgres_data:
+  # hf_cache volume of (aidetect) downloads a Hugging Face model
+  hf_cache:
+  # this go cache for Backend Golang Test
+  go-mod-cache: {}
+  go-build-cache: {}
 
 services:
   frontend:
@@ -31,6 +36,8 @@ services:
   postgres:
     image: postgres:17-alpine
     container_name: invisionu_postgres
+    ports:
+      - "5432:5432"
     restart: unless-stopped
     env_file:
       - .env
@@ -71,6 +78,24 @@ services:
       timeout: 5s
       retries: 20
       start_period: 20s
+    networks:
+      - invisionu-ats-network
+
+  # for Running Backend Tests:
+  # docker compose run --rm --no-deps backend-test go test ./internal/healthcheck
+  backend-test:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: test
+    working_dir: /src
+    env_file:
+      - .env
+    volumes:
+      - .:/src
+      - go-mod-cache:/go/pkg/mod
+      - go-build-cache:/root/.cache/go-build
+    command: ["sh"]
     networks:
       - invisionu-ats-network
 
@@ -115,10 +140,28 @@ services:
       context: ./AI_Detecter-service
       dockerfile: Dockerfile
     container_name: invisionu_aidetect
+    volumes:
+      - hf_cache:/root/.cache/huggingface
     ports:
       - "9873:9873"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9873/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 4
+    restart: unless-stopped
+    networks:
+      - invisionu-ats-network
+
+  parserapi:
+    build:
+      context: ./parser
+      dockerfile: Dockerfile
+    container_name: invisionu_parserapi
+    ports:
+      - "8002:8001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
       interval: 30s
       timeout: 10s
       retries: 4

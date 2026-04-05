@@ -3,18 +3,17 @@ networks:
     driver: bridge
 
 services:
-  app:
+  scraper:
     build:
       context: ./TalantParser/TalantParser
       dockerfile: Dockerfile
-    container_name: webCrawler
-    deploy:
-        resources:
-            limits:
-              cpus: '0.5'
-              memory: 512M
     ports:
-      - "9432:9432"
+      - "${SCRAPER_HOST_PORT:-9432}:9432"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9432/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 4
     restart: unless-stopped
     networks:
       - invisionu-ats-network

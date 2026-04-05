@@ -1,7 +1,15 @@
-.vscode
 .env
-mlflow.db
+.env.prod
+config.yaml
+config.local.yaml
+config.prod.yaml
+
 .idea
+.codex
+
+.vscode
+mlflow.db
+__pycache__
 
 \voice_analysis
 \modelbackend.zip
