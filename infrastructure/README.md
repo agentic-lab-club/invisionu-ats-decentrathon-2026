@@ -27,16 +27,30 @@ terraform plan -var-file="terraform.tfvars"
 terraform apply -var-file="terraform.tfvars"
 ```
 
-3. After apply, note these outputs:
+3. After apply, note these outputs first and save them somewhere:
    - `ec2_public_ip`
    - `frontend_cloudfront_url`
+   - `uploads_bucket_name`
+   - `uploads_bucket_endpoint`
+   - `uploads_bucket_regional_domain_name`
+   - `local_s3_access_secret_name`
    - `compose_env_secret_name`
    - `backend_config_secret_name`
-4. In AWS Secrets Manager, add the secret values:
+4. Open AWS Console Management and go to AWS Secrets Manager:
+   - open `local_s3_access_secret_name`
+   - copy the generated S3 credentials from that secret
+   - paste them into the `storage` section of [`backend/config/config.prod.yaml`](/workspaces/invisionu-ats-decentrathon-2026/backend/config/config.prod.yaml)
+   - use the Terraform outputs for:
+     - `storage.bucket` = `uploads_bucket_name`
+     - `storage.endpoint` = `uploads_bucket_endpoint`
+     - `storage.region` = your Terraform AWS region
+     - `storage.access_key` and `storage.secret_key` = values from the AWS Secrets Manager secret
+     - `storage.use_ssl` = `true`
+5. In AWS Secrets Manager, add the runtime file secret values:
    - `compose_env_secret_name`: full contents of root `.env.prod`
    - `backend_config_secret_name`: full contents of `backend/config/config.prod.yaml`
-5. SSH to the EC2 host and clone the repo into `/opt/invisionu-ats/app`.
-6. Export the runtime variables on the EC2 host:
+6. SSH to the EC2 host and clone the repo into `/opt/invisionu-ats/app`.
+7. Export the runtime variables on the EC2 host:
 
 ```bash
 export AWS_REGION="your-region"
@@ -44,7 +58,7 @@ export COMPOSE_ENV_SECRET_NAME="invisionu/dev/.env.prod"
 export BACKEND_CONFIG_SECRET_NAME="invisionu/dev/backend/config.prod.yaml"
 ```
 
-7. Deploy the stack:
+8. Deploy the stack:
 
 ```bash
 cd /opt/invisionu-ats/app
@@ -76,6 +90,23 @@ The AWS runtime now uses two deploy-time secrets:
   - one file for the backend production YAML config
 
 Terraform creates the secret containers only. It does not write the real production values into them.
+
+## S3 Backend Config Wiring
+
+Before you deploy the backend, make sure the backend production config is updated with the S3 values created by Terraform.
+
+Order:
+
+1. run Terraform and save the S3 outputs
+2. open `local_s3_access_secret_name` in AWS Secrets Manager
+3. copy the generated access key and secret key
+4. paste those values into [`backend/config/config.prod.yaml`](/workspaces/invisionu-ats-decentrathon-2026/backend/config/config.prod.yaml)
+5. then upload that final YAML file content into `backend_config_secret_name`
+
+Important:
+
+- the actual backend config file in this repo is `backend/config/config.prod.yaml`
+- if you were thinking of `config.prod.env`, use the YAML file instead because that is what the backend currently loads
 
 ## Scripts
 
