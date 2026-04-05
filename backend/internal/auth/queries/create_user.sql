@@ -4,7 +4,7 @@ INSERT INTO users (
     role,
     is_email_verified
 )
-VALUES (?, ?, ?, FALSE)
+VALUES (?, ?, ?, ?)
 RETURNING
     id,
     email,

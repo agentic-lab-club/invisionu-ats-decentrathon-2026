@@ -18,6 +18,17 @@ func NewHandler(service *Service) *Handler {
 	return &Handler{service: service}
 }
 
+func assetStatusForError(err error) int {
+	status := fiber.StatusBadRequest
+	switch {
+	case strings.Contains(err.Error(), "not found"):
+		status = fiber.StatusNotFound
+	case strings.Contains(err.Error(), "forbidden"):
+		status = fiber.StatusForbidden
+	}
+	return status
+}
+
 // Upload godoc
 // @Summary Upload asset
 // @Description Uploads a file for the authenticated applicant and creates an unattached application file record.
@@ -74,14 +85,7 @@ func (h *Handler) GetAsset(c fiber.Ctx) error {
 
 	asset, err := h.service.GetAsset(c.Context(), userID, role, assetID)
 	if err != nil {
-		status := fiber.StatusBadRequest
-		switch {
-		case strings.Contains(err.Error(), "not found"):
-			status = fiber.StatusNotFound
-		case strings.Contains(err.Error(), "forbidden"):
-			status = fiber.StatusForbidden
-		}
-		return respond.ErrorStatus(c, err, status)
+		return respond.ErrorStatus(c, err, assetStatusForError(err))
 	}
 
 	c.Set(fiber.HeaderContentType, asset.ContentType)

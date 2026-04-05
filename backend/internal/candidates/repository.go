@@ -111,6 +111,7 @@ func (r *Repository) GetDetail(applicationID uuid.UUID) (*Detail, error) {
 		LatestScoringRun:            latest,
 		LatestPersonalityScoringRun: personalityRun,
 		LatestLLMScoringRun:         llmRun,
+		OverallScore:                row.OverallScore,
 		AIProbability:               row.AIProbability,
 		IELTSScore:                  row.IELTSScore,
 		ENTScore:                    row.ENTScore,

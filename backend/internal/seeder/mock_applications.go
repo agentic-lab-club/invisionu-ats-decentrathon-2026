@@ -45,6 +45,9 @@ type applicantSeedDefinition struct {
 	ScoringFilename         string
 	SubmittedAt             time.Time
 	AnswerPattern           []int
+	AIProbability           float64
+	IELTSScore              float64
+	ENTScore                int
 }
 
 type applicantSeedDocument struct {
@@ -102,6 +105,9 @@ var applicantSeedDefinitions = []applicantSeedDefinition{
 		ScoringFilename:         "final_interview_evaluation.json",
 		SubmittedAt:             time.Date(2026, time.March, 26, 9, 15, 0, 0, time.UTC),
 		AnswerPattern:           []int{3, 2, 1, 2},
+		AIProbability:           28.4,
+		IELTSScore:              6.0,
+		ENTScore:                101,
 	},
 	{
 		UserID:                  "00000000-0000-0000-0000-000000000102",
@@ -121,6 +127,9 @@ var applicantSeedDefinitions = []applicantSeedDefinition{
 		ScoringFilename:         "final_interview_evaluation (1).json",
 		SubmittedAt:             time.Date(2026, time.March, 26, 10, 5, 0, 0, time.UTC),
 		AnswerPattern:           []int{2, 1, 1, 3},
+		AIProbability:           14.2,
+		IELTSScore:              7.5,
+		ENTScore:                118,
 	},
 	{
 		UserID:                  "00000000-0000-0000-0000-000000000103",
@@ -140,6 +149,9 @@ var applicantSeedDefinitions = []applicantSeedDefinition{
 		ScoringFilename:         "final_interview_evaluation (2).json",
 		SubmittedAt:             time.Date(2026, time.March, 26, 11, 10, 0, 0, time.UTC),
 		AnswerPattern:           []int{3, 3, 1, 2},
+		AIProbability:           6.8,
+		IELTSScore:              7.0,
+		ENTScore:                124,
 	},
 	{
 		UserID:                  "00000000-0000-0000-0000-000000000104",
@@ -159,6 +171,9 @@ var applicantSeedDefinitions = []applicantSeedDefinition{
 		ScoringFilename:         "final_interview_evaluation (3).json",
 		SubmittedAt:             time.Date(2026, time.March, 26, 12, 20, 0, 0, time.UTC),
 		AnswerPattern:           []int{4, 2, 3, 1},
+		AIProbability:           11.6,
+		IELTSScore:              6.5,
+		ENTScore:                117,
 	},
 	{
 		UserID:                  "00000000-0000-0000-0000-000000000105",
@@ -178,6 +193,9 @@ var applicantSeedDefinitions = []applicantSeedDefinition{
 		ScoringFilename:         "final_interview_evaluation (4).json",
 		SubmittedAt:             time.Date(2026, time.March, 26, 13, 5, 0, 0, time.UTC),
 		AnswerPattern:           []int{2, 2, 3, 1},
+		AIProbability:           19.4,
+		IELTSScore:              6.0,
+		ENTScore:                109,
 	},
 	{
 		UserID:                  "00000000-0000-0000-0000-000000000106",
@@ -197,6 +215,9 @@ var applicantSeedDefinitions = []applicantSeedDefinition{
 		ScoringFilename:         "final_interview_evaluation (5).json",
 		SubmittedAt:             time.Date(2026, time.March, 26, 14, 25, 0, 0, time.UTC),
 		AnswerPattern:           []int{3, 1, 2, 2},
+		AIProbability:           9.7,
+		IELTSScore:              6.5,
+		ENTScore:                113,
 	},
 }
 
@@ -810,11 +831,14 @@ func upsertApplication(tx *sqlx.Tx, def applicantSeedDefinition, programID int, 
 			video_transcript,
 			screening_status,
 			screening_error,
+			ai_probability,
+			ielts_score,
+			ent_score,
 			submitted_at,
 			created_at,
 			updated_at
 		)
-		VALUES ($1, $2, $3, 'application_review', 'pending', $4, $5, $6, 'completed', NULL, $7, $7, $7)
+		VALUES ($1, $2, $3, 'application_review', 'pending', $4, $5, $6, 'completed', NULL, $7, $8, $9, $10, $10, $10)
 		ON CONFLICT (id) DO UPDATE
 		SET user_id = EXCLUDED.user_id,
 		    program_id = EXCLUDED.program_id,
@@ -825,6 +849,9 @@ func upsertApplication(tx *sqlx.Tx, def applicantSeedDefinition, programID int, 
 		    video_transcript = EXCLUDED.video_transcript,
 		    screening_status = EXCLUDED.screening_status,
 		    screening_error = EXCLUDED.screening_error,
+		    ai_probability = EXCLUDED.ai_probability,
+		    ielts_score = EXCLUDED.ielts_score,
+		    ent_score = EXCLUDED.ent_score,
 		    submitted_at = EXCLUDED.submitted_at,
 		    updated_at = EXCLUDED.updated_at
 	`,
@@ -834,6 +861,9 @@ func upsertApplication(tx *sqlx.Tx, def applicantSeedDefinition, programID int, 
 		def.VideoFileID,
 		def.VideoAudioFileID,
 		nullString(transcript),
+		def.AIProbability,
+		def.IELTSScore,
+		def.ENTScore,
 		def.SubmittedAt,
 	)
 	if err != nil {

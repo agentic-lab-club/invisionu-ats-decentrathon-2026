@@ -79,6 +79,7 @@ func TestRepositoryGetDetailReturnsEnrichmentFields(t *testing.T) {
 	repo := NewRepository(database.NewTrackedDB(sqlxDB))
 
 	now := time.Now().UTC()
+	overallScore := 88.5
 	aiProbability := 72.4
 	ieltsScore := 7.0
 	entScore := 118
@@ -98,6 +99,7 @@ func TestRepositoryGetDetailReturnsEnrichmentFields(t *testing.T) {
 		"ai_probability",
 		"ielts_score",
 		"ent_score",
+		"overall_score",
 	}).AddRow(
 		testUUID,
 		"ada@example.com",
@@ -112,6 +114,7 @@ func TestRepositoryGetDetailReturnsEnrichmentFields(t *testing.T) {
 		aiProbability,
 		ieltsScore,
 		entScore,
+		overallScore,
 	)
 
 	filesRows := sqlmock.NewRows([]string{
@@ -163,6 +166,9 @@ func TestRepositoryGetDetailReturnsEnrichmentFields(t *testing.T) {
 	}
 	if detail.ENTScore == nil || *detail.ENTScore != entScore {
 		t.Fatalf("expected ent_score %d, got %#v", entScore, detail.ENTScore)
+	}
+	if detail.OverallScore == nil || *detail.OverallScore != overallScore {
+		t.Fatalf("expected overall_score %.1f, got %#v", overallScore, detail.OverallScore)
 	}
 
 	if err := mock.ExpectationsWereMet(); err != nil {

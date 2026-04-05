@@ -187,7 +187,7 @@ func (c *HTTPClient) News(ctx context.Context) ([]scraperNewsItem, error) {
 	}
 
 	var payload []scraperNewsItem
-	if err := c.getJSON(ctx, "/", &payload); err != nil {
+	if err := c.getJSON(ctx, "/get_news", &payload); err != nil {
 		return nil, err
 	}
 	if payload == nil {

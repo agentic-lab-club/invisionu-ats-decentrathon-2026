@@ -44,6 +44,11 @@ type MessageResponse struct {
 	Message string `json:"message"`
 }
 
+type RegisterResponse struct {
+	Message                   string `json:"message"`
+	RequiresEmailVerification bool   `json:"requires_email_verification"`
+}
+
 type TokenResponse struct {
 	AccessToken      string       `json:"access_token"`
 	RefreshToken     string       `json:"refresh_token"`

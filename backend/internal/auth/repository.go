@@ -42,9 +42,9 @@ func (r *Repository) FindUserByID(id uuid.UUID) (*User, error) {
 	return &user, nil
 }
 
-func (r *Repository) CreateUser(email string, passwordHash string, role string) (*User, error) {
+func (r *Repository) CreateUser(email string, passwordHash string, role string, isEmailVerified bool) (*User, error) {
 	var user User
-	err := r.db.TrackedGet(&user, r.db.Rebind(createUserQuery), strings.ToLower(strings.TrimSpace(email)), passwordHash, role)
+	err := r.db.TrackedGet(&user, r.db.Rebind(createUserQuery), strings.ToLower(strings.TrimSpace(email)), passwordHash, role, isEmailVerified)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create user: %w", err)
 	}

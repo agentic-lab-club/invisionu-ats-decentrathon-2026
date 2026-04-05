@@ -137,7 +137,7 @@ func (s *Service) Create(ctx context.Context, userID uuid.UUID, req CreateReques
 	if user == nil {
 		return nil, fmt.Errorf("user not found")
 	}
-	if !user.IsEmailVerified {
+	if s.cfg != nil && s.cfg.Email.Enabled && !user.IsEmailVerified {
 		return nil, fmt.Errorf("email is not verified")
 	}
 

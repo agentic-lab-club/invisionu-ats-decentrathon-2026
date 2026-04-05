@@ -76,6 +76,7 @@ services:
     networks:
       - invisionu-aws
 
+  # CORE
   llmscoring:
     build:
       context: ./llm
@@ -92,6 +93,7 @@ services:
       - invisionu-aws
 
   # Security: Guadrails + PII (Microsoft Presidio)
+  # Speech-To-Text OpenAI Whisper
   sttwhisper:
     build:
       context: ./STT
@@ -147,7 +149,6 @@ services:
 
   # ------------
   # Inbound Flow: The RAG AI Chat Bot (Applicant)
-  # 
   # ------------
   rag-app:
     build:

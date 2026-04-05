@@ -166,6 +166,72 @@ func TestRepositoryListAppliesFiltersAndPagination(t *testing.T) {
 	}
 }
 
+func TestRepositoryExistingLinksReturnsMatchingLinks(t *testing.T) {
+	sqlDB, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("sqlmock.New() error = %v", err)
+	}
+	defer sqlDB.Close()
+
+	db := database.NewTrackedDB(sqlx.NewDb(sqlDB, "sqlmock"))
+	repo := NewRepository(db)
+
+	rows := sqlmock.NewRows([]string{"link"}).
+		AddRow("https://example.com/a").
+		AddRow("https://example.com/c")
+
+	expectedQuery := "SELECT link\nFROM talent_leads\nWHERE link IN (?, ?, ?)"
+	mock.ExpectQuery(regexp.QuoteMeta(db.Rebind(expectedQuery))).
+		WithArgs("https://example.com/a", "https://example.com/b", "https://example.com/c").
+		WillReturnRows(rows)
+
+	result, err := repo.ExistingLinks([]string{
+		"https://example.com/a",
+		"https://example.com/b",
+		"https://example.com/c",
+	})
+	if err != nil {
+		t.Fatalf("ExistingLinks() error = %v", err)
+	}
+
+	if len(result) != 2 {
+		t.Fatalf("expected 2 existing links, got %d", len(result))
+	}
+	if _, ok := result["https://example.com/a"]; !ok {
+		t.Fatal("expected link a to exist")
+	}
+	if _, ok := result["https://example.com/c"]; !ok {
+		t.Fatal("expected link c to exist")
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet SQL expectations: %v", err)
+	}
+}
+
+func TestRepositoryExistingLinksReturnsEmptyMapWithoutQueryWhenInputIsEmpty(t *testing.T) {
+	sqlDB, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("sqlmock.New() error = %v", err)
+	}
+	defer sqlDB.Close()
+
+	db := database.NewTrackedDB(sqlx.NewDb(sqlDB, "sqlmock"))
+	repo := NewRepository(db)
+
+	result, err := repo.ExistingLinks([]string{})
+	if err != nil {
+		t.Fatalf("ExistingLinks() error = %v", err)
+	}
+	if len(result) != 0 {
+		t.Fatalf("expected empty map, got %d entries", len(result))
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet SQL expectations: %v", err)
+	}
+}
+
 type anyJSONArg struct{}
 
 func (a anyJSONArg) Match(v driver.Value) bool {

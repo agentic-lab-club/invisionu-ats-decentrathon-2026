@@ -46,14 +46,14 @@ messaging:
   application_submitted_key: "application.submitted"
 
 email:
-  enabled: false
+  enabled: false  # when false, registration auto-verifies users and disables verification codes
   mode: "stub"  # stub for dev, smtp for prod
   from_name: "InVisionU ATS"
-  from_email: "noreply@example.com"
-  smtp_host: "smtp.example.com"  # google: smtp.gmail.com
+  from_email: "noreply@example.com"  # your_email also here
+  smtp_host: "smtp.example.com"  # e.g. google: smtp.gmail.com
   smtp_port: 587
-  smtp_user: "jokergame434@gmail.com"
-  smtp_pass: "mfkb wimn pthi dnhf"
+  smtp_user: "your_email"
+  smtp_pass: "your_password"
 
 llm: # TODO: (refactor) this should be llmscoring
   enabled: false

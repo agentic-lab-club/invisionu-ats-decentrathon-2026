@@ -22,6 +22,7 @@ package main
 // @description JWT Token as Bearer: Authorization: Bearer {token}
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -83,6 +84,11 @@ func main() {
 	objectStorage, err := platformStorage.NewMinIOStorage(cfg.Storage)
 	if err != nil {
 		log.Fatal().Err(err).Str("event", "init_object_storage_failed").Msg("failed to init object storage")
+	}
+	bucketCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	if err := objectStorage.EnsureBucket(bucketCtx); err != nil {
+		log.Fatal().Err(err).Str("event", "init_object_storage_bucket_failed").Msg("failed to ensure storage bucket exists")
 	}
 
 	// Моя замена
