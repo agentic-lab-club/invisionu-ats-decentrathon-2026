@@ -1,0 +1,11 @@
+services:
+  parser-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: parser-api
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./input_pdfs:/app/input_pdfs
+    restart: unless-stopped

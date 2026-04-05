@@ -4,3 +4,5 @@ mlflow.db
 .idea
 
 \voice_analysis
+\modelbackend.zip
+.DS_Store

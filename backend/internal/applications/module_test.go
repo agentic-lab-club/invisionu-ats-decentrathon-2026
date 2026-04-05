@@ -15,7 +15,7 @@ func TestApplicationsRoutesRequireUserAuth(t *testing.T) {
 	app := fiber.New()
 	cfg := &config.Config{}
 	manager := pkgAuth.NewTokenManager("secret", 3600)
-	Init(app, nil, cfg, manager, platformMessaging.NewStubBus(nil))
+	Init(app, nil, cfg, manager, platformMessaging.NewStubBus(nil), nil)
 
 	tests := []struct {
 		method string

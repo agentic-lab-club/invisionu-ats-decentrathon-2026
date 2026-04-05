@@ -50,6 +50,7 @@ Interface:
 ```go
 Upload(ctx context.Context, input UploadInput) (*UploadResult, error)
 Download(ctx context.Context, bucket string, objectKey string) (*DownloadResult, error)
+PresignGet(ctx context.Context, bucket string, objectKey string, expiry time.Duration) (string, error)
 ```
 
 ## Endpoint Overview

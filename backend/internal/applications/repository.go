@@ -105,6 +105,27 @@ func (r *Repository) AttachFileToApplication(tx *sqlx.Tx, applicationID uuid.UUI
 	return nil
 }
 
+func (r *Repository) CreateApplicationFile(record *FileRecord) (*FileRecord, error) {
+	var created FileRecord
+	err := r.db.TrackedGet(
+		&created,
+		r.db.Rebind(createApplicationFileQuery),
+		record.UploadedByUserID,
+		record.ApplicationID,
+		record.FileType,
+		record.BucketName,
+		record.ObjectKey,
+		record.OriginalFilename,
+		record.ContentType,
+		record.SizeBytes,
+		record.ETag,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create application file: %w", err)
+	}
+	return &created, nil
+}
+
 // ─── Applications ────────────────────────────────────────────────────────────
 
 func (r *Repository) CountActiveApplications(userID uuid.UUID) (int, error) {
@@ -117,10 +138,31 @@ func (r *Repository) CountActiveApplications(userID uuid.UUID) (int, error) {
 
 func (r *Repository) CreateApplication(tx *sqlx.Tx, userID uuid.UUID, programID int, videoFileID uuid.UUID, submittedAt time.Time) (*Application, error) {
 	var application Application
-	if err := tx.Get(&application, r.db.Rebind(createApplicationQuery), userID, programID, ReviewStageInitialScreening, DecisionPending, videoFileID, submittedAt); err != nil {
+	if err := tx.Get(&application, r.db.Rebind(createApplicationQuery), userID, programID, ReviewStageInitialScreening, DecisionPending, videoFileID, ScreeningStatusPending, submittedAt); err != nil {
 		return nil, fmt.Errorf("failed to create application: %w", err)
 	}
 	return &application, nil
+}
+
+func (r *Repository) UpdateApplicationAudioFile(applicationID uuid.UUID, fileID uuid.UUID) error {
+	if _, err := r.db.TrackedExec("update", r.db.Rebind(updateApplicationAudioFileQuery), fileID, applicationID); err != nil {
+		return fmt.Errorf("failed to update application audio file: %w", err)
+	}
+	return nil
+}
+
+func (r *Repository) UpdateApplicationTranscript(applicationID uuid.UUID, transcript string) error {
+	if _, err := r.db.TrackedExec("update", r.db.Rebind(updateApplicationTranscriptQuery), transcript, applicationID); err != nil {
+		return fmt.Errorf("failed to update application transcript: %w", err)
+	}
+	return nil
+}
+
+func (r *Repository) UpdateApplicationScreening(applicationID uuid.UUID, status string, screeningError *string) error {
+	if _, err := r.db.TrackedExec("update", r.db.Rebind(updateApplicationScreeningQuery), status, screeningError, applicationID); err != nil {
+		return fmt.Errorf("failed to update application screening status: %w", err)
+	}
+	return nil
 }
 
 func (r *Repository) FindStatusByUserID(userID uuid.UUID) (*StatusResponse, error) {
@@ -158,4 +200,14 @@ func (r *Repository) CreateScoringRunInTx(tx *sqlx.Tx, sr *ScoringRun) error {
 		INSERT INTO scoring_runs (id, application_id, model_name, result_json, recommendation, created_at)
 		VALUES (:id, :application_id, :model_name, :result_json, :recommendation, :created_at)`, sr)
 	return err
+}
+
+func (r *Repository) CreateScoringRun(sr *ScoringRun) error {
+	_, err := r.db.DB.NamedExec(`
+		INSERT INTO scoring_runs (id, application_id, model_name, result_json, recommendation, created_at)
+		VALUES (:id, :application_id, :model_name, :result_json, :recommendation, :created_at)`, sr)
+	if err != nil {
+		return fmt.Errorf("failed to create scoring run: %w", err)
+	}
+	return nil
 }

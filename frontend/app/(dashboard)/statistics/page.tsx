@@ -12,6 +12,14 @@ interface ScoreRange   { score_range: string; count: number; }
 interface CategoryAverages { motivation_avg: number; leadership_avg: number; structure_avg: number; }
 interface Keyword      { word: string; frequency: number; }
 interface IeltsRange   { ielts_range: string; count: number; }
+interface StatisticsResponse {
+  source?: string;
+  statusCounts: StatusCount[];
+  scoreDistribution: ScoreRange[];
+  categoryAverages: CategoryAverages;
+  topKeywords: Keyword[];
+  ieltsDistribution: IeltsRange[];
+}
 
 const STATUS_COLORS: Record<string, string> = {
   new: '#60a5fa', review: '#fbbf24', interview: '#a78bfa',
@@ -72,11 +80,13 @@ export default function StatisticsPage() {
   const [topKeywords, setTopKeywords]         = useState<Keyword[]>([]);
   const [ieltsDistribution, setIeltsDist]     = useState<IeltsRange[]>([]);
   const [loading, setLoading]                 = useState(true);
+  const [dataSource, setDataSource]           = useState<string>('database');
 
   useEffect(() => {
     fetch('/api/stats')
       .then(r => r.json())
-      .then(data => {
+      .then((data: StatisticsResponse) => {
+        setDataSource(data.source || 'database');
         setStatusCounts(data.statusCounts);
         setScoreDistrib(data.scoreDistribution);
         setCategoryAvg(data.categoryAverages);
@@ -138,6 +148,11 @@ export default function StatisticsPage() {
           <p className="text-[11px] uppercase tracking-widest text-gray-400 font-semibold">inVision U</p>
           <h1 className="text-xl font-semibold text-gray-900 leading-tight">Statistics</h1>
         </div>
+        {dataSource === 'mock' && (
+          <div className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-widest text-amber-700">
+            Demo data
+          </div>
+        )}
       </div>
 
       {/* Summary pills */}

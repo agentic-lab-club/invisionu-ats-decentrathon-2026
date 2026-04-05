@@ -2,8 +2,10 @@
 
 import { Suspense, useState } from 'react';
 import { Users, Play } from 'lucide-react';
-import CandidatesTable from '@/components/candidates/CandidatesTable';
+import CandidatesTable from '@/components/candidates/CandidatesTableWithFavorites';
 import CandidateFilters from '@/components/candidates/CandidateFilters';
+import CandidateAdvancedFilters from '@/components/candidates/CandidateAdvancedFilters';
+import type { AdvancedFilterState } from '@/components/candidates/CandidateAdvancedFilters';
 import { OnboardingTour, useOnboarding } from '@/components/tours/Onboardingtour';
 
 function TableSkeleton() {
@@ -29,7 +31,23 @@ function TableSkeleton() {
 
 export default function CandidatesPage() {
   const { showTour, handleComplete, restartTour } = useOnboarding();
+
+  // Smart filter preset (existing)
   const [activePreset, setActivePreset] = useState<string | null>(null);
+
+  // Advanced metric filter (new)
+  const [advancedFilter, setAdvancedFilter] = useState<AdvancedFilterState | null>(null);
+
+  // When smart preset is selected → clear advanced filter, and vice versa
+  const handlePreset = (preset: string | null) => {
+    setActivePreset(preset);
+    if (preset) setAdvancedFilter(null);
+  };
+
+  const handleAdvancedFilter = (state: AdvancedFilterState | null) => {
+    setAdvancedFilter(state);
+    if (state) setActivePreset(null);
+  };
 
   return (
     <>
@@ -48,22 +66,33 @@ export default function CandidatesPage() {
               Candidates
             </h1>
           </div>
-          <button
-            onClick={restartTour}
-            className="flex items-center gap-2 px-3.5 py-2 text-xs font-medium text-gray-500 border border-gray-200 rounded-lg hover:border-gray-300 hover:text-gray-700 transition-colors"
-          >
-            <Play className="w-3 h-3" />
-            Replay tour
-          </button>
+          <div className="flex items-center gap-2">
+ 
+            <button
+              onClick={restartTour}
+              className="flex items-center gap-2 px-3.5 py-2 text-xs font-medium text-gray-500 border border-gray-200 rounded-lg hover:border-gray-300 hover:text-gray-700 transition-colors"
+            >
+              <Play className="w-3 h-3" />
+              Replay tour
+            </button>
+                       {/* Advanced Filters button */}
+            <CandidateAdvancedFilters
+              onFilterChange={handleAdvancedFilter}
+              activeFilter={advancedFilter}
+            />
+          </div>
         </div>
 
         <div data-tour="filters">
-          <CandidateFilters onSelectPreset={setActivePreset} activePreset={activePreset} />
+          <CandidateFilters onSelectPreset={handlePreset} activePreset={activePreset} />
         </div>
 
         <div data-tour="table">
           <Suspense fallback={<TableSkeleton />}>
-            <CandidatesTable preset={activePreset} />
+            <CandidatesTable
+              preset={activePreset}
+              advancedFilter={advancedFilter}
+            />
           </Suspense>
         </div>
       </div>

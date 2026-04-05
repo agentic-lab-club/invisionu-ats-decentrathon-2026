@@ -1,0 +1,140 @@
+{
+    "workflow_status": "success",
+    "stt_length": 2156,
+    "candidate_breakdown": {
+        "q1_text": "Hi, I am Dana, and I would like to join inVision U because it seems like an interesting and potentially meaningful opportunity for students who are still exploring their direction. I see it as a space where I could discover more about myself, build confidence, and better understand what kind of path might suit me in the future.",
+        "q2_text": "When it comes to the program, I would probably choose something related to leadership or media. Both seem appealing to me for different reasons, although I am still deciding which one aligns more closely with my interests. If I had to choose now, I would likely lean toward leadership, mainly because I want to become more confident, improve how I express myself, and feel more comfortable in challenging situations.",
+        "q3_text": "A challenge I overcame was failing an exam. At that time, I felt very discouraged and started doubting my abilities. For a while I thought that maybe I simply was not capable enough. What helped me move forward was support from a friend who reminded me that one failure is not the end, and also some extra explanation from my teacher. Eventually I retook the exam and passed it, which taught me that setbacks can be temporary.",
+        "q4_text": "My long-term goals are still developing, to be honest. At the moment, I hope to build a stable career, work in a good environment, and create a successful and balanced life for myself. I believe this program could help me by giving me useful experience and helping me understand myself better. What motivates me most is the desire not to disappoint my parents and to create a normal, respectable future.",
+        "q5_text": "To me, leadership means being able to manage a situation and help others follow a direction. As an example, I remember a school event where a teacher asked for help with organizing chairs and students, and I offered some assistance. It was a small contribution, and the teacher was clearly leading the process, but I was still willing to be involved and support the event.",
+        "q6_text": "Yes, I believe my family supports my decision. My biggest source of encouragement is probably my sister, because she often tells me that I should try opportunities even if I feel nervous or uncertain."
+    },
+    "llm_evaluations": {
+        "q1": {
+            "question_id": "q1",
+            "scores": [
+                {
+                    "metric_name": "motivation",
+                    "score": 3,
+                    "quote": "I see it as a space where I could discover more about myself, build confidence, and better understand what kind of path might suit me in the future.",
+                    "reason": "The applicant clearly explains a personal need for self-discovery and growth, showing a meaningful connection to the program."
+                },
+                {
+                    "metric_name": "planning",
+                    "score": 2,
+                    "quote": "better understand what kind of path might suit me in the future",
+                    "reason": "The applicant implies a future direction and intention for personal development, but the explanation is somewhat general and lacks specific details about their future plans."
+                }
+            ]
+        },
+        "q2": {
+            "question_id": "q2",
+            "scores": [
+                {
+                    "metric_name": "motivation",
+                    "score": 3,
+                    "quote": "I want to become more confident, improve how I express myself, and feel more comfortable in challenging situations",
+                    "reason": "The applicant shows sincere interest in the leadership program by explaining how it aligns with personal development goals"
+                },
+                {
+                    "metric_name": "planning",
+                    "score": 2,
+                    "quote": "I would likely lean toward leadership, mainly because I want to become more confident, improve how I express myself, and feel more comfortable in challenging situations",
+                    "reason": "The applicant identifies a desired program and provides a reason for choosing it, but the explanation is somewhat general and lacks specific future-oriented goals"
+                }
+            ]
+        },
+        "q3": {
+            "question_id": "q3",
+            "scores": [
+                {
+                    "metric_name": "resilience",
+                    "score": 3,
+                    "quote": "What helped me move forward was support from a friend who reminded me that one failure is not the end, and also some extra explanation from my teacher. Eventually I retook the exam and passed it, which taught me that setbacks can be temporary.",
+                    "reason": "The applicant describes a real challenge, explains actions taken to deal with it, and shows growth and persistence."
+                },
+                {
+                    "metric_name": "leadership",
+                    "score": 0,
+                    "quote": "",
+                    "reason": "There is no evidence of leadership, initiative, or influence on people or outcomes in the response."
+                },
+                {
+                    "metric_name": "values",
+                    "score": 2,
+                    "quote": "support from a friend who reminded me that one failure is not the end",
+                    "reason": "The applicant shows appreciation for support and help from others, indicating some level of values such as responsibility and concern for others, but it is not strongly emphasized."
+                }
+            ]
+        },
+        "q4": {
+            "question_id": "q4",
+            "scores": [
+                {
+                    "metric_name": "planning",
+                    "score": 2,
+                    "quote": "I hope to build a stable career, work in a good environment, and create a successful and balanced life for myself. I believe this program could help me by giving me useful experience and helping me understand myself better.",
+                    "reason": "The applicant states broad but coherent long-term goals and explains how the program supports those goals, showing a basic connection between present action and future direction."
+                },
+                {
+                    "metric_name": "motivation",
+                    "score": 3,
+                    "quote": "What motivates me most is the desire not to disappoint my parents and to create a normal, respectable future.",
+                    "reason": "The applicant explains a personal and authentic motivation tied to family and a desire for a respectable future, showing clear and meaningful internal drive."
+                }
+            ]
+        },
+        "q5": {
+            "question_id": "q5",
+            "scores": [
+                {
+                    "metric_name": "leadership",
+                    "score": 2,
+                    "quote": "I offered some assistance",
+                    "reason": "The applicant provides a concrete example of supporting a leader, but their role is secondary and the impact is not clearly described."
+                },
+                {
+                    "metric_name": "values",
+                    "score": 2,
+                    "quote": "I was still willing to be involved and support the event",
+                    "reason": "The applicant shows willingness to help and support, which reflects a value of service, but it's a relatively simple example without strong evidence of prosocial leadership."
+                }
+            ]
+        },
+        "q6": {
+            "question_id": "q6",
+            "scores": [
+                {
+                    "metric_name": "social_support",
+                    "score": 3,
+                    "quote": "My biggest source of encouragement is probably my sister, because she often tells me that I should try opportunities even if I feel nervous or uncertain.",
+                    "reason": "The applicant clearly identifies a source of support (sister) and explains how that support matters (encouragement to try new opportunities)."
+                },
+                {
+                    "metric_name": "resilience",
+                    "score": 2,
+                    "quote": "try opportunities even if I feel nervous or uncertain",
+                    "reason": "The applicant shows some resilience by mentioning trying opportunities despite feeling nervous or uncertain, but it's not a strong or detailed example."
+                },
+                {
+                    "metric_name": "motivation",
+                    "score": 2,
+                    "quote": "My biggest source of encouragement is probably my sister, because she often tells me that I should try opportunities",
+                    "reason": "The support from the sister connects to the applicant's motivation to try new opportunities, but the link to drive or persistence is not strongly emphasized."
+                }
+            ]
+        }
+    },
+    "aggregated_metrics": {
+        "Motivation": 2.9,
+        "Planning": 2.0,
+        "Resilience": 2.8,
+        "Leadership": 1.4,
+        "Values": 2.0,
+        "Social_Support": 3.0
+    },
+    "global_score": {
+        "LeadershipIndex": 2.09,
+        "AdmissionsPotential": 2.24
+    }
+}

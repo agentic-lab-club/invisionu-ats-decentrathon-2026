@@ -21,6 +21,9 @@ POST {{baseUrl}}/generate-questions
 Content-Type: application/json
 Accept: application/json
 
+
+# front -> <- ai-generate-answer-question-service
+
 {
   "specialization": "{{specialization}}",
   "num_questions": {{numQuestions}},

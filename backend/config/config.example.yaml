@@ -45,13 +45,13 @@ messaging:
 
 email:
   enabled: false
-  mode: "stub"
+  mode: "stub"  # stub for dev, smtp for prod
   from_name: "InVisionU ATS"
   from_email: "noreply@example.com"
   smtp_host: "smtp.example.com"
   smtp_port: 587
-  smtp_user: "smtp-user"
-  smtp_pass: "smtp-pass"
+  smtp_user: "jokergame434@gmail.com"
+  smtp_pass: "mfkb wimn pthi dnhf"
 
 llm: # TODO: (refactor) this should be llmscoring
   enabled: false
@@ -66,6 +66,12 @@ llm_assessment:
 
 assessment:
   timeout_minutes: 15
+
+screening:
+  stt_base_url: "http://sttwhisper:9095"
+  llm_base_url: "http://llmscoring:9094"
+  request_timeout_seconds: 180
+  presign_ttl_seconds: 900
 
 # =========================
 # Modules and Services on internal/

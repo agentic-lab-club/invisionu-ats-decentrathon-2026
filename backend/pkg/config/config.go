@@ -116,6 +116,13 @@ type AssessmentConfig struct {
 	TimeoutMinutes int `mapstructure:"timeout_minutes"`
 }
 
+type ScreeningConfig struct {
+	STTBaseURL         string `mapstructure:"stt_base_url"`
+	LLMBaseURL         string `mapstructure:"llm_base_url"`
+	RequestTimeoutSecs int    `mapstructure:"request_timeout_seconds"`
+	PresignTTLSeconds  int    `mapstructure:"presign_ttl_seconds"`
+}
+
 // Config is the root configuration.
 type Config struct {
 	Server        HttpConfig          `mapstructure:"server"`
@@ -132,6 +139,7 @@ type Config struct {
 	LLM           LLMConfig           `mapstructure:"llm"`
 	LLMAssessment LLMAssessmentConfig `mapstructure:"llm_assessment"`
 	Assessment    AssessmentConfig    `mapstructure:"assessment"`
+	Screening     ScreeningConfig     `mapstructure:"screening"`
 }
 
 func Load() (cfg *Config, err error) {
@@ -237,6 +245,18 @@ func Load() (cfg *Config, err error) {
 	if cfg.Assessment.TimeoutMinutes == 0 {
 		cfg.Assessment.TimeoutMinutes = 15
 	}
+	if cfg.Screening.STTBaseURL == "" {
+		cfg.Screening.STTBaseURL = "http://sttwhisper:9095"
+	}
+	if cfg.Screening.LLMBaseURL == "" {
+		cfg.Screening.LLMBaseURL = "http://llmscoring:9094"
+	}
+	if cfg.Screening.RequestTimeoutSecs == 0 {
+		cfg.Screening.RequestTimeoutSecs = 180
+	}
+	if cfg.Screening.PresignTTLSeconds == 0 {
+		cfg.Screening.PresignTTLSeconds = 900
+	}
 
 	overrideFromEnv(cfg)
 
@@ -274,6 +294,22 @@ func overrideFromEnv(cfg *Config) {
 	}
 	if value := os.Getenv("DB_SSLMODE"); value != "" {
 		cfg.Database.SSLMode = value
+	}
+	if value := os.Getenv("SCREENING_STT_BASE_URL"); value != "" {
+		cfg.Screening.STTBaseURL = value
+	}
+	if value := os.Getenv("SCREENING_LLM_BASE_URL"); value != "" {
+		cfg.Screening.LLMBaseURL = value
+	}
+	if value := os.Getenv("SCREENING_REQUEST_TIMEOUT_SECONDS"); value != "" {
+		if parsed, err := strconv.Atoi(value); err == nil {
+			cfg.Screening.RequestTimeoutSecs = parsed
+		}
+	}
+	if value := os.Getenv("SCREENING_PRESIGN_TTL_SECONDS"); value != "" {
+		if parsed, err := strconv.Atoi(value); err == nil {
+			cfg.Screening.PresignTTLSeconds = parsed
+		}
 	}
 	if value := os.Getenv("METRICS_ENABLED"); value != "" {
 		cfg.Metrics.Enabled = strings.EqualFold(value, "true") || value == "1"

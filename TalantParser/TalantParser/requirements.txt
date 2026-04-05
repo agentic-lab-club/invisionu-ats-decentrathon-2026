@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+playwright
+python-dotenv
+pydantic
+httpx
+apscheduler
+requests

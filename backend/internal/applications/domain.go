@@ -17,6 +17,17 @@ const (
 	DecisionPending  = "pending"
 	DecisionAccepted = "accepted"
 	DecisionRejected = "rejected"
+
+	ScreeningStatusPending    = "pending"
+	ScreeningStatusProcessing = "processing"
+	ScreeningStatusCompleted  = "completed"
+	ScreeningStatusFailed     = "failed"
+
+	FileTypeVideoPresentation = "video_presentation"
+	FileTypeVideoAudio        = "video_audio"
+	FileTypePortfolio         = "portfolio"
+	FileTypeEnglishResult     = "english_result"
+	FileTypeCertificate       = "certificate"
 )
 
 // JSONMap — обёртка для хранения map[string]interface{} в PostgreSQL JSONB колонке.
@@ -78,10 +89,11 @@ type CreateResponse struct {
 }
 
 type StatusResponse struct {
-	ApplicationID  uuid.UUID `json:"application_id" db:"application_id"`
-	ReviewStage    string    `json:"review_stage"   db:"review_stage"`
-	Decision       string    `json:"decision"       db:"decision"`
-	ScreeningError *string   `json:"screening_error" db:"screening_error"`
+	ApplicationID   uuid.UUID `json:"application_id" db:"application_id"`
+	ReviewStage     string    `json:"review_stage"   db:"review_stage"`
+	Decision        string    `json:"decision"       db:"decision"`
+	ScreeningStatus string    `json:"screening_status" db:"screening_status"`
+	ScreeningError  *string   `json:"screening_error" db:"screening_error"`
 }
 
 // ─── Domain entities ─────────────────────────────────────────────────────────
@@ -103,30 +115,40 @@ type FileRecord struct {
 	UploadedByUserID uuid.UUID  `db:"uploaded_by_user_id"`
 	ApplicationID    *uuid.UUID `db:"application_id"`
 	FileType         string     `db:"file_type"`
+	BucketName       string     `db:"bucket_name"`
+	ObjectKey        string     `db:"object_key"`
+	OriginalFilename string     `db:"original_filename"`
+	ContentType      string     `db:"content_type"`
+	SizeBytes        int64      `db:"size_bytes"`
+	ETag             string     `db:"etag"`
+	CreatedAt        time.Time  `db:"created_at"`
 }
 
 type Application struct {
-	ID             uuid.UUID `db:"id"`
-	UserID         uuid.UUID `db:"user_id"`
-	ProgramID      int       `db:"program_id"`
-	ReviewStage    string    `db:"review_stage"`
-	Decision       string    `db:"decision"`
-	VideoFileID    uuid.UUID `db:"video_file_id"`
-	ScreeningError *string   `db:"screening_error"`
-	SubmittedAt    time.Time `db:"submitted_at"`
-	CreatedAt      time.Time `db:"created_at"`
-	UpdatedAt      time.Time `db:"updated_at"`
+	ID               uuid.UUID  `db:"id"`
+	UserID           uuid.UUID  `db:"user_id"`
+	ProgramID        int        `db:"program_id"`
+	ReviewStage      string     `db:"review_stage"`
+	Decision         string     `db:"decision"`
+	VideoFileID      uuid.UUID  `db:"video_file_id"`
+	VideoAudioFileID *uuid.UUID `db:"video_audio_file_id"`
+	VideoTranscript  *string    `db:"video_transcript"`
+	ScreeningStatus  string     `db:"screening_status"`
+	ScreeningError   *string    `db:"screening_error"`
+	SubmittedAt      time.Time  `db:"submitted_at"`
+	CreatedAt        time.Time  `db:"created_at"`
+	UpdatedAt        time.Time  `db:"updated_at"`
 }
 
 // ScoringRun хранит результат скоринга для заявки.
 // ResultJSON сериализуется в JSONB через тип JSONMap.
 type ScoringRun struct {
-	ID             uuid.UUID  `db:"id"`
-	ApplicationID  uuid.UUID  `db:"application_id"`
-	ModelName      string     `db:"model_name"`
-	ResultJSON     JSONMap    `db:"result_json"`
-	Recommendation *string    `db:"recommendation"` // nullable — LLM заполняет позже
-	CreatedAt      time.Time  `db:"created_at"`
+	ID             uuid.UUID `db:"id"`
+	ApplicationID  uuid.UUID `db:"application_id"`
+	ModelName      string    `db:"model_name"`
+	ResultJSON     JSONMap   `db:"result_json"`
+	Recommendation *string   `db:"recommendation"` // nullable — LLM заполняет позже
+	CreatedAt      time.Time `db:"created_at"`
 }
 
 // ─── Personality test ────────────────────────────────────────────────────────

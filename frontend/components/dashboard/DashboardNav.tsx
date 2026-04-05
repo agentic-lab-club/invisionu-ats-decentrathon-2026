@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import {
-  Menu, X, LogOut, Settings, ChevronRight, Users, BarChart2,
+  Menu, X, LogOut, Settings, ChevronRight, Users, BarChart2, Heart
 } from 'lucide-react';
 
 export interface NavItem {
@@ -33,8 +33,8 @@ export default function DashboardNav({ children, activeTab }: DashboardNavProps)
 
   const navigationItems: NavItem[] = [
     { id: 'candidates', label: 'Candidates', icon: <Users className="w-4 h-4" />, href: '/' },
+    { id: 'favorites',   label: 'Favorites',    icon: <Heart className="w-4 h-4" />, href: '/favorites' },
     { id: 'statistics', label: 'Statistics',  icon: <BarChart2 className="w-4 h-4" />, href: '/statistics' },
-    { id: 'settings',   label: 'Settings',    icon: <Settings className="w-4 h-4" />, href: '/settings' },
   ];
 
   const handleLogout = () => {

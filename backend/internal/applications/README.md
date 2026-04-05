@@ -18,7 +18,7 @@ into a persisted `applications` row plus related attachments and answers.
 - Enforce email verification before submission.
 - Enforce file ownership and expected file types.
 - Persist application, attached files, and personality answers in one DB transaction.
-- Publish an `application submitted` event after commit.
+- Launch async video screening after commit.
 - Return the latest application status for the current applicant.
 
 ## Out Of Scope
@@ -41,11 +41,13 @@ Relevant fields:
 - `decision`
 - `video_file_id`
 - `screening_error`
+- `screening_status`
 - `submitted_at`
 
 Initial values on create:
 - `review_stage = initial_screening`
 - `decision = pending`
+- `screening_status = pending`
 
 ### Review stages
 
@@ -113,6 +115,7 @@ Success example:
   "application_id": "55555555-5555-5555-5555-555555555555",
   "review_stage": "initial_screening",
   "decision": "pending",
+  "screening_status": "processing",
   "screening_error": null
 }
 ```
@@ -149,7 +152,15 @@ Success example:
 11. Attach files to application.
 12. Insert personality test answers.
 13. Commit transaction.
-14. Publish the configured `application submitted` event on the bus.
+14. Start async screening pipeline:
+    - download video from object storage
+    - extract audio with `ffmpeg`
+    - upload derived audio
+    - call STT with presigned URL
+    - save transcript
+    - call LLM scoring
+    - save scoring result or screening error
+15. Publish the configured `application submitted` event on the bus.
 
 ### Status flow
 

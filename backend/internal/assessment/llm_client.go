@@ -220,8 +220,8 @@ Candidate answers:
 
 Return ONLY valid JSON:
 {
-  "overall_score": 0-100 integer for overall technical quality, depth, and structure,
-  "leadership_score": 0-100 integer for leadership potential, decision-making, strategic thinking, crisis handling,
+  "overall_score": 0-10(0.0) integer for overall technical quality, depth, and structure,
+  "leadership_score": 0-10(0.0) integer for leadership potential, decision-making, strategic thinking, crisis handling,
   "reason": "2-3 sentences with overall impression and key conclusions",
   "detailed_feedback": "detailed analysis with strengths, growth areas, and concrete examples from the answers"
 }`, session.Specialization, session.Specialization, len(session.Questions), timeoutMinutes, strings.Join(pairs, "\n\n"))

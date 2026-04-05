@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   User, Phone, GraduationCap, ClipboardList,
@@ -11,6 +11,7 @@ import {
 import { OnboardingTour, useOnboarding, TourReplayButton } from '@/components/tours/Onboardingtour';
 import { getAccessToken } from '@/lib/auth';
 import { FileUploader } from '@/components/FileUploader';
+import StatusBadge from '@/components/ui/StatusBadge';
 
 // ================== Types =================
 interface FormData {
@@ -28,11 +29,10 @@ interface FormData {
 
 interface Option {
   id: string;
-  key: string;      // a, b, c, d – может быть не обязателен, но мы его используем для отображения?
+  key: string;
   text: string;
-  order?: number;   // порядок, если есть
+  order?: number;
 }
-
 
 interface Question {
   id: string;
@@ -40,7 +40,6 @@ interface Question {
   text: string;
   options: Option[];
 }
-
 
 // ================== Shared input style ==================
 const inputWithIconClass =
@@ -125,7 +124,7 @@ function ConsentBlock({
   ];
 
   return (
-    <div className="pt-4 border-t border-gray-100 space-y-3 mt-2">
+    <div data-tour="consents" className="pt-4 border-t border-gray-100 space-y-3 mt-2">
       {items.map((item, i) => (
         <button key={i} type="button" onClick={() => item.toggle(!item.checked)}
           className={`flex items-start gap-3 w-full text-left rounded-xl border px-4 py-3.5 transition-all ${
@@ -166,20 +165,20 @@ const PersonalInfoTab = ({ data, updateField }: TabProps) => (
         <IconInput icon={Phone} type="tel" value={data.phoneNumber}
           onChange={e => updateField('phoneNumber', e.target.value)} placeholder="+7 (___) ___-__-__" />
       </Field>
-<Field label="Program" required>
-  <IconSelect icon={GraduationCap} value={data.programCode}
-    onChange={e => updateField('programCode', e.target.value)}>
-    <option value="undergrad_society">Society (Sociology: Leadership and Innovation)</option>
-    <option value="undergrad_art_media">Art + Media (Digital Media and Marketing)</option>
-    <option value="undergrad_tech">Tech (Innovative IT Product Design and Development)</option>
-    <option value="undergrad_policy_reform">Policy Reform (Public Policy and Development)</option>
-    <option value="undergrad_engineering">Engineering (Creative Engineering)</option>
-    <option value="foundation_year">Foundation Year</option>
-  </IconSelect>
-</Field>
+      <Field label="Program" required>
+        <IconSelect icon={GraduationCap} value={data.programCode}
+          onChange={e => updateField('programCode', e.target.value)}>
+          <option value="undergrad_society">Society (Sociology: Leadership and Innovation)</option>
+          <option value="undergrad_art_media">Art + Media (Digital Media and Marketing)</option>
+          <option value="undergrad_tech">Tech (Innovative IT Product Design and Development)</option>
+          <option value="undergrad_policy_reform">Policy Reform (Public Policy and Development)</option>
+          <option value="undergrad_engineering">Engineering (Creative Engineering)</option>
+          <option value="foundation_year">Foundation Year</option>
+        </IconSelect>
+      </Field>
     </div>
 
-    <div className="space-y-2">
+    <div data-tour="video-upload" className="space-y-2">
       <FileUploader
         fileType="video_presentation"
         label="Video presentation"
@@ -192,7 +191,8 @@ const PersonalInfoTab = ({ data, updateField }: TabProps) => (
 
     <SectionDivider icon={FileText} title="Supporting documents" optional
       subtitle="Upload your portfolio, certificate, and English results." />
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+
+    <div data-tour="supporting-docs" className="grid grid-cols-1 sm:grid-cols-3 gap-4">
       <FileUploader
         fileType="portfolio"
         label="Portfolio"
@@ -256,7 +256,7 @@ const InternalTestTab = ({
         <div className="h-full bg-[#b5e220] rounded-full transition-all duration-300" style={{ width: `${pct}%` }} />
       </div>
 
-      <div className="rounded-lg border border-gray-100 overflow-hidden mb-4">
+      <div data-tour="test-info" className="rounded-lg border border-gray-100 overflow-hidden mb-4">
         <div className="px-4 py-3 bg-gray-50 border-b border-gray-100 flex items-center gap-2">
           <ClipboardList className="w-3.5 h-3.5 text-gray-400" />
           <p className="text-[11px] uppercase tracking-widest text-gray-400 font-semibold">Personality assessment</p>
@@ -266,7 +266,7 @@ const InternalTestTab = ({
         </p>
       </div>
 
-      <div className="divide-y divide-gray-100">
+      <div data-tour="test-questions" className="divide-y divide-gray-100">
         {questions.map((q, idx) => (
           <div key={q.id} className="py-5">
             <div className="flex gap-3 mb-3">
@@ -318,45 +318,67 @@ const TABS = [
 ];
 
 // ================== Sidebar ==================
-function ApplicationSidebar() {
-  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0 });
-  const deadline = new Date(2025, 4, 30, 23, 59, 59);
+interface Stage {
+  id?: string;
+  name: string;
+  order: number;
+  isCompleted?: boolean;
+  isCurrent?: boolean;
+}
+type TimeLeft = {
+  days: number;
+  hours: number;
+  minutes: number;
+  seconds: number;
+};
+
+function ApplicationSidebar({ applicationId }: { applicationId?: string }) {
+  const deadline = useMemo(() => new Date(2026, 4, 30, 23, 59, 59), []);
+  const getTimeLeft = useCallback((): TimeLeft => {
+    const diff = deadline.getTime() - Date.now();
+    if (diff <= 0) return { days: 0, hours: 0, minutes: 0, seconds: 0 };
+    return {
+      days: Math.floor(diff / 86400000),
+      hours: Math.floor((diff % 86400000) / 3600000),
+      minutes: Math.floor((diff % 3600000) / 60000),
+      seconds: Math.floor((diff % 60000) / 1000),
+    };
+  }, [deadline]);
+
+  const [timeLeft, setTimeLeft] = useState<TimeLeft>(getTimeLeft());
 
   useEffect(() => {
-    const update = () => {
-      const diff = deadline.getTime() - Date.now();
-      if (diff <= 0) { setTimeLeft({ days: 0, hours: 0, minutes: 0 }); return; }
-      setTimeLeft({
-        days:    Math.floor(diff / 86400000),
-        hours:   Math.floor((diff % 86400000) / 3600000),
-        minutes: Math.floor((diff % 3600000) / 60000),
-      });
-    };
-    update();
-    const id = setInterval(update, 30000);
-    return () => clearInterval(id);
-  }, []);
+    const interval = setInterval(() => setTimeLeft(getTimeLeft()), 1000);
+    return () => clearInterval(interval);
+  }, [getTimeLeft]);
 
-  const stages = [
-    { name: 'Application stage', active: true },
-    { name: 'Initial screening',  active: false },
-    { name: 'Application review', active: false },
-    { name: 'Interview',          active: false },
-    { name: 'Committee review',   active: false },
-    { name: 'Decision',           active: false },
+  const getCurrentStatusKey = (): string => {
+    if (!applicationId) return 'draft';
+    return 'new';
+  };
+
+  const currentStatusKey = getCurrentStatusKey();
+
+  const allStatuses = [
+    { key: 'draft', label: 'Draft' },
+    { key: 'new', label: 'New' },
+    { key: 'review', label: 'Review' },
+    { key: 'recommended', label: 'Recommended' },
+    { key: 'rejected', label: 'Rejected' },
   ];
 
   const documents = [
-    { label: 'Passport / ID',               icon: IdCard },
-    { label: 'Video presentation',          icon: Video },
+    { label: 'Passport / ID', icon: IdCard },
+    { label: 'Video presentation', icon: Video },
     { label: 'English proficiency results', icon: BookOpen },
-    { label: 'UNT / NIS certificate',       icon: GraduationCap },
-    { label: 'Engineering portfolio',       icon: Paperclip },
+    { label: 'UNT / NIS certificate', icon: GraduationCap },
+    { label: 'Engineering portfolio', icon: Paperclip },
   ];
 
   return (
     <div className="sticky top-24 space-y-6">
-      <div className="bg-white rounded-xl border border-gray-100 p-5">
+      {/* Deadline timer */}
+      <div data-tour="sidebar-timer" className="bg-white rounded-xl border border-gray-100 p-5">
         <div className="flex items-center gap-2 mb-3">
           <Clock className="w-3.5 h-3.5 text-gray-300" />
           <p className="text-[11px] uppercase tracking-widest text-gray-400 font-semibold">Time remaining</p>
@@ -364,37 +386,47 @@ function ApplicationSidebar() {
         <p className="text-3xl font-semibold text-gray-900 tabular-nums tracking-tight">
           {timeLeft.days}<span className="text-base font-normal text-gray-400 ml-0.5">d</span>&nbsp;
           {timeLeft.hours}<span className="text-base font-normal text-gray-400 ml-0.5">h</span>&nbsp;
-          {timeLeft.minutes}<span className="text-base font-normal text-gray-400 ml-0.5">m</span>
+          {timeLeft.minutes}<span className="text-base font-normal text-gray-400 ml-0.5">m</span>&nbsp;
+          {timeLeft.seconds}<span className="text-base font-normal text-gray-400 ml-0.5">s</span>
         </p>
         <div className="mt-3 flex items-center gap-1.5">
           <Calendar className="w-3 h-3 text-gray-300" />
-          <p className="text-xs text-gray-400">Deadline: May 30, 2025</p>
+          <p className="text-xs text-gray-400">Deadline: May 30, 2026</p>
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-100 p-5">
+      {/* Stages */}
+      <div data-tour="sidebar-stages" className="bg-white rounded-xl border border-gray-100 p-5">
         <p className="text-[11px] uppercase tracking-widest text-gray-400 font-semibold mb-4">Stages</p>
         <div className="relative">
           <div className="absolute left-[7px] top-2 bottom-2 w-px bg-gray-100" />
           <div className="space-y-3">
-            {stages.map((stage, i) => (
-              <div key={stage.name} className="flex items-center gap-3 relative">
-                <span className={`w-3.5 h-3.5 rounded-full flex-shrink-0 border-2 z-10 ${
-                  stage.active ? 'bg-[#b5e220] border-[#b5e220]'
-                  : i === 1    ? 'bg-white border-gray-200'
-                               : 'bg-white border-gray-100'
-                }`} />
-                <span className={`text-sm ${stage.active ? 'text-gray-900 font-medium' : 'text-gray-400'}`}>
-                  {stage.name}
-                </span>
-                {stage.active && <ChevronRight className="w-3 h-3 text-gray-300 ml-auto" />}
-              </div>
-            ))}
+            {allStatuses.map((status, idx) => {
+              const isActive = status.key === currentStatusKey;
+              let circleStyle = 'bg-white border-gray-200';
+              if (isActive) {
+                circleStyle = 'bg-[#b5e220] border-[#b5e220]';
+              } else if (idx === 0) {
+                circleStyle = 'bg-white border-gray-200';
+              } else {
+                circleStyle = 'bg-white border-gray-100';
+              }
+              return (
+                <div key={status.key} className="flex items-center gap-3 relative">
+                  <span className={`w-3.5 h-3.5 rounded-full flex-shrink-0 border-2 z-10 ${circleStyle}`} />
+                  <span className={`text-sm ${isActive ? 'text-gray-900 font-medium' : 'text-gray-400'}`}>
+                    {status.label}
+                  </span>
+                  {isActive && <ChevronRight className="w-3 h-3 text-gray-300 ml-auto" />}
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-100 p-5">
+      {/* Required documents */}
+      <div data-tour="sidebar-docs" className="bg-white rounded-xl border border-gray-100 p-5">
         <p className="text-[11px] uppercase tracking-widest text-gray-400 font-semibold mb-4">Required documents</p>
         <div className="space-y-2.5">
           {documents.map(({ label, icon: Icon }) => (
@@ -426,12 +458,12 @@ export default function ApplyPage() {
   const [loadingTest, setLoadingTest] = useState(true);
   const [testError, setTestError] = useState<string | null>(null);
 
-const [formData, setFormData] = useState<FormData>({
-  firstName: '', lastName: '', phoneNumber: '',
-  programCode: 'undergrad_tech',   // раньше было 'Entrepreneurship' или 'Public Policy'
-  videoFileId: '', portfolioFileId: '', certificateFileId: '', englishResultFileId: '',
-  consentDataProcessing: false, consentAge: false,
-});
+  const [formData, setFormData] = useState<FormData>({
+    firstName: '', lastName: '', phoneNumber: '',
+    programCode: 'undergrad_tech',
+    videoFileId: '', portfolioFileId: '', certificateFileId: '', englishResultFileId: '',
+    consentDataProcessing: false, consentAge: false,
+  });
 
   const updateField = (field: keyof FormData, value: any) =>
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -441,48 +473,33 @@ const [formData, setFormData] = useState<FormData>({
     formPanelRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Fetch the active personality test from the backend
-useEffect(() => {
-  const fetchTest = async () => {
-    const token = getAccessToken();
-    if (!token) {
-      setLoadingTest(false);
-      return;
-    }
-
-    const endpoint = '/api/backend/tests/personality/current';
-
-    try {
-      const res = await fetch(endpoint, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) {
-        throw new Error(`Failed to load test: ${res.status}`);
+  useEffect(() => {
+    const fetchTest = async () => {
+      const token = getAccessToken();
+      if (!token) { setLoadingTest(false); return; }
+      try {
+        const res = await fetch('/api/backend/tests/personality/current', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) throw new Error(`Failed to load test: ${res.status}`);
+        const data = await res.json();
+        if (data.questions && Array.isArray(data.questions)) {
+          setQuestions(data.questions);
+          setSelectedOptionIds(Array(data.questions.length).fill(''));
+        } else if (data.test?.questions) {
+          setQuestions(data.test.questions);
+          setSelectedOptionIds(Array(data.test.questions.length).fill(''));
+        } else {
+          throw new Error('Invalid test data format');
+        }
+      } catch (err: any) {
+        setTestError(err.message || 'Could not load personality test. Please refresh or contact support.');
+      } finally {
+        setLoadingTest(false);
       }
-      const data = await res.json();
-      // ожидаем: { test_id, code, title, questions: [...] }
-if (data.questions && Array.isArray(data.questions)) {
-  setQuestions(data.questions);
-  setSelectedOptionIds(Array(data.questions.length).fill(''));
-} else if (data.test?.questions) {
-  // fallback если вложено
-  setQuestions(data.test.questions);
-  setSelectedOptionIds(Array(data.test.questions.length).fill(''));
-} else {
-  throw new Error('Invalid test data format');
-}
-
-    } catch (err: any) {
-      console.error('Failed to fetch personality test', err);
-      setTestError(err.message || 'Could not load personality test. Please refresh or contact support.');
-    } finally {
-      setLoadingTest(false);
-    }
-  };
-  fetchTest();
-}, []);
-
-
+    };
+    fetchTest();
+  }, []);
 
   const handleAnswer = (questionIndex: number, optionId: string) => {
     const next = [...selectedOptionIds];
@@ -494,9 +511,6 @@ if (data.questions && Array.isArray(data.questions)) {
     setLoading(true);
     setError('');
 
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-
-    // Validation
     if (!formData.firstName || !formData.lastName || !formData.phoneNumber) {
       setError('Please fill in first name, last name, and phone number.');
       setLoading(false);
@@ -523,24 +537,22 @@ if (data.questions && Array.isArray(data.questions)) {
       return;
     }
 
-    // Build personality test answers
     const personality_test_answers = questions.map((q, idx) => ({
       question_id: q.id,
       option_id: selectedOptionIds[idx],
     }));
 
-const payload = {
-  first_name:   formData.firstName,
-  last_name:    formData.lastName,
-  phone_number: formData.phoneNumber,
-  program_code: formData.programCode,
-  video_file_id: formData.videoFileId,
-  // передаём только если заполнено
-  ...(formData.portfolioFileId     && { portfolio_file_id:      formData.portfolioFileId }),
-  ...(formData.certificateFileId   && { certificate_file_id:    formData.certificateFileId }),
-  ...(formData.englishResultFileId && { english_result_file_id: formData.englishResultFileId }),
-  personality_test_answers,
-};
+    const payload = {
+      first_name: formData.firstName,
+      last_name: formData.lastName,
+      phone_number: formData.phoneNumber,
+      program_code: formData.programCode,
+      video_file_id: formData.videoFileId,
+      ...(formData.portfolioFileId     && { portfolio_file_id:      formData.portfolioFileId }),
+      ...(formData.certificateFileId   && { certificate_file_id:    formData.certificateFileId }),
+      ...(formData.englishResultFileId && { english_result_file_id: formData.englishResultFileId }),
+      personality_test_answers,
+    };
 
     const token = getAccessToken();
     if (!token) {
@@ -559,21 +571,13 @@ const payload = {
         },
         body: JSON.stringify(payload),
       });
-
-const data = await res.json();
-console.log('personality test response:', data);
-
+      const data = await res.json();
       if (res.status === 401) {
         setError('Session expired. Please sign in again.');
         router.push('/login');
         return;
       }
-
-      if (!res.ok) {
-        const msg = data?.error || data?.message || 'Submission error';
-        throw new Error(msg);
-      }
-
+      if (!res.ok) throw new Error(data?.error || data?.message || 'Submission error');
       router.push(`/status/${data.application_id}`);
     } catch (err: any) {
       setError(err.message || 'Something went wrong. Please try again.');
@@ -593,12 +597,10 @@ console.log('personality test response:', data);
     );
   }
 
-    if (testError) {
+  if (testError) {
     return (
       <div className="max-w-2xl mx-auto p-6 text-center">
-        <div className="bg-red-50 border border-red-100 rounded-xl p-4 text-red-600 text-sm">
-          {testError}
-        </div>
+        <div className="bg-red-50 border border-red-100 rounded-xl p-4 text-red-600 text-sm">{testError}</div>
         <button
           onClick={() => window.location.reload()}
           className="mt-4 px-4 py-2 text-sm font-medium text-gray-600 border border-gray-200 rounded-lg hover:border-gray-300"
@@ -609,25 +611,30 @@ console.log('personality test response:', data);
     );
   }
 
-
   return (
     <div className="w-[80%] mx-auto py-10">
       {showTour && <OnboardingTour onComplete={handleComplete} />}
-      <TourReplayButton onClick={restartTour} />
 
-      <div className="flex items-center justify-between mb-8">
+      {/* Header */}
+      <div data-tour="header" className="flex items-center justify-between mb-8">
         <div>
           <p className="text-[11px] uppercase tracking-widest text-gray-400 font-semibold mb-1">inVision U</p>
           <h1 className="text-xl font-semibold text-gray-900">Application</h1>
         </div>
-        <button type="button" onClick={handleSubmit} disabled={loading}
-          className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold bg-[#b5e220] text-gray-900 rounded-xl hover:bg-[#a3cc1a] disabled:opacity-50 transition-colors shadow-sm"
-        >
-          {loading
-            ? <><Loader2 className="w-4 h-4 animate-spin" /> Submitting…</>
-            : <><Send className="w-4 h-4" /> Send Application</>
-          }
-        </button>
+        <div className="flex items-center gap-3">
+          <TourReplayButton onClick={restartTour} />
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={loading}
+            className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold bg-[#b5e220] text-gray-900 rounded-xl hover:bg-[#a3cc1a] disabled:opacity-50 transition-colors shadow-sm"
+          >
+            {loading
+              ? <><Loader2 className="w-4 h-4 animate-spin" /> Submitting…</>
+              : <><Send className="w-4 h-4" /> Send Application</>
+            }
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -638,10 +645,19 @@ console.log('personality test response:', data);
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_260px] gap-8">
         <div className="bg-white rounded-xl border border-gray-100 overflow-hidden flex flex-col">
-          <div ref={tabBarRef} className="flex border-b border-gray-100 overflow-x-auto sticky top-0 z-10 bg-white"
-            style={{ scrollbarWidth: 'none' }}>
+          {/* Tab bar */}
+          <div
+            ref={tabBarRef}
+            data-tour="tabs"
+            className="flex border-b border-gray-100 overflow-x-auto sticky top-0 z-10 bg-white"
+            style={{ scrollbarWidth: 'none' }}
+          >
             {TABS.map(({ label, icon: Icon }, idx) => (
-              <button key={idx} type="button" onClick={() => handleTabChange(idx)}
+              <button
+                key={idx}
+                type="button"
+                data-tour={idx === 0 ? 'tab-personal' : 'tab-test'}
+                onClick={() => handleTabChange(idx)}
                 className={`flex items-center gap-2 px-4 py-3.5 text-sm font-medium whitespace-nowrap border-b-2 -mb-px transition-all duration-150 ${
                   activeTab === idx
                     ? 'border-[#b5e220] text-gray-900'
@@ -653,6 +669,8 @@ console.log('personality test response:', data);
               </button>
             ))}
           </div>
+
+          {/* Form panel */}
           <div ref={formPanelRef} className="p-6 sm:p-8 overflow-y-auto">
             {activeTab === 0 && <PersonalInfoTab {...tabProps} />}
             {activeTab === 1 && (
@@ -664,7 +682,11 @@ console.log('personality test response:', data);
             )}
           </div>
         </div>
-        <div className="hidden lg:block"><ApplicationSidebar /></div>
+
+        {/* Sidebar */}
+        <div data-tour="sidebar" className="hidden lg:block">
+          <ApplicationSidebar />
+        </div>
       </div>
     </div>
   );

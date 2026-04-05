@@ -14,6 +14,8 @@ func Init(server *fiber.App, db *database.TrackedDB, accessManager *pkgAuth.Toke
 
 	group := server.Group("/candidates", md.AuthRole(accessManager, md.RoleAdmin))
 	group.Get("/", handler.List)
+	group.Get("/smart-filter", handler.SmartFilter)
+	group.Get("/advanced-filter", handler.AdvancedFilter)
 	group.Get("/:applicationId", handler.Detail)
 	group.Patch("/:applicationId/stage", md.BindAndValidate[UpdateStageRequest](), handler.UpdateStage)
 }
