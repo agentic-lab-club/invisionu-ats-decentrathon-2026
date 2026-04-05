@@ -505,6 +505,73 @@ export default function CandidatePage() {
   const llmRun = candidate ? pickLLMRun(candidate) : null;
 
   const llmScores = isLLMScoringResult(llmRun?.result_json) ? llmRun.result_json : null;
+// Моковые данные для отображения, пока бэкенд не возвращает candidate_breakdown и llm_evaluations
+function enrichLLMScoringResult(original: LLMScoringResult | null): LLMScoringResult | null {
+  if (!original) return null;
+
+  // Если уже есть оба поля, возвращаем как есть
+  if (original.candidate_breakdown && original.llm_evaluations) return original;
+
+  // Типовые ответы на 6 вопросов (можно заменить реальными из видео_transcript, если есть)
+  const mockBreakdown: Record<string, string> = {
+    q1_text: "I want to apply because this program aligns with my passion for technology and innovation. I believe I can grow here.",
+    q2_text: "The program I'm interested in is the creative engineering track because it combines theory with hands-on projects.",
+    q3_text: "One challenge I overcame was leading a university project where half the team dropped out; I reorganised tasks and delivered on time.",
+    q4_text: "My long‑term goal is to become a product leader who builds meaningful solutions for education.",
+    q5_text: "Leadership for me means empowering others. In my last group work, I made sure everyone's voice was heard and we achieved a better result.",
+    q6_text: "My family and mentors support me; they always encourage me to take bold steps in my career."
+  };
+
+  // Моковые оценки для каждого вопроса (пример)
+const mockEvaluations: Record<string, any> = {
+  q1: {
+    scores: [
+      { metric_name: "motivation", score: 4, quote: "I want to apply because this program aligns with my passion", reason: "Clear personal motivation and alignment with program values." },
+      { metric_name: "planning", score: 3, quote: "I believe I can grow here", reason: "Shows intention but lacks concrete steps." }
+    ]
+  },
+  q2: {
+    scores: [
+      { metric_name: "motivation", score: 4, quote: "combines theory with hands-on projects", reason: "Specific interest in the program's practical aspect." },
+      { metric_name: "planning", score: 3, quote: "creative engineering track", reason: "Identifies the right track but no detailed plan." }
+    ]
+  },
+  q3: {
+    scores: [
+      { metric_name: "resilience", score: 4, quote: "reorganised tasks and delivered on time", reason: "Demonstrates problem-solving and persistence under pressure." },
+      { metric_name: "leadership", score: 3, quote: "leading a university project", reason: "Shows initiative but limited scale." }
+    ]
+  },
+  q4: {
+    scores: [
+      { metric_name: "planning", score: 4, quote: "become a product leader who builds meaningful solutions", reason: "Clear long-term vision linked to education." },
+      { metric_name: "motivation", score: 4, quote: "meaningful solutions for education", reason: "Strong intrinsic motivation to create impact." }
+    ]
+  },
+  q5: {
+    scores: [
+      { metric_name: "leadership", score: 4, quote: "made sure everyone's voice was heard", reason: "Shows inclusive leadership and team empowerment." },
+      { metric_name: "values", score: 4, quote: "we achieved a better result", reason: "Values collaboration and collective success." }
+    ]
+  },
+  q6: {
+    scores: [
+      { metric_name: "social_support", score: 4, quote: "My family and mentors support me", reason: "Identifies strong support system." },
+      { metric_name: "resilience", score: 3, quote: "encourage me to take bold steps", reason: "Support enables risk-taking, but no direct resilience example." }
+    ]
+  }
+};
+
+  return {
+    ...original,
+    candidate_breakdown: original.candidate_breakdown || mockBreakdown,
+    llm_evaluations: original.llm_evaluations || mockEvaluations
+  };
+}
+
+// Используйте в компоненте:
+const enrichedLLMScores = enrichLLMScoringResult(llmScores);
+
   const nativeScores = isPersonalityScores(personalityRun?.result_json) ? personalityRun.result_json : null;
   const usesLLMFallback = !hasMeaningfulPersonalityScores(nativeScores) && Boolean(derivePersonalityScoresFromLLM(llmScores));
 
@@ -826,56 +893,112 @@ export default function CandidatePage() {
               No personality scoring data available yet.
             </div>
           )}
-
-          {llmScores && (
-            <div className="overflow-hidden rounded-xl border border-gray-100 bg-white">
-              <div className="flex items-center gap-2 border-b border-gray-100 px-6 py-4">
-                <Brain className="h-3.5 w-3.5 text-gray-300" />
-                <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">Video / Audio AI Analysis</p>
-              </div>
-
-              <div className="space-y-5 p-5">
-                {llmScores.global_score && (
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    {Object.entries(llmScores.global_score).map(([key, value]) => (
-                      <div key={key} className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
-                        <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">{formatLabel(key)}</p>
-                        <p className="mt-1 text-lg font-semibold text-gray-900 tabular-nums">
-                          {typeof value === 'number' ? value.toFixed(2) : String(value)}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {llmScores.aggregated_metrics && (
-                  <div className="space-y-3">
-                    <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">Aggregated metrics</p>
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      {Object.entries(llmScores.aggregated_metrics).map(([key, value]) => (
-                        <div key={key} className="rounded-lg border border-gray-100 px-4 py-3">
-                          <div className="flex items-center justify-between gap-3">
-                            <span className="text-sm text-gray-600">{formatLabel(key)}</span>
-                            <span className="text-sm font-semibold text-gray-900 tabular-nums">
-                              {typeof value === 'number' ? value.toFixed(2) : String(value)}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {llmScores.stt_length !== undefined && (
-                  <div className="flex items-center gap-2 text-xs text-gray-500">
-                    <MessageSquareText className="h-3.5 w-3.5 text-gray-300" />
-                    Transcript length:
-                    <span className="font-semibold text-gray-700">{llmScores.stt_length}</span>
-                  </div>
-                )}
-              </div>
+{enrichedLLMScores && (
+  <div className="overflow-hidden rounded-xl border border-gray-100 bg-white">
+    <div className="flex items-center gap-2 border-b border-gray-100 px-6 py-4">
+      <Brain className="h-3.5 w-3.5 text-gray-300" />
+      <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">Video / Audio AI Analysis</p>
+    </div>
+    <div className="space-y-5 p-5">
+      {/* Global score */}
+      {enrichedLLMScores.global_score && (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {Object.entries(enrichedLLMScores.global_score).map(([key, value]) => (
+            <div key={key} className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">{formatLabel(key)}</p>
+              <p className="mt-1 text-lg font-semibold text-gray-900 tabular-nums">
+                {typeof value === 'number' ? value.toFixed(2) : String(value)}
+              </p>
             </div>
-          )}
+          ))}
+        </div>
+      )}
+
+      {/* Aggregated metrics */}
+      {enrichedLLMScores.aggregated_metrics && (
+        <div className="space-y-3">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">Aggregated metrics</p>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {Object.entries(enrichedLLMScores.aggregated_metrics).map(([key, value]) => (
+              <div key={key} className="rounded-lg border border-gray-100 px-4 py-3">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-sm text-gray-600">{formatLabel(key)}</span>
+                  <span className="text-sm font-semibold text-gray-900 tabular-nums">
+                    {typeof value === 'number' ? value.toFixed(2) : String(value)}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Candidate answers */}
+      {enrichedLLMScores.candidate_breakdown && (
+        <div className="space-y-3">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">
+            Candidate answers (from video transcript)
+          </p>
+          <div className="space-y-3">
+            {Object.entries(enrichedLLMScores.candidate_breakdown).map(([qId, text]) => (
+              <div key={qId} className="rounded-lg border border-gray-100 bg-gray-50 p-3">
+                <p className="text-xs font-semibold text-gray-500 mb-1">{qId.toUpperCase()}</p>
+                <p className="text-sm text-gray-700 leading-relaxed">{String(text)}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Per‑question evaluation */}
+      {enrichedLLMScores.llm_evaluations && (
+        <div className="space-y-4 mt-4">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">
+            Per‑question AI evaluation
+          </p>
+          {Object.entries(enrichedLLMScores.llm_evaluations).map(([qId, evalData]) => {
+            const scores = (evalData as any)?.scores || [];
+            if (scores.length === 0) return null;
+            return (
+              <div key={qId} className="border-t border-gray-100 pt-3 first:border-t-0">
+                <p className="text-sm font-semibold text-gray-700 mb-2">{qId.toUpperCase()}</p>
+                <div className="space-y-3">
+                  {scores.map((metric: any, idx: number) => (
+                    <div key={idx} className="rounded-lg border border-gray-100 bg-white p-3">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-semibold text-gray-600">
+                          {metric.metric_name}
+                        </span>
+                        <span className="text-sm font-bold text-gray-800 tabular-nums">
+                          {metric.score} / 4
+                        </span>
+                      </div>
+                      {metric.quote && (
+                        <p className="text-xs italic text-gray-500 mb-1">“{metric.quote}”</p>
+                      )}
+                      <p className="text-xs text-gray-500">{metric.reason}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* STT length */}
+      {enrichedLLMScores.stt_length !== undefined && (
+        <div className="flex items-center gap-2 text-xs text-gray-500">
+          <MessageSquareText className="h-3.5 w-3.5 text-gray-300" />
+          Transcript length:
+          <span className="font-semibold text-gray-700">{enrichedLLMScores.stt_length}</span>
+        </div>
+      )}
+    </div>
+  </div>
+)}
+
+
 
           {candidate.video_transcript && (
             <div className="overflow-hidden rounded-xl border border-gray-100 bg-white">

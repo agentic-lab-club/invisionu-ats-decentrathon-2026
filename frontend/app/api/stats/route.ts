@@ -1,145 +1,187 @@
-import { NextResponse } from 'next/server';
-import { query } from '@/lib/db';
+import { NextRequest, NextResponse } from 'next/server';
 
+const BACKEND = process.env.BACKEND_INTERNAL_URL || 'http://localhost:8080';
+
+// ── Same mapping as CandidatesTableWithFavorites.tsx ──────────────────────────
+const reviewStageMapping: Record<string, string> = {
+  initial_screening:   'new',
+  application_review:  'review',
+  decision:            'decision',
+};
+
+function getUiStatus(reviewStage: string, decision: string): string {
+  let uiStatus = reviewStageMapping[reviewStage] ?? 'new';
+  if (uiStatus === 'decision') {
+    if (decision === 'accepted')  uiStatus = 'recommended';
+    else if (decision === 'rejected') uiStatus = 'rejected';
+    else uiStatus = 'review';
+  }
+  return uiStatus;
+}
+
+// ── Fallback mock (only when backend is unreachable) ──────────────────────────
 function buildMockStatistics() {
   return {
     source: 'mock',
     statusCounts: [
-      { status: 'new', count: 5 },
-      { status: 'review', count: 6 },
-      { status: 'interview', count: 3 },
+      { status: 'new',         count: 5 },
+      { status: 'review',      count: 6 },
       { status: 'recommended', count: 2 },
-      { status: 'rejected', count: 1 },
+      { status: 'rejected',    count: 1 },
     ],
     scoreDistribution: [
-      { score_range: '40-49', count: 1 },
-      { score_range: '50-59', count: 2 },
-      { score_range: '60-69', count: 4 },
-      { score_range: '70-79', count: 5 },
-      { score_range: '80-89', count: 3 },
-      { score_range: '90-100', count: 2 },
+      { score_range: '0-1', count: 1 },
+      { score_range: '1-2', count: 2 },
+      { score_range: '2-3', count: 4 },
+      { score_range: '3-4', count: 5 },
+      { score_range: '4-5', count: 2 },
     ],
     categoryAverages: {
-      motivation_avg: 74,
-      leadership_avg: 69,
-      structure_avg: 72,
+      motivation_avg:     3.2,
+      leadership_avg:     2.9,
+      values_avg:         3.8,
+      planning_avg:       3.0,
+      resilience_avg:     3.5,
+      social_support_avg: 3.7,
     },
-    topKeywords: [
-      { word: 'leadership', frequency: 14 },
-      { word: 'motivation', frequency: 12 },
-      { word: 'innovation', frequency: 10 },
-      { word: 'impact', frequency: 9 },
-      { word: 'initiative', frequency: 8 },
-      { word: 'projects', frequency: 8 },
-      { word: 'community', frequency: 7 },
-      { word: 'growth', frequency: 6 },
-      { word: 'mission', frequency: 6 },
-      { word: 'teamwork', frequency: 5 },
-    ],
-    ieltsDistribution: [
-      { ielts_range: '5-5.9', count: 2 },
-      { ielts_range: '6-6.9', count: 5 },
-      { ielts_range: '7-7.9', count: 6 },
-      { ielts_range: '8-9', count: 2 },
-    ],
+    topKeywords:      [],
+    ieltsDistribution: [],
   };
 }
 
-export async function GET() {
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function avg(arr: number[]): number {
+  return arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function parseResultJson(raw: any): any {
+  if (!raw) return null;
+  if (typeof raw === 'string') {
+    try { return JSON.parse(raw); } catch { return null; }
+  }
+  return raw;
+}
+
+// ── Handler ───────────────────────────────────────────────────────────────────
+export async function GET(request: NextRequest) {
+  const authHeader = request.headers.get('authorization') ?? '';
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(authHeader ? { Authorization: authHeader } : {}),
+  };
+
   try {
-    const statusCounts = await query(`
-      SELECT status, COUNT(*) as count
-      FROM candidate_statuses
-      GROUP BY status
-    `);
+    // 1. Fetch full candidate list
+    const listRes = await fetch(
+      `${BACKEND}/candidates?program_code=&review_stage=&decision=&search=`,
+      { headers, cache: 'no-store' },
+    );
 
-    const scoreDistribution = await query(`
-      WITH latest_scores AS (
-        SELECT DISTINCT ON (application_id) 
-          application_id,
-          overall_score
-        FROM scores
-        ORDER BY application_id, calculated_at DESC
-      )
-      SELECT 
-        CASE 
-          WHEN overall_score < 20 THEN '0-19'
-          WHEN overall_score < 30 THEN '20-29'
-          WHEN overall_score < 40 THEN '30-39'
-          WHEN overall_score < 50 THEN '40-49'
-          WHEN overall_score < 60 THEN '50-59'
-          WHEN overall_score < 70 THEN '60-69'
-          WHEN overall_score < 80 THEN '70-79'
-          WHEN overall_score < 90 THEN '80-89'
-          ELSE '90-100'
-        END AS score_range,
-        COUNT(*) as count
-      FROM latest_scores
-      GROUP BY score_range
-      ORDER BY MIN(overall_score)
-    `);
+    if (!listRes.ok) {
+      console.warn('[stats] backend list returned', listRes.status);
+      return NextResponse.json(buildMockStatistics());
+    }
 
-    const categoryAverages = await query(`
-      SELECT 
-        AVG(motivation_avg) as motivation_avg,
-        AVG(leadership_avg) as leadership_avg,
-        AVG(structure_avg) as structure_avg
-      FROM scores
-    `);
+    const listData = await listRes.json();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const items: any[] = listData?.items ?? (Array.isArray(listData) ? listData : []);
 
-    // IELTS распределение
-    const ieltsDistribution = await query(`
-      WITH ielts_ranges AS (
-        SELECT 
-          CASE 
-            WHEN ielts_score < 4 THEN '0-3.9'
-            WHEN ielts_score < 5 THEN '4-4.9'
-            WHEN ielts_score < 6 THEN '5-5.9'
-            WHEN ielts_score < 7 THEN '6-6.9'
-            WHEN ielts_score < 8 THEN '7-7.9'
-            ELSE '8-9'
-          END AS ielts_range,
-          COUNT(*) as count
-        FROM candidates
-        WHERE ielts_score IS NOT NULL
-        GROUP BY ielts_range
-        ORDER BY MIN(ielts_score)
-      )
-      SELECT * FROM ielts_ranges
-    `);
+    if (items.length === 0) {
+      return NextResponse.json(buildMockStatistics());
+    }
 
-    const topKeywords = await query(`
-      SELECT 
-        word,
-        COUNT(*) as frequency
-      FROM (
-        SELECT unnest(regexp_matches(analysis_json->>'explanation', '\\w+', 'g')) as word
-        FROM ml_analysis
-      ) words
-      WHERE length(word) > 3
-      GROUP BY word
-      ORDER BY frequency DESC
-      LIMIT 10
-    `);
+    // 2. Compute statusCounts (exact same logic as the dashboard table)
+    const statusMap: Record<string, number> = {};
+    for (const item of items) {
+      const uiStatus = getUiStatus(item.review_stage ?? '', item.decision ?? '');
+      statusMap[uiStatus] = (statusMap[uiStatus] ?? 0) + 1;
+    }
+    const STATUS_ORDER = ['new', 'review', 'recommended', 'rejected'];
+    const statusCounts = STATUS_ORDER
+      .filter(s => statusMap[s] != null)
+      .map(status => ({ status, count: statusMap[status] }));
 
-    const payload = {
-      source: 'database',
-      statusCounts: statusCounts.rows,
-      scoreDistribution: scoreDistribution.rows,
-      categoryAverages: categoryAverages.rows[0] || { motivation_avg: 0, leadership_avg: 0, structure_avg: 0 },
-      topKeywords: topKeywords.rows,
-      ieltsDistribution: ieltsDistribution.rows,
+    // 3. Fetch candidate details in parallel (for LLM scores)
+    const detailResults = await Promise.allSettled(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      items.map((item: any) =>
+        fetch(`${BACKEND}/candidates/${item.application_id}`, {
+          headers,
+          cache: 'no-store',
+        }).then(r => r.json()),
+      ),
+    );
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const details: any[] = detailResults
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .filter((r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled')
+      .map(r => r.value);
+
+    // 4. Extract LLM metrics
+    const metricsAccum: Record<string, number[]> = {
+      Motivation:    [],
+      Leadership:    [],
+      Values:        [],
+      Planning:      [],
+      Resilience:    [],
+      Social_Support:[],
+    };
+    const admissionsPotentials: number[] = [];
+
+    for (const detail of details) {
+      const rj = parseResultJson(detail?.latest_llm_scoring_run?.result_json);
+      if (!rj) continue;
+
+      const am = rj.aggregated_metrics;
+      if (am) {
+        for (const key of Object.keys(metricsAccum)) {
+          if (am[key] != null) metricsAccum[key].push(Number(am[key]));
+        }
+      }
+
+      const gs = rj.global_score;
+      if (gs?.AdmissionsPotential != null) {
+        admissionsPotentials.push(Number(gs.AdmissionsPotential));
+      }
+    }
+
+    const categoryAverages = {
+      motivation_avg:     avg(metricsAccum.Motivation),
+      leadership_avg:     avg(metricsAccum.Leadership),
+      values_avg:         avg(metricsAccum.Values),
+      planning_avg:       avg(metricsAccum.Planning),
+      resilience_avg:     avg(metricsAccum.Resilience),
+      social_support_avg: avg(metricsAccum.Social_Support),
     };
 
-    const isEmpty =
-      payload.statusCounts.length === 0 &&
-      payload.scoreDistribution.length === 0 &&
-      payload.ieltsDistribution.length === 0 &&
-      payload.topKeywords.length === 0;
+    // 5. Score distribution for AdmissionsPotential (scale 0–5)
+    const scoreRangeOrder = ['0-1', '1-2', '2-3', '3-4', '4-5'];
+    const scoreMap: Record<string, number> = {};
+    for (const score of admissionsPotentials) {
+      const bucket =
+        score < 1 ? '0-1' :
+        score < 2 ? '1-2' :
+        score < 3 ? '2-3' :
+        score < 4 ? '3-4' : '4-5';
+      scoreMap[bucket] = (scoreMap[bucket] ?? 0) + 1;
+    }
+    const scoreDistribution = scoreRangeOrder
+      .filter(r => scoreMap[r] != null)
+      .map(score_range => ({ score_range, count: scoreMap[score_range] }));
 
-    return NextResponse.json(isEmpty ? buildMockStatistics() : payload);
+    return NextResponse.json({
+      source:           'database',
+      statusCounts,
+      scoreDistribution,
+      categoryAverages,
+      topKeywords:       [],   // not available from backend list/detail
+      ieltsDistribution: [],   // not available from backend
+    });
+
   } catch (error) {
-    console.error(error);
+    console.error('[stats] unexpected error:', error);
     return NextResponse.json(buildMockStatistics());
   }
 }
