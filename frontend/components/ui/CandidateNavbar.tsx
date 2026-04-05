@@ -23,13 +23,13 @@ export default function CandidateNavbar() {
       }
 
       try {
-        // Вариант 1: если есть эндпоинт /api/backend/users/me
-        const res = await fetch("/api/backend/users/me", {
+        // Use the real backend route exposed by the auth module.
+        const res = await fetch("/api/backend/auth/me", {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (res.ok) {
           const data = await res.json();
-          setUser(data);
+          setUser(data.user);
         } else {
           // Вариант 2: декодируем userId из JWT (если в токене есть поле sub или user_id)
           const payload = token.split('.')[1];

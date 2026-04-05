@@ -1,7 +1,10 @@
 // lib/auth.ts
 // Shared auth utilities — token storage, API calls, user type
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+const API_URL =
+  typeof window === 'undefined'
+    ? (process.env.BACKEND_INTERNAL_URL || 'http://localhost:8080')
+    : '/api/backend';
 
 export interface AuthUser {
   id: string;
